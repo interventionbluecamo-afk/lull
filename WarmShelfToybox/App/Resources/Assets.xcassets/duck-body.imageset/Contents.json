@@ -1,0 +1,13 @@
+{
+  "images" : [
+    {
+      "filename" : "duck-body.png",
+      "idiom" : "universal",
+      "scale" : "3x"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

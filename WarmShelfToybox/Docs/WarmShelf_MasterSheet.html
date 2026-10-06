@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Warm Shelf Master Sheet</title>
+  <style>
+    :root {
+      --linen: #F4EDCF;
+      --paper: #F8F2DB;
+      --cream: #EEE4BC;
+      --line: #DDD2AE;
+      --ink: #422417;
+      --cocoa: #6E402C;
+      --terracotta: #C46243;
+      --sage: #789174;
+      --sand: #D1B27C;
+      --water: #A7D0D3;
+      --butter: #E2C76B;
+      --lavender: #AD9ABC;
+      --petal: #E8A898;
+      --bubble: #8ECFE2;
+      --shadow: rgba(66, 36, 23, 0.10);
+      --soft-shadow: rgba(66, 36, 23, 0.055);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 14% 18%, rgba(248, 242, 219, 0.65), transparent 28%),
+        radial-gradient(circle at 82% 6%, rgba(232, 168, 152, 0.12), transparent 20%),
+        linear-gradient(180deg, var(--linen), #F2E9C9 62%, var(--linen));
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(circle, rgba(110, 64, 44, 0.08) 0 1px, transparent 1.2px),
+        radial-gradient(circle, rgba(248, 242, 219, 0.5) 0 1.4px, transparent 1.6px);
+      background-size: 86px 78px, 121px 103px;
+      opacity: 0.46;
+      mix-blend-mode: multiply;
+    }
+
+    main {
+      width: min(1120px, calc(100vw - 36px));
+      margin: 0 auto;
+      padding: 44px 0 72px;
+    }
+
+    header {
+      padding: 34px 36px;
+      border: 1px solid rgba(221, 210, 174, 0.72);
+      border-radius: 28px;
+      background: rgba(248, 242, 219, 0.58);
+      box-shadow: 0 24px 70px var(--soft-shadow);
+    }
+
+    h1, h2, h3 {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+      font-weight: 760;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      max-width: 760px;
+      font-size: clamp(40px, 7vw, 78px);
+      line-height: 0.98;
+    }
+
+    h2 {
+      margin-bottom: 14px;
+      font-size: clamp(24px, 3vw, 34px);
+    }
+
+    h3 {
+      margin-bottom: 8px;
+      font-size: 18px;
+    }
+
+    p {
+      margin: 0;
+    }
+
+    .subtitle {
+      max-width: 760px;
+      margin-top: 18px;
+      color: rgba(66, 36, 23, 0.78);
+      font-size: clamp(18px, 2.2vw, 24px);
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 28px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 7px 13px;
+      border: 1px solid rgba(110, 64, 44, 0.10);
+      border-radius: 999px;
+      background: rgba(244, 237, 207, 0.62);
+      color: rgba(66, 36, 23, 0.74);
+      font-size: 13px;
+      font-weight: 680;
+    }
+
+    .grid {
+      display: grid;
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    section {
+      margin-top: 22px;
+      padding: 28px;
+      border: 1px solid rgba(221, 210, 174, 0.72);
+      border-radius: 24px;
+      background: rgba(248, 242, 219, 0.44);
+      box-shadow: 0 18px 48px rgba(66, 36, 23, 0.035);
+    }
+
+    .card {
+      padding: 20px;
+      border: 1px solid rgba(110, 64, 44, 0.08);
+      border-radius: 18px;
+      background: rgba(244, 237, 207, 0.52);
+    }
+
+    .card.strong {
+      background: rgba(238, 228, 188, 0.48);
+    }
+
+    ul, ol {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    li + li {
+      margin-top: 7px;
+    }
+
+    code {
+      padding: 2px 5px;
+      border-radius: 6px;
+      background: rgba(110, 64, 44, 0.08);
+      font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+      font-size: 0.92em;
+    }
+
+    .toy-row {
+      display: grid;
+      grid-template-columns: 88px 1fr;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .toy-icon {
+      display: grid;
+      place-items: center;
+      width: 88px;
+      height: 88px;
+      border-radius: 26px;
+      background: rgba(248, 242, 219, 0.55);
+      box-shadow: inset 0 0 0 1px rgba(66, 36, 23, 0.06), 0 12px 24px var(--soft-shadow);
+    }
+
+    .bubble-cluster,
+    .block-stack,
+    .face-cluster {
+      position: relative;
+      width: 58px;
+      height: 58px;
+    }
+
+    .bubble-cluster span,
+    .block-stack span,
+    .face-cluster span {
+      position: absolute;
+      display: block;
+    }
+
+    .bubble-cluster span {
+      border: 3px solid rgba(142, 207, 226, 0.72);
+      border-radius: 50%;
+      background: rgba(231, 250, 255, 0.26);
+    }
+
+    .bubble-cluster span:nth-child(1) { width: 32px; height: 32px; left: 4px; top: 19px; }
+    .bubble-cluster span:nth-child(2) { width: 42px; height: 42px; right: 1px; top: 3px; }
+    .bubble-cluster span:nth-child(3) { width: 24px; height: 24px; left: 18px; top: 0; }
+
+    .block-stack span {
+      border-radius: 10px;
+      box-shadow: 0 3px 0 rgba(66, 36, 23, 0.06);
+    }
+
+    .block-stack span:nth-child(1) { width: 54px; height: 18px; left: 1px; bottom: 4px; background: var(--terracotta); }
+    .block-stack span:nth-child(2) { width: 28px; height: 31px; left: 8px; bottom: 24px; background: var(--sage); transform: rotate(-8deg); }
+    .block-stack span:nth-child(3) { width: 44px; height: 16px; right: 0; bottom: 24px; background: var(--sand); transform: rotate(9deg); }
+    .block-stack span:nth-child(4) { width: 25px; height: 25px; right: 8px; top: 0; background: var(--butter); border-radius: 50%; }
+
+    .face-cluster span:nth-child(1) {
+      width: 54px;
+      height: 54px;
+      left: 2px;
+      top: 0;
+      border-radius: 50%;
+      background: var(--petal);
+      box-shadow: inset 0 -8px 0 rgba(196, 98, 67, 0.08);
+    }
+
+    .face-cluster span:nth-child(2),
+    .face-cluster span:nth-child(3) {
+      width: 6px;
+      height: 6px;
+      top: 22px;
+      border-radius: 50%;
+      background: var(--ink);
+      opacity: 0.78;
+    }
+
+    .face-cluster span:nth-child(2) { left: 19px; }
+    .face-cluster span:nth-child(3) { right: 19px; }
+
+    .face-cluster span:nth-child(4) {
+      width: 18px;
+      height: 9px;
+      left: 20px;
+      top: 34px;
+      border-bottom: 3px solid rgba(66, 36, 23, 0.70);
+      border-radius: 0 0 20px 20px;
+    }
+
+    .swatches {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .swatch {
+      min-height: 94px;
+      padding: 10px;
+      border: 1px solid rgba(66, 36, 23, 0.08);
+      border-radius: 14px;
+      display: flex;
+      align-items: flex-end;
+      color: rgba(66, 36, 23, 0.76);
+      font-size: 12px;
+      font-weight: 720;
+      box-shadow: inset 0 -32px 38px rgba(248, 242, 219, 0.18);
+    }
+
+    .status-table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 16px;
+    }
+
+    .status-table th,
+    .status-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(110, 64, 44, 0.08);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .status-table th {
+      background: rgba(209, 178, 124, 0.18);
+      color: rgba(66, 36, 23, 0.78);
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .status-table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .callout {
+      border-left: 5px solid var(--terracotta);
+      background: rgba(196, 98, 67, 0.08);
+    }
+
+    .quiet {
+      color: rgba(66, 36, 23, 0.62);
+    }
+
+    .section-note {
+      margin-bottom: 18px;
+      color: rgba(66, 36, 23, 0.70);
+      font-size: 16px;
+    }
+
+    footer {
+      margin-top: 26px;
+      padding: 20px 8px 0;
+      color: rgba(66, 36, 23, 0.58);
+      font-size: 13px;
+      text-align: center;
+    }
+
+    @media (max-width: 860px) {
+      main {
+        width: min(100vw - 22px, 720px);
+        padding-top: 18px;
+      }
+
+      header,
+      section {
+        padding: 22px;
+        border-radius: 20px;
+      }
+
+      .two,
+      .three {
+        grid-template-columns: 1fr;
+      }
+
+      .swatches {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .toy-row {
+        grid-template-columns: 70px 1fr;
+      }
+
+      .toy-icon {
+        width: 70px;
+        height: 70px;
+        border-radius: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="pill">Warm Shelf Master Sheet</div>
+      <h1>Calm digital toys that feel alive in a toddler's hands.</h1>
+      <p class="subtitle">
+        Warm Shelf is an iPad-first collection of tactile digital toys for children ages 2 to 4.
+        The product is not a game, not a lesson, and not a reward loop. It is a warm shelf of
+        living objects that invite touch, care, repetition, and discovery.
+      </p>
+      <div class="meta">
+        <span class="pill">App: WarmShelfToybox</span>
+        <span class="pill">Platform: iOS, iPad-first</span>
+        <span class="pill">Engine: Swift, UIKit, SpriteKit</span>
+        <span class="pill">Current toys: Bubbles, Clay Blocks, Feed the People</span>
+        <span class="pill">Next focus: sensory polish and parent area</span>
+      </div>
+    </header>
+
+    <section class="callout">
+      <h2>North Star</h2>
+      <p>
+        Hand the app silently to a 2-year-old and see whether they reach for it. Every interaction
+        should answer immediately, then settle gently. The child should never need to read, win,
+        understand a menu, or chase a score. The product succeeds when a small human touches the
+        screen because the toy feels present.
+      </p>
+    </section>
+
+    <section>
+      <h2>Current State</h2>
+      <p class="section-note">
+        The project has moved from a single vertical slice into an early two-toy platform spine.
+        The architecture is intentionally small: reusable scene foundations, shared motion and
+        physics helpers, and one registry for future toys.
+      </p>
+      <table class="status-table">
+        <thead>
+          <tr>
+            <th>Area</th>
+            <th>Status</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Shelf</td>
+            <td>Playable</td>
+            <td>SpriteKit shelf with living toy objects, no labels, adaptive portrait and landscape layout.</td>
+          </tr>
+          <tr>
+            <td>Bubbles</td>
+            <td>Strongest toy</td>
+            <td>Continuous drifting bubbles, instant pop, soft particles, real pop MP3, non-numeric bead memory dish.</td>
+          </tr>
+          <tr>
+            <td>Clay Blocks</td>
+            <td>Active prototype</td>
+            <td>Drag, stack, drop, mystery-shape source tray, bigger hand-sized shapes, vertical follow for tall builds.</td>
+          </tr>
+          <tr>
+            <td>Feed the People</td>
+            <td>First playable prototype</td>
+            <td>Three characters, five draggable foods, generous mouth snapping, expression cycle, and food respawn.</td>
+          </tr>
+          <tr>
+            <td>Audio and haptics</td>
+            <td>In progress</td>
+            <td>Audio APIs now separate sound events by meaning. Haptics are split into a dedicated manager. More real assets are needed.</td>
+          </tr>
+          <tr>
+            <td>Accessibility</td>
+            <td>Foundation added</td>
+            <td>Scenes expose UIKit accessibility elements for shelf toys, return handle, bubbles, blocks, and new-shape tray.</td>
+          </tr>
+          <tr>
+            <td>Parent area</td>
+            <td>Not built</td>
+            <td>Still needed for trust, COPPA posture, product explanation, and App Store readiness.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Non-Negotiable Product Rules</h2>
+      <div class="grid two">
+        <div class="card strong">
+          <h3>Inside Toys</h3>
+          <ul>
+            <li>No child-facing text.</li>
+            <li>No instructions.</li>
+            <li>No scores, levels, stars, streaks, win states, or fail states.</li>
+            <li>No ads, accounts, analytics, onboarding, or monetization in this slice.</li>
+            <li>No dead taps. Empty space must still answer softly.</li>
+            <li>One satisfying feedback moment at a time.</li>
+          </ul>
+        </div>
+        <div class="card strong">
+          <h3>Feel</h3>
+          <ul>
+            <li>Immediate response within calm.</li>
+            <li>Slow drift, gentle settling, soft easing.</li>
+            <li>Tactile, hand-touched, warm, low-stimulation visuals.</li>
+            <li>No neon, harsh outlines, arcade UI, glossy mobile-game language, or chaos loops.</li>
+            <li>Every scene should feel alive before touch.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Three-Toy System</h2>
+      <p class="section-note">
+        The platform should cover three developmental modes: sensory repetition, physical cause
+        and effect, and emotional relational play.
+      </p>
+      <div class="grid three">
+        <div class="card">
+          <div class="toy-row">
+            <div class="toy-icon">
+              <div class="bubble-cluster"><span></span><span></span><span></span></div>
+            </div>
+            <div>
+              <h3>Bubbles</h3>
+              <p class="quiet">Sensory and repetition. Tap to pop. Soft drift, visible bubbles, gentle particle burst, no score.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="toy-row">
+            <div class="toy-icon">
+              <div class="block-stack"><span></span><span></span><span></span><span></span></div>
+            </div>
+            <div>
+              <h3>Clay Blocks</h3>
+              <p class="quiet">Physical and causal. Drag, stack, tumble, build upward. A quiet mystery tray gives more shapes.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="toy-row">
+            <div class="toy-icon">
+              <div class="face-cluster"><span></span><span></span><span></span><span></span></div>
+            </div>
+            <div>
+              <h3>Feed the People</h3>
+              <p class="quiet">Emotional and relational. Feed simple characters, receive warm expressions, reset calmly. First playable slice is now in the app.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Brand Palette</h2>
+      <p class="section-note">
+        The palette is amber morning light: linen, warm cream, clay, terracotta, sage, sand,
+        and cool iridescent bubble accents. The third toy adds petal as the warm human register.
+      </p>
+      <div class="swatches">
+        <div class="swatch" style="background: var(--linen);">linen<br>#F4EDCF</div>
+        <div class="swatch" style="background: var(--cream);">warm cream<br>#EEE4BC</div>
+        <div class="swatch" style="background: var(--terracotta); color: #fff7e8;">terracotta<br>#C46243</div>
+        <div class="swatch" style="background: var(--sage); color: #fff7e8;">sage<br>#789174</div>
+        <div class="swatch" style="background: var(--water);">water blue<br>#A7D0D3</div>
+        <div class="swatch" style="background: var(--petal);">petal<br>#E8A898</div>
+        <div class="swatch" style="background: var(--bubble);">bubble rim<br>#8ECFE2</div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Architecture</h2>
+      <div class="grid two">
+        <div class="card">
+          <h3>Shared Foundation</h3>
+          <ul>
+            <li><code>BaseToyScene</code>: reusable SpriteKit scene base, paper background, motes, return handle.</li>
+            <li><code>ToyRegistry</code>: single registration point for shelf toys.</li>
+            <li><code>ToyViewController</code>: presents any registered toy scene.</li>
+            <li><code>ToyShelfScene</code>: living shelf rendered from the registry.</li>
+            <li><code>WarmShelfPalette</code>: brand color source of truth.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Interaction Foundation</h3>
+          <ul>
+            <li><code>ToyPhysicsProfile</code>: shared touch and motion profiles.</li>
+            <li><code>ForgivingHitArea</code>: generous toddler touch targeting.</li>
+            <li><code>TouchFeedbackAnimator</code>: immediate acknowledgement and soft visual feedback.</li>
+            <li><code>ParticleManager</code>: soft bursts, motes, and ripples.</li>
+            <li><code>AudioManager</code> and <code>HapticsManager</code>: sensory layer.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Apple Design Award Lens</h2>
+      <p class="section-note">
+        The app is strong in philosophy, architecture, and interaction values. Submission readiness
+        depends on sensory craft, accessibility, trust, and a complete three-toy product shape.
+      </p>
+      <div class="grid two">
+        <div class="card strong">
+          <h3>Strengths</h3>
+          <ul>
+            <li>Clear product values expressed in code.</li>
+            <li>Authored physics rather than raw simulation everywhere.</li>
+            <li>Non-numeric memory instead of score.</li>
+            <li>Real toddler-test driven changes.</li>
+            <li>Calm visual identity with a real palette system.</li>
+          </ul>
+        </div>
+        <div class="card strong">
+          <h3>Hard Gaps</h3>
+          <ul>
+            <li>Handcrafted sound library is still missing.</li>
+            <li>Haptics need physical-device testing, especially iPhone versus iPad behavior.</li>
+            <li>Accessibility foundation needs verification with VoiceOver.</li>
+            <li>Parent area and trust screen are not built.</li>
+            <li>Third toy is not yet implemented.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Next Objectives</h2>
+      <ol>
+        <li>
+          Finish the sensory pass: bubble pop variants, empty-tap audio, block pickup/release/settle,
+          mystery tray sound, shelf transition sound, and real-world volume testing.
+        </li>
+        <li>
+          Verify haptics on device. Treat haptics as core on iPhone and graceful no-op on iPad hardware
+          that does not support Taptic feedback.
+        </li>
+        <li>
+          Build a minimal parent area behind a deliberate adult gesture. Include no ads, no accounts,
+          no data collection, how to return to shelf, and contact/support.
+        </li>
+        <li>
+          Toddler-test Feed the People with three characters, five food items, generous snap zones,
+          simple expression states, and no text.
+        </li>
+        <li>
+          Re-test shelf with three toys. The test is whether each toy earns a first reach without labels.
+        </li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Testing Checklist</h2>
+      <div class="grid two">
+        <div class="card">
+          <h3>Toddler Test</h3>
+          <ul>
+            <li>Does the child reach within five seconds?</li>
+            <li>Does the first tap produce visible understanding?</li>
+            <li>Do they repeat the action without prompting?</li>
+            <li>Do they discover the mystery tray naturally?</li>
+            <li>Does the block camera follow feel like building upward, not a moving camera?</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Parent and Product Test</h3>
+          <ul>
+            <li>Can a parent find return-to-shelf without making it a child-facing button?</li>
+            <li>Does the app explain trust without cluttering the child experience?</li>
+            <li>Does VoiceOver expose meaningful areas?</li>
+            <li>Do sounds feel soft on real iPad speakers?</li>
+            <li>Do portrait and landscape preserve play continuity?</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Not Now</h2>
+      <p class="section-note">
+        These are intentionally excluded until the spine, sensory layer, trust layer, and three-toy
+        v1 pitch are strong.
+      </p>
+      <div class="grid three">
+        <div class="card">No monetization.</div>
+        <div class="card">No accounts.</div>
+        <div class="card">No analytics.</div>
+        <div class="card">No onboarding.</div>
+        <div class="card">No settings panel for children.</div>
+        <div class="card">No Garage until Bubbles, Blocks, and Feed prove the platform.</div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Run The Project</h2>
+      <p class="section-note">
+        XcodeGen is available in the current environment and should be used after adding new source files.
+      </p>
+      <div class="card">
+        <p><code>cd /Users/admin/Desktop/flleaf/game/WarmShelfToybox</code></p>
+        <p><code>xcodegen generate</code></p>
+        <p><code>open WarmShelfToybox.xcodeproj</code></p>
+      </div>
+    </section>
+
+    <footer>
+      Warm Shelf Master Sheet. Keep this page honest: update it when toddler testing changes the product.
+    </footer>
+  </main>
+</body>
+</html>

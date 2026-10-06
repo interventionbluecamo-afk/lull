@@ -1,0 +1,32 @@
+# macOS
+.DS_Store
+
+# Xcode — user-specific state (not the project itself)
+xcuserdata/
+*.xcuserstate
+*.xcuserdatad
+
+# Build output
+build/
+DerivedData/
+*.ipa
+*.dSYM.zip
+
+# Swift Package Manager
+.swiftpm/
+.build/
+
+# Local tool caches
+.npm-cache/
+
+# Claude Code local overrides
+.claude/settings.local.json
+
+# Raw art-generation batches & reference archives — organized on disk, indexed by
+# README, deliberately NOT in git history (~250MB of source PNGs; everything chosen
+# is already promoted into App/Resources or Assets/Staging).
+Assets/Staging/Drops/
+Assets/Reference/
+
+# Old manual backup zips (pre-git habits) — kept on disk, never versioned
+Archive/

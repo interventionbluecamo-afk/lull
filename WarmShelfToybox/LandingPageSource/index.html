@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Lull — Calm toys, made for little hands</title>
+<meta name="description" content="A gentle digital toybox for ages 2–4. No ads, no scores, no timers — just calm, living toys. It even winds down toward your family's bedtime. Pay once, yours forever." />
+<meta name="theme-color" content="#F2E8C6" />
+
+<!-- Open Graph / social sharing -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Lull — Calm toys, made for little hands" />
+<meta property="og:description" content="A gentle toybox for ages 2–4. No ads, no scores — just play." />
+<meta property="og:image" content="icon.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Lull — Calm toys, made for little hands" />
+<meta name="twitter:description" content="A gentle toybox for ages 2–4. No ads, no scores — just play." />
+<meta name="twitter:image" content="icon.png" />
+
+<!-- TODO: replace with your real App Store id once live, e.g. app-id=6700000000 -->
+<meta name="apple-itunes-app" content="app-id=PLACEHOLDER" />
+
+<link rel="icon" href="icon.png" />
+<link rel="apple-touch-icon" href="icon.png" />
+
+<style>
+  :root{
+    /* Lull's real palette (WarmShelfPalette) */
+    --linen:#F2E8C6; --paper:#FAF0D8; --cream:#ECDFAF; --softline:#D4C89E;
+    --clayink:#3D1F0E; --cocoa:#5C3320; --raisin:#2F1A12; --labelink:#4A2D18;
+    --rhubarb:#A6473C; --terracotta:#D4583A; --sage:#6A8B66; --sand:#CDA96A;
+    --water:#85C5CF; --butter:#E8C045; --lavender:#A08BBB; --petal:#EA8E82;
+    --card:#FAF4E0; --cardborder:#D4C08A;
+    --maxw:480px; /* mobile-first: keep a cosy, phone-shaped column even on desktop */
+  }
+
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--clayink);
+    background:
+      radial-gradient(120% 80% at 50% -10%, var(--paper) 0%, var(--linen) 46%, var(--cream) 100%) fixed;
+    line-height:1.5;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* tactile paper grain overlay */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.045'/></svg>");
+    mix-blend-mode:multiply;
+  }
+
+  .wrap{position:relative;z-index:1;max-width:var(--maxw);margin:0 auto;padding:0 22px;}
+
+  /* ---------- serif wordmark / headings ---------- */
+  .serif{font-family:Georgia,"Times New Roman",serif;}
+  h1,h2,h3{font-family:Georgia,"Times New Roman",serif;font-weight:600;line-height:1.12;letter-spacing:-.01em;margin:0;}
+
+  /* ---------- floating bubbles ---------- */
+  #ascii{position:fixed;inset:0;z-index:0;pointer-events:none;
+    -webkit-mask-image:radial-gradient(135% 78% at 50% 22%, transparent 0%, transparent 15%, rgba(0,0,0,.4) 46%, #000 82%);
+            mask-image:radial-gradient(135% 78% at 50% 22%, transparent 0%, transparent 15%, rgba(0,0,0,.4) 46%, #000 82%);}
+  .bubbles{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+  .bubbles span{
+    position:absolute;bottom:-60px;border-radius:50%;
+    background:radial-gradient(circle at 32% 28%, #ffffffcc, var(--bubblepearl,#F7F2D5) 42%, #8ECFE266 100%);
+    box-shadow:inset 0 0 8px #ffffff88; opacity:.0;
+    animation:rise linear infinite;
+  }
+  @keyframes rise{
+    0%{transform:translateY(0) translateX(0) scale(.8);opacity:0;}
+    10%{opacity:.55;}
+    90%{opacity:.4;}
+    100%{transform:translateY(-112vh) translateX(var(--drift,20px)) scale(1);opacity:0;}
+  }
+
+  /* ---------- hero ---------- */
+  header.hero{padding:54px 0 30px;text-align:center;}
+  .mark{
+    width:148px;height:148px;border-radius:34px;display:block;margin:0 auto 22px;
+    box-shadow:0 18px 40px -14px #3d1f0e55, 0 4px 10px -4px #3d1f0e44;
+    animation:bob 5.5s ease-in-out infinite;
+  }
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(-1deg);}50%{transform:translateY(-9px) rotate(1deg);}}
+  .wordmark{font-size:64px;line-height:1;letter-spacing:-.02em;color:var(--clayink);}
+  .tagline{font-size:22px;margin:14px auto 6px;max-width:18ch;color:var(--cocoa);}
+  .subtitle{font-size:16px;color:var(--cocoa);opacity:.85;max-width:30ch;margin:0 auto 26px;}
+
+  /* ---------- App Store badge (CTA) ---------- */
+  .cta{display:inline-flex;align-items:center;gap:11px;
+    background:var(--clayink);color:#fff;text-decoration:none;
+    padding:13px 22px 13px 18px;border-radius:16px;
+    box-shadow:0 12px 26px -10px #3d1f0eaa;
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .cta:active{transform:scale(.97);}
+  .cta:hover{box-shadow:0 16px 30px -10px #3d1f0ecc;}
+  .cta svg{width:26px;height:26px;flex:0 0 auto;}
+  .cta > span{display:flex;flex-direction:column;align-items:flex-start;}
+  .cta .small{display:block;font-size:10.5px;opacity:.82;letter-spacing:.02em;line-height:1.1;margin-bottom:3px;}
+  .cta .big{display:block;font-size:19px;font-weight:600;line-height:1;font-family:Georgia,serif;letter-spacing:.01em;}
+  .reassure{margin-top:14px;font-size:13.5px;color:var(--cocoa);opacity:.8;}
+  .reassure b{color:var(--rhubarb);font-weight:600;}
+
+  /* ---------- section scaffolding ---------- */
+  section{padding:30px 0;}
+  .eyebrow{font-size:12px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--terracotta);text-align:center;margin-bottom:8px;}
+  .h2{font-size:30px;text-align:center;margin-bottom:6px;}
+  .lead{text-align:center;color:var(--cocoa);opacity:.86;max-width:34ch;margin:0 auto 22px;font-size:16px;}
+
+  /* ---------- promise grid ---------- */
+  .promise{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .promise .p{background:var(--card);border:1px solid var(--cardborder);border-radius:18px;padding:16px 15px;
+    box-shadow:0 8px 18px -14px #3d1f0e66;}
+  .promise .p .ic{font-size:22px;line-height:1;margin-bottom:8px;display:block;}
+  .promise .p h3{font-size:16.5px;margin-bottom:3px;}
+  .promise .p p{margin:0;font-size:13px;color:var(--cocoa);opacity:.82;}
+
+  /* ---------- toy shelf ---------- */
+  .shelf{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .toy{background:var(--card);border:1px solid var(--cardborder);border-radius:20px;padding:16px 14px 15px;text-align:center;
+    box-shadow:0 10px 22px -16px #3d1f0e88;position:relative;overflow:hidden;}
+  .toy .art{width:74px;height:74px;margin:2px auto 10px;display:block;}
+  .toy h3{font-size:17px;margin-bottom:2px;}
+  .toy p{margin:0;font-size:12.5px;color:var(--cocoa);opacity:.82;}
+  .toy .free{position:absolute;top:10px;right:10px;background:var(--water);color:var(--clayink);
+    font-size:10px;font-weight:800;letter-spacing:.04em;padding:3px 8px;border-radius:999px;text-transform:uppercase;}
+
+  /* ---------- wind-down signature ---------- */
+  .winddown{border-radius:26px;overflow:hidden;border:1px solid var(--cardborder);
+    box-shadow:0 16px 34px -20px #3d1f0e99;}
+  .winddown .sky{height:120px;background:linear-gradient(100deg,#F6D9A0 0%, var(--petal) 30%, var(--terracotta) 58%, var(--lavender) 78%, var(--raisin) 100%);
+    position:relative;}
+  .winddown .sky .sun{position:absolute;width:34px;height:34px;border-radius:50%;background:#FBE9B0;
+    top:30px;left:26px;box-shadow:0 0 26px 8px #fbe9b088;}
+  .winddown .sky .moon{position:absolute;width:24px;height:24px;border-radius:50%;
+    background:radial-gradient(circle at 65% 40%, #FAF0D8, #cdbf93);right:30px;top:60px;box-shadow:0 0 18px 4px #faf0d855;}
+  .winddown .sky .star{position:absolute;width:3px;height:3px;border-radius:50%;background:#FAF0D8;opacity:.85;}
+  .winddown .body{background:var(--card);padding:20px 18px 22px;text-align:center;}
+  .winddown .body h3{font-size:22px;margin-bottom:6px;}
+  .winddown .body p{margin:0 auto;font-size:14.5px;color:var(--cocoa);max-width:32ch;}
+
+  /* ---------- price ---------- */
+  .price{background:var(--clayink);color:var(--paper);border-radius:26px;padding:28px 22px;text-align:center;
+    box-shadow:0 18px 40px -18px #3d1f0e;}
+  .price .amount{font-family:Georgia,serif;font-size:44px;line-height:1;color:var(--butter);}
+  .price .once{font-size:14px;letter-spacing:.04em;opacity:.85;margin-top:4px;}
+  .price ul{list-style:none;padding:0;margin:18px 0 4px;text-align:left;max-width:18rem;margin-left:auto;margin-right:auto;}
+  .price li{font-size:14.5px;padding:6px 0 6px 26px;position:relative;opacity:.95;}
+  .price li::before{content:"";position:absolute;left:2px;top:9px;width:11px;height:6px;
+    border-left:2.5px solid var(--butter);border-bottom:2.5px solid var(--butter);transform:rotate(-45deg);}
+
+  /* ---------- closing ---------- */
+  .closing{text-align:center;padding:38px 0 8px;}
+  .closing h2{font-size:30px;margin-bottom:18px;max-width:16ch;margin-left:auto;margin-right:auto;}
+
+  footer{text-align:center;padding:30px 0 46px;color:var(--cocoa);}
+  footer .fmark{font-family:Georgia,serif;font-size:26px;color:var(--clayink);}
+  footer p{font-size:12.5px;opacity:.7;margin:8px 0 0;}
+  footer a{color:var(--rhubarb);text-decoration:none;}
+
+  .center{text-align:center;}
+  .mt{margin-top:24px;}
+
+  @media (min-width:540px){
+    :root{--maxw:560px;}
+    .promise{grid-template-columns:1fr 1fr;}
+    .shelf{grid-template-columns:1fr 1fr 1fr;}
+    .wordmark{font-size:72px;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .mark{animation:none;}
+    .bubbles{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<!-- generative ASCII texture — warm "spark" behind everything (static for reduced-motion) -->
+<canvas id="ascii" aria-hidden="true"></canvas>
+<!-- gentle drifting bubbles (decorative; hidden for reduced-motion) -->
+<div class="bubbles" aria-hidden="true" id="bubbles"></div>
+
+<div class="wrap">
+
+  <header class="hero">
+    <img class="mark" src="icon.png" alt="Lull app icon — a sleepy clay friend with a little stone balanced on its head" />
+    <div class="wordmark serif">lull</div>
+    <h1 class="tagline">Calm toys, made for little hands.</h1>
+    <p class="subtitle">A gentle toybox for ages 2–4. No ads, no scores — just play.</p>
+
+    <!-- TODO: replace href with your real App Store link -->
+    <a class="cta" href="https://apps.apple.com/app/lull" aria-label="Download Lull on the App Store">
+      <svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M16.365 1.43c0 1.14-.42 2.2-1.12 2.99-.78.9-2.06 1.6-3.3 1.5-.14-1.13.43-2.3 1.1-3.04.77-.86 2.12-1.5 3.32-1.45zM20.5 17.1c-.55 1.27-.82 1.84-1.53 2.96-.99 1.57-2.39 3.53-4.12 3.54-1.54.02-1.94-1-4.03-.99-2.09.01-2.53 1.01-4.07.99-1.73-.02-3.06-1.78-4.05-3.35C-.02 16.97-.32 11.9 1.4 9.2c1.22-1.92 3.15-3.04 4.96-3.04 1.85 0 3.01 1.01 4.54 1.01 1.48 0 2.38-1.01 4.52-1.01 1.61 0 3.32.88 4.54 2.4-3.99 2.19-3.34 7.88.04 8.54z"/></svg>
+      <span><span class="small">Download on the</span><span class="big">App Store</span></span>
+    </a>
+    <p class="reassure"><b>Pay once.</b> No ads. No subscription.</p>
+  </header>
+
+  <section>
+    <p class="eyebrow">A quiet promise</p>
+    <h2 class="h2 serif">Made to be trusted.</h2>
+    <p class="lead">Hand it over without a second thought. Here's what Lull will never do.</p>
+    <div class="promise">
+      <div class="p"><span class="ic">🚫</span><h3 class="serif">No ads. Ever.</h3><p>No banners, no videos, no pop-ups, no sponsored toys.</p></div>
+      <div class="p"><span class="ic">🌿</span><h3 class="serif">No scores or timers.</h3><p>No stars, streaks, levels, or pressure to keep playing.</p></div>
+      <div class="p"><span class="ic">🔒</span><h3 class="serif">Nothing to buy inside.</h3><p>Children never see a price, a lock, or an upgrade prompt.</p></div>
+      <div class="p"><span class="ic">🤍</span><h3 class="serif">Private by design.</h3><p>Built for Apple's Kids Category. No tracking, no data sold.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">The toybox</p>
+    <h2 class="h2 serif">Six living toys.</h2>
+    <p class="lead">Each one is its own little world that responds to touch like a creature, not a button.</p>
+    <div class="shelf">
+
+      <div class="toy">
+        <span class="free">Free</span>
+        <svg class="art" viewBox="0 0 80 80" aria-hidden="true">
+          <circle cx="30" cy="46" r="18" fill="#85C5CF" opacity=".55"/><circle cx="52" cy="34" r="14" fill="#85C5CF" opacity=".7"/>
+          <circle cx="44" cy="54" r="10" fill="#85C5CF" opacity=".5"/>
+          <circle cx="25" cy="40" r="5" fill="#fff" opacity=".8"/><circle cx="48" cy="29" r="4" fill="#fff" opacity=".85"/>
+        </svg>
+        <h3 class="serif">Bubbles</h3><p>Pop, drift, and breathe.</p>
+      </div>
+
+      <div class="toy">
+        <svg class="art" viewBox="0 0 80 80" aria-hidden="true">
+          <circle cx="40" cy="42" r="26" fill="#EA8E82"/>
+          <circle cx="31" cy="40" r="3.4" fill="#3D1F0E"/><circle cx="49" cy="40" r="3.4" fill="#3D1F0E"/>
+          <ellipse cx="24" cy="48" rx="5" ry="3.4" fill="#D4583A" opacity=".5"/><ellipse cx="56" cy="48" rx="5" ry="3.4" fill="#D4583A" opacity=".5"/>
+          <path d="M32 50 Q40 60 48 50" fill="#A6473C"/>
+        </svg>
+        <h3 class="serif">Feed the People</h3><p>Match each friend's craving.</p>
+      </div>
+
+      <div class="toy">
+        <svg class="art" viewBox="0 0 80 80" aria-hidden="true">
+          <rect x="22" y="50" width="36" height="13" rx="6.5" fill="#D4583A"/>
+          <rect x="26" y="38" width="28" height="12" rx="6" fill="#CDA96A"/>
+          <rect x="30" y="26" width="20" height="12" rx="6" fill="#E8C045"/>
+          <path d="M36 31 q.4-2 2-2 M44 31 q-.4-2-2-2" stroke="#3D1F0E" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+          <path d="M37 34 Q40 37 43 34" stroke="#3D1F0E" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+        </svg>
+        <h3 class="serif">Stack</h3><p>Build a tower that wakes up.</p>
+      </div>
+
+      <div class="toy">
+        <svg class="art" viewBox="0 0 80 80" aria-hidden="true">
+          <rect x="38" y="40" width="4" height="26" rx="2" fill="#6A8B66"/>
+          <ellipse cx="50" cy="50" rx="9" ry="5" fill="#6A8B66" opacity=".85" transform="rotate(-25 50 50)"/>
+          <g><circle cx="40" cy="32" r="7" fill="#EA8E82"/><circle cx="52" cy="32" r="7" fill="#EA8E82"/><circle cx="40" cy="44" r="7" fill="#EA8E82"/><circle cx="52" cy="44" r="7" fill="#EA8E82"/><circle cx="46" cy="38" r="8" fill="#E8C045"/></g>
+        </svg>
+        <h3 class="serif">Bloom</h3><p>Grow a whole living garden.</p>
+      </div>
+
+      <div class="toy">
+        <svg class="art" viewBox="0 0 80 80" aria-hidden="true">
+          <rect x="32" y="58" width="6" height="9" rx="3" fill="#5C3320"/><rect x="42" y="58" width="6" height="9" rx="3" fill="#5C3320"/>
+          <rect x="28" y="40" width="24" height="22" rx="8" fill="#A08BBB"/>
+          <circle cx="40" cy="30" r="13" fill="#CDA96A"/>
+          <circle cx="35" cy="29" r="2.4" fill="#3D1F0E"/><circle cx="45" cy="29" r="2.4" fill="#3D1F0E"/>
+          <path d="M36 34 Q40 37 44 34" stroke="#3D1F0E" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        </svg>
+        <h3 class="serif">Mix-Up</h3><p>Make a silly mix-and-match friend.</p>
+      </div>
+
+      <div class="toy">
+        <svg class="art" viewBox="0 0 80 80" aria-hidden="true">
+          <ellipse cx="32" cy="46" rx="15" ry="11" fill="#85C5CF" opacity=".55"/>
+          <ellipse cx="48" cy="40" rx="14" ry="11" fill="#D4583A" opacity=".5"/>
+          <ellipse cx="40" cy="52" rx="13" ry="10" fill="#6A8B66" opacity=".5"/>
+          <path d="M46 30 l3.2 6.6 7.2 .9 -5.3 5 1.3 7.2 -6.4-3.5 -6.4 3.5 1.3-7.2 -5.3-5 7.2-.9z" fill="#E8C045"/>
+        </svg>
+        <h3 class="serif">Paint</h3><p>Finger-paint that comes alive.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <div class="winddown">
+      <div class="sky" id="sky">
+        <div class="sun"></div><div class="moon"></div>
+      </div>
+      <div class="body">
+        <p class="eyebrow">The signature</p>
+        <h3 class="serif">It winds down when your child does.</h3>
+        <p>As bedtime nears, the whole toybox quietly warms and dims — on your family's own schedule. Play softens toward sleep, all by itself. Nothing else for little ones does this.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="price">
+      <p class="eyebrow" style="color:var(--butter)">One price</p>
+      <div class="amount serif">$39.99</div>
+      <div class="once">Pay once. Yours forever.</div>
+      <ul>
+        <li>Every toy, unlocked for good</li>
+        <li>No subscription, no renewals</li>
+        <li>No ads, no tracking, no data sold</li>
+        <li>Works on iPhone &amp; iPad</li>
+      </ul>
+      <div class="mt center">
+        <a class="cta" href="https://apps.apple.com/app/lull" aria-label="Download Lull on the App Store">
+          <svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M16.365 1.43c0 1.14-.42 2.2-1.12 2.99-.78.9-2.06 1.6-3.3 1.5-.14-1.13.43-2.3 1.1-3.04.77-.86 2.12-1.5 3.32-1.45zM20.5 17.1c-.55 1.27-.82 1.84-1.53 2.96-.99 1.57-2.39 3.53-4.12 3.54-1.54.02-1.94-1-4.03-.99-2.09.01-2.53 1.01-4.07.99-1.73-.02-3.06-1.78-4.05-3.35C-.02 16.97-.32 11.9 1.4 9.2c1.22-1.92 3.15-3.04 4.96-3.04 1.85 0 3.01 1.01 4.54 1.01 1.48 0 2.38-1.01 4.52-1.01 1.61 0 3.32.88 4.54 2.4-3.99 2.19-3.34 7.88.04 8.54z"/></svg>
+          <span><span class="small">Download on the</span><span class="big">App Store</span></span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="closing">
+    <h2 class="serif">Bring a little calm to little hands.</h2>
+    <!-- TODO: replace href with your real App Store link -->
+    <a class="cta" href="https://apps.apple.com/app/lull" aria-label="Download Lull on the App Store">
+      <svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M16.365 1.43c0 1.14-.42 2.2-1.12 2.99-.78.9-2.06 1.6-3.3 1.5-.14-1.13.43-2.3 1.1-3.04.77-.86 2.12-1.5 3.32-1.45zM20.5 17.1c-.55 1.27-.82 1.84-1.53 2.96-.99 1.57-2.39 3.53-4.12 3.54-1.54.02-1.94-1-4.03-.99-2.09.01-2.53 1.01-4.07.99-1.73-.02-3.06-1.78-4.05-3.35C-.02 16.97-.32 11.9 1.4 9.2c1.22-1.92 3.15-3.04 4.96-3.04 1.85 0 3.01 1.01 4.54 1.01 1.48 0 2.38-1.01 4.52-1.01 1.61 0 3.32.88 4.54 2.4-3.99 2.19-3.34 7.88.04 8.54z"/></svg>
+      <span><span class="small">Download on the</span><span class="big">App Store</span></span>
+    </a>
+  </section>
+
+  <footer>
+    <div class="fmark">lull</div>
+    <p>Calm toys, made for little hands. · Ages 2–4</p>
+    <p><a href="mailto:support@lull.app">support@lull.app</a> · <a href="#">Privacy</a></p>
+    <p>© <span id="yr"></span> Lull</p>
+  </footer>
+
+</div>
+
+<script>
+  // Gentle drifting bubbles — decorative, skipped if the visitor prefers reduced motion.
+  (function(){
+    var yr=document.getElementById('yr'); if(yr) yr.textContent=new Date().getFullYear();
+    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var host=document.getElementById('bubbles'); if(!host) return;
+    var N=6;
+    for(var i=0;i<N;i++){
+      var b=document.createElement('span');
+      var size=14+Math.random()*34;
+      b.style.width=size+'px'; b.style.height=size+'px';
+      b.style.left=(Math.random()*100)+'vw';
+      b.style.setProperty('--drift',(Math.random()*60-30)+'px');
+      b.style.animationDuration=(11+Math.random()*12)+'s';
+      b.style.animationDelay=(-Math.random()*16)+'s';
+      host.appendChild(b);
+    }
+    // sprinkle a few stars into the night side of the wind-down sky
+    var sky=document.getElementById('sky');
+    if(sky){ for(var s=0;s<7;s++){ var st=document.createElement('div'); st.className='star';
+      st.style.right=(6+Math.random()*34)+'%'; st.style.top=(12+Math.random()*60)+'%';
+      st.style.opacity=(0.5+Math.random()*0.5).toFixed(2); sky.appendChild(st);} }
+  })();
+</script>
+<script>
+  /* Warm generative ASCII backdrop — bubbly glyphs drifting up. Calm, on-brand "spark". */
+  (function(){
+    var c=document.getElementById('ascii'); if(!c||!c.getContext) return;
+    var ctx=c.getContext('2d');
+    var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var ramp=[' ',' ',' ','·','·',':','∘','o','O','○','◌'];
+    var sand='#CDA96A', soft='#D4C89E', terr='#D4583A', water='#85C5CF';
+    var cw=16, ch=18, cols=0, rows=0, t=0, dpr=Math.min(window.devicePixelRatio||1,2);
+    function resize(){
+      c.width=Math.floor(innerWidth*dpr); c.height=Math.floor(innerHeight*dpr);
+      c.style.width=innerWidth+'px'; c.style.height=innerHeight+'px';
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+      ctx.font='14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+      ctx.textBaseline='top';
+      cols=Math.ceil(innerWidth/cw)+1; rows=Math.ceil(innerHeight/ch)+1;
+    }
+    function val(i,j,tt){
+      var y=j*0.30 - tt*1.05;                                  // drift upward
+      var v=Math.sin(i*0.27+tt*0.6)+Math.sin(y+Math.cos(i*0.12))+Math.sin((i+j)*0.15-tt*0.45);
+      return (v+3)/6;                                          // 0..1
+    }
+    function draw(){
+      ctx.clearRect(0,0,innerWidth,innerHeight);
+      for(var j=0;j<rows;j++){
+        for(var i=0;i<cols;i++){
+          var v=val(i,j,t), idx=Math.floor(v*(ramp.length-1)), g=ramp[idx];
+          if(g===' ') continue;
+          var accent=((i*7+j*13)%29)===0 && idx>=7;            // sparse, stable colored bubbles
+          ctx.globalAlpha=0.06+v*0.20;
+          ctx.fillStyle=accent ? ((i+j)%2 ? terr : water) : (v<0.5 ? soft : sand);
+          ctx.fillText(g, i*cw, j*ch);
+        }
+      }
+      ctx.globalAlpha=1;
+    }
+    resize();
+    window.addEventListener('resize', function(){ resize(); if(reduce) draw(); });
+    if(reduce){ t=2.0; draw(); return; }
+    var last=0;
+    (function loop(ts){ if(ts-last>50){ last=ts; t+=0.05; draw(); } requestAnimationFrame(loop); })(0);
+  })();
+</script>
+</body>
+</html>

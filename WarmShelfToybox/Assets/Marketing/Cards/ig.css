@@ -1,0 +1,37 @@
+:root{
+  --linen:#F2E8C6; --paper:#FAF0D8; --cream:#ECDFAF; --softline:#D4C89E;
+  --clayink:#3D1F0E; --cocoa:#5C3320; --raisin:#2F1A12; --labelink:#4A2D18;
+  --rhubarb:#A6473C; --terracotta:#D4583A; --sage:#6A8B66; --sand:#CDA96A;
+  --water:#85C5CF; --butter:#E8C045; --lavender:#A08BBB; --petal:#EA8E82;
+  --card:#FAF4E0; --cardborder:#D4C08A;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:1080px;height:1080px;overflow:hidden;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  color:var(--clayink);
+  background:radial-gradient(125% 92% at 50% 2%, var(--paper) 0%, var(--linen) 52%, var(--cream) 100%);
+  position:relative; -webkit-font-smoothing:antialiased;
+}
+/* tactile paper grain */
+body::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='150' height='150'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/></svg>");
+  mix-blend-mode:multiply;opacity:.6;}
+
+.serif{font-family:Georgia,"Times New Roman",serif;}
+.frame{position:absolute;inset:0;padding:104px 92px;display:flex;flex-direction:column;justify-content:center;z-index:2;}
+.frame.center{align-items:center;text-align:center;}
+
+.brand{position:absolute;top:64px;left:92px;font-family:Georgia,serif;font-size:48px;color:var(--clayink);z-index:3;}
+.brand .dot{color:var(--terracotta);}
+.foot{position:absolute;bottom:66px;left:92px;right:92px;display:flex;justify-content:space-between;align-items:center;
+  font-size:29px;color:var(--cocoa);opacity:.72;z-index:3;}
+.foot .serif{font-size:38px;opacity:.9;color:var(--clayink);}
+
+.kicker{font-size:31px;font-weight:800;letter-spacing:.17em;text-transform:uppercase;color:var(--terracotta);}
+.headline{font-family:Georgia,serif;font-weight:600;font-size:98px;line-height:1.03;letter-spacing:-.012em;}
+.sub{font-size:41px;line-height:1.36;color:var(--cocoa);}
+
+.pill{display:inline-flex;align-items:center;gap:18px;background:var(--clayink);color:#fff;
+  padding:24px 40px;border-radius:30px;font-family:Georgia,serif;font-size:40px;}
+.pill svg{width:46px;height:46px;}

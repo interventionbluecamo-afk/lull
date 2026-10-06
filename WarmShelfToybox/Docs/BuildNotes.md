@@ -1,0 +1,155 @@
+# Build Notes
+
+## Created
+
+- XcodeGen iOS project scaffold for `WarmShelfToybox`.
+- UIKit lifecycle with `AppDelegate`, `SceneDelegate`, `ToyShelfViewController`, and reusable `ToyViewController`.
+- Shared SpriteKit foundation:
+  - `BaseToyScene`
+  - `WarmShelfPalette`
+  - `WarmShelfMotion`
+  - `ToyPhysicsProfile`
+  - `ForgivingHitArea`
+  - `TouchFeedbackAnimator`
+  - `ToyRegistry`
+  - `AmbientAnimator`
+  - `ParticleManager`
+  - `AudioManager`
+  - `DraggableNode`
+- Living Warm Shelf home scene using SpriteKit.
+- First playable Bubbles toy using SpriteKit.
+- Second toy prototype: Clay Blocks, focused on dragging, stacking, bumping, and soft settling.
+- Third toy prototype: Feed the People, focused on caring, generous drag-to-mouth snapping, and simple emotional reactions.
+- Organized the asset library under `App/Resources` and added `Docs/AssetManifest.md`.
+- Added `Docs/CodeOrganization.md` to keep the codebase lightweight while the toys are still changing quickly.
+
+## Brand Translation
+
+- Warm linen background rather than blue-sky bubble cliche.
+- Muted Warm Shelf palette: linen, paper, warm cream, clay, terracotta, sage, sand, and water blue.
+- Ambient life appears before touch through drifting bubbles, motes, and soft card breathing.
+- Bubble popping is one clear emotional beat: immediate removal, gentle particles, and placeholder soft-audio call.
+- Toy physics is intentionally authored and forgiving: larger-than-visible hit areas, clamped/tamed motion profiles, instant touch acknowledgement, and gentle settling.
+- After first toddler test, Bubbles were made more legible with stronger pearly fill, clearer water rims, larger default sizing, and a quiet non-numeric pop-memory dish.
+- Removed the initial visible numeric Bubble counter so the toy does not open with a score-like "0"; the bead memory appears only after popping starts.
+- Added a text-free shelf return pull in toy scenes and real bubble pop audio from `App/Resources/Audio/bubble-pop.mp3`.
+- Added bubble style variance and size-aware pop profiles so small, medium, large, and rare bubbles do not burst identically.
+- Refactored the shelf to render toys from `ToyRegistry`, now showing Bubbles and Clay Blocks as living shelf objects.
+- Removed visible shelf labels so the home screen reads as touchable toy objects rather than an app menu.
+- Added one-beat shelf tap reactions: bubbles pop and blocks gently jiggle before opening.
+- Added Clay Blocks as a deliberately small prototype for testing the next interaction family after tap/pop.
+- Reworked Clay Blocks from an unclear floor strip into a soft play mat/table surface whose top edge matches the physics boundary.
+- Added Clay Blocks shape variety: cubes, planks, tall blocks, bricks, and cylinders, each with slightly different physical behavior.
+- Replaced the oversized Clay Blocks floor slab with a quieter low ledge and soft shadow so it reads as a landing surface, not a stage.
+- Changed Clay Blocks introductions so new and initial blocks visibly fall/settle under gravity instead of being placed already at rest.
+- Tuned toy colors warmer and less candy-pastel, with cyan/lavender/yellow treated as softer accents.
+- Simplified Clay Blocks spawning: removed the awkward visible spawner, scaled blocks for smaller devices, and moved block supply into a quiet wordless mystery-shape button.
+- Increased Clay Blocks starting pieces on phone and reduced the visual ledge to a simple contact line/shadow.
+- Tuned Clay Blocks proportions, scaled corner radii, softened baked-in shadows, and removed idle block breathing so pieces feel more solid and less gummy.
+- Added tiny ambient surface flecks around the ledge so the area has quiet life before touch.
+- Added a subtle non-goal Bubble pop counter inside the existing memory tray.
+- Raised the Clay Blocks cap and replaced fixed starting placements with procedural pile generation for more varied starts.
+- Replaced Clay Blocks visible-box physics with a floor edge plus offscreen guard rails, precise collision bodies, and drag clamping so blocks do not visibly jam on side walls.
+- Scaled Clay Blocks starting piles and ledge width differently for phone and iPad so larger screens use more of the available play area.
+- Replaced the compound Clay Blocks boundary with a single ledge-aligned floor, raised the active surface, enlarged toddler-hand block scale, and added a soft recovery pass for any block that tunnels below the ledge.
+- Added a quiet wordless Clay Blocks mystery-shape button beneath the ledge; it gives soft haptic feedback and offers a new block on press.
+- Reduced the initial Clay Blocks pile so the first screen has playable pieces but leaves a clear reason to discover the mystery-shape button.
+- Lowered the Clay Blocks base again and changed supplied blocks to fall in from above the pile instead of emerging from underneath.
+- Raised the Clay Blocks cap to allow longer building sessions while keeping the starting pile calm.
+- Softened the parent shelf-return handle so it reads as a hidden paper affordance rather than a child-facing button.
+- Removed the Clay Blocks sun/cloud anchor after iPad review; visible objects should either be touchable, physically meaningful, or very subtle texture.
+- Enlarged Clay Blocks on iPad, thickened the ledge into a softer build mat, tightened iPad horizontal bounds, and retuned gravity/damping/friction for a more natural drop-and-settle feel.
+- Added subtle procedural Clay Blocks texture styles: mostly plain pieces, with occasional speckled or softly grooved surfaces for a more tactile material feel.
+- Simplified Clay Blocks texture again after iPad review: removed faint banding, softened outlines/grooves, extended the invisible floor beyond the visible mat, and kept blocks inside the visual ledge to avoid odd edge catches.
+- Made the Clay Blocks mystery-shape button wiggle a little more visibly with a tiny lift/pulse while staying calm.
+- Reframed Clay Blocks from a partial ledge to a full-width soft tabletop: the visual and physics surface now run offscreen, blocks can use nearly the whole screen width, and the spare-shape control reads more like a small source tray than a UI button.
+- Reworked the Warm Shelf home scene around one shared shelf with living toy objects instead of app-like cards.
+- Tuned the shelf toy previews with stronger object-specific wake reactions and adaptive Bubbles opening density for phone vs. iPad.
+- Removed the failed translucent bowl/tray preview containers; the shelf now presents direct toy objects with contact shadows sitting on a warmer, lower plank.
+- Added a soft vertical follow to Clay Blocks so tall stacks can continue upward instead of being capped by the first screen height.
+- Increased Clay Blocks scale again across phone and iPad so pieces feel more toddler-hand sized.
+- Changed Clay Blocks resizing preservation to keep each piece's height above the tabletop, which protects tall builds across rotation.
+- Slowed the Clay Blocks vertical follow so the world makes room more calmly as the stack rises.
+- Expanded Clay Blocks shape variety with smaller cubes/bricks, longer planks, smaller cylinders, and triangle wedge pieces.
+- Added `petal` to `WarmShelfPalette` as the warm human accent for Feed the People.
+- Added Feed the People to `ToyRegistry` and the living shelf as the third toy object.
+- Created Feed the People first playable slice: three characters, five draggable foods, large mouth snap zones, eating/satisfied/resting expression cycle, and soft respawning food.
+- Added Feed character personality ticks: fidgety, calm, and slow idle behaviors without text or instructions.
+- Enlarged Feed food pieces, moved them visually onto the table surface, made character heads opaque, and reduced hungry/eating mouth size after first screenshot review.
+- Enlarged Feed food again for toddler grab/readability, added soft food preferences as no-fail "not today" reactions, and added a gentle person queue so fed characters can leave and new characters arrive from above.
+- Reworked Feed departures so satisfied characters wobble sideways offscreen like a cafeteria line rather than dropping through the floor.
+- Added a quiet Feed food source bowl/tray; new foods now emerge from that area instead of appearing from the bottom edge.
+- Made Feed foods more opaque and added simple internal details, flecks, grooves, dimples, stronger strokes, and larger feeding effects.
+- Changed the phone toy shelf from stacked app-like cards to a single lower shelf with two toy objects side by side.
+- Added explicit portrait and landscape support for iPhone and iPad.
+- Reworked the shelf layout to adapt between landscape row and portrait stacked cubbies without labels.
+- Preserved active Bubbles and Clay Blocks positions across rotation so orientation changes feel continuous instead of restarting the toy.
+- Reset Clay Blocks after toddler testing: fewer starting pieces, much larger toddler-hand blocks, one quiet self-wiggling invitation block, and stronger pickup/drop feedback.
+- Reframed Clay Blocks around tumble curiosity after toddler testing: the toy now opens with a small unstable stack, the top piece gives real physics nudges, and new supplied blocks drop toward the existing structure.
+- Added a subtle Clay Blocks height memory mark: the scene quietly remembers the current tower height with a faint pencil-like line and gives a tiny paper sprinkle when the child builds past it.
+- Made the shared toy shelf-return handle more child-findable while keeping it soft and wordless, so changing toys is easier without adding menu text.
+- Expanded Feed the People with procedural character recipes: clothing details, hats, glasses/sunglasses, hair tufts/swoops, varied personalities, and a softer cafeteria backdrop/queue.
+- Made Feed's egg larger, more visible, easier to grab, and removed egg from the no-thanks preference pool so it should not feel broken during toddler testing.
+- Simplified Clay Blocks' active shape mix toward stackable bricks, cubes, and planks, keeping only occasional cylinders as a wobble/tumble accent.
+- Enlarged and lowered the home shelf toy objects so Bubbles, Clay Blocks, and Feed read more like tactile shelf objects instead of tiny app previews.
+- Reworked Feed's table area so foods sit closer to the character side of the table, with a smaller serving tray and quieter cafeteria backdrop details.
+- Made the Clay Blocks opening state a little chunkier and more precarious, with a stronger self-wobbling top piece to invite the first touch.
+- Added occasional Feed thought bubbles with a small desired-food image, and changed replacement characters to wobble in from the side instead of flying down from above.
+- Reworked toy input around toddler multi-touch: Bubbles now handles every touch in a burst, Clay Blocks and Feed bind drags to the initiating touch, and the shelf guards against double-opening from multi-finger taps.
+- Cached haptic generators in `HapticsManager` and prepare them at touch start so physical feedback should feel less delayed on device.
+- Expanded Feed food drag bounds to reach character mouths instead of being limited by the table band.
+- Enlarged and moved the shared shelf-return handle to a softer top-center pull so it is easier to find without colliding with bottom-center toy controls.
+- Added a parent-only information sheet triggered by a two-finger long press, with the basic trust promises: no ads, accounts, scores, instructions, or backend.
+- Preserved Feed characters and foods across rotation/resize so the toy no longer resets when the device orientation changes.
+- Fixed a shelf regression from the multi-touch guard: returning to the main shelf now clears the one-shot toy-opening lock, and the parent long-press gesture no longer cancels ordinary SpriteKit touches.
+- Added two real Feed chew assets and wired them as quiet occasional accents; they do not play every time, skip egg, and favor crunch only for apple/carrot.
+- Added two more Bubbles pop assets and two Clay Blocks contact assets; bubble profiles now use size/rare-specific candidates and block release/settle have real optional audio at restrained volume.
+- Added a shared procedural texture helper and applied restrained tactile material texture to Clay Blocks, Feed foods, and Feed characters: soft speckles, grain lines, edge irregularity, skin/clothing flecks, and food-surface detail.
+- Promoted the little pickup/drop particle splash into `TouchFeedbackAnimator.tactileSpark` and applied it more consistently to block pickup/release, the Clay source tray, Feed food pickup/release, Feed character touches, and shelf empty taps.
+- Added `Docs/ThreeWeekShipPlan.md` and implemented the first Feed items from it: reliable mouth sound on every successful feed, dedicated Food audio methods, and a whole-body satisfied shimmy.
+- Reviewed the external Nook patch, kept the name as a brand candidate instead of applying a risky global rename, added a short wordless launch scene, and upgraded the parent info sheet without replacing current touch/rotation fixes.
+- Applied the visual scale pass: larger/lower shelf toy objects, a warmer shelf/floor surface, stronger contact shadows, more visible bubble fills/rims, slightly stronger paper texture, and larger/higher Feed characters.
+- Added Warm Hum as the fifth toy: three music-box cups, five draggable sound objects, a clockwise winding key, visible drum/tines, decelerating playback, and shelf preview.
+- Added placeholder Warm Hum audio hooks for object pickup/settle, winding ticks, stop click, and five note profiles so handcrafted samples can drop in later.
+- Pulled Warm Hum back out of the active shelf after review; the concept is saved in code but was too abstract for the current toddler-testing shelf.
+- Added Soft Drop as the active fifth toy, borrowing one-touch clarity from Switchy Sides / Break Liner / DROP'd while removing timers, scores, fail states, and arcade pressure.
+- Soft Drop starts alive with a hovering piece, lets every empty tap drop a chunky object from above, and lets children tap soft ledges to switch their angle and nudge the falling pieces.
+
+## What To Build Next
+
+- Replace generated placeholder audio with handcrafted soft rubber pop and soft tap assets.
+- Test rotation on a physical iPad while a toy is in motion, especially with Clay Blocks mid-stack.
+- Confirm the current pop MP3 volume feels soft on an actual iPad speaker.
+- Add real paper-grain textures once the art pipeline exists.
+- Toddler-test the more visible bubble style at iPad arm's length.
+- Watch whether style/pop variance increases repeated tapping without making the toy feel busy.
+- Toddler-test Clay Blocks for first touch, drag success, whether blocks fly away, and whether stacking feels rewarding without instruction.
+- Watch whether the larger four/five-block opening makes the first Clay Blocks reach obvious, or whether the toy needs a more explicit cause/effect hook.
+- Watch whether the unstable opening stack attracts touch without adult prompting, and whether self-wobble feels inviting rather than like the toy is playing itself.
+- Watch whether the height memory mark feels like environmental feedback rather than a score target.
+- Watch whether the more visible shelf-return handle helps child-led toy switching without becoming the main thing to tap.
+- Watch whether Feed character accessories add delight without stealing attention from the food-to-mouth loop.
+- Watch whether the simpler Clay Blocks shape mix makes stacking clearer, or whether the toy still needs a stronger cause/effect hook.
+- Watch whether the larger lower shelf gives each toy a clear first reach without needing labels.
+- Watch whether Feed foods now feel like they belong on the table rather than in a separate bottom strip.
+- Watch whether the more precarious Clay Blocks opening invites touch, or whether the toy should pivot harder toward knock-down/tumble play.
+- Watch whether Feed thought bubbles help without becoming too instructional; they should feel like character desire, not a task.
+- Watch whether side-entry character arrivals read as a cafeteria line rather than a spawn animation.
+- Watch whether the supply tray creates a satisfying "the world gave me another thing" loop without turning into a button hunt.
+- Revisit file extraction after the next toddler test; current candidates are Clay Blocks camera/tray/height memory and Feed character/table helpers.
+- Toddler-test multi-touch explicitly: two hands on bubbles, accidental second finger while dragging food, and second hand tapping during a Clay Blocks drag.
+- Revisit the top-center return handle after device testing; if it still reads too much like parent UI, try an edge-pull gesture plus a quieter visual.
+- Build the real sensory audio layer: bubble pop variants, rare bubble sound, empty tap, block pickup/release/settle, Feed receive/happy/decline, and shelf transition.
+- Toddler-test Soft Drop for first-touch clarity: does the child tap the open space, do they discover the switchable ledges, and do falling pieces create enough immediate delight without becoming frantic?
+- Decide whether Warm Hum stays as a later parent-child toy or is archived entirely.
+- Screenshot-test procedural texture on iPad and iPhone; if it reads as dirt/noise instead of handmade material, reduce alpha/count before sourcing bitmap textures.
+- Decide whether Puddles is the next sensory toy after the current three-toy slice, or whether it replaces Clay Blocks if block play keeps underperforming in toddler tests.
+- Watch for emergent play: cylinders rolling, planks bridging, tall blocks tipping, and cubes stacking.
+- Toddler-test whether the mystery-shape button is discovered naturally and whether the lower dead space now feels useful instead of decorative.
+- Toddler-test whether the Clay Blocks vertical follow feels like building higher, or whether it makes the source tray feel disconnected from the physical surface.
+- Toddler-test Feed the People for whether the caring loop is understood without instruction and whether the snap zones are generous enough.
+- Watch whether Feed needs fewer or more starting food pieces; the current slice starts with five.
+- Shelf test: without words, watch whether each toy object gets a first reach within five seconds.
+- Add Garage only after the Bubbles loop feels tactile and repeatable.
+- Keep future toys registered through `ToyRegistry`.
+- For future toys, start with `ToyPhysicsProfile` and `TouchFeedbackAnimator` before reaching for raw SpriteKit rigid-body simulation.

@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Lull — Calm toys, made for little hands</title>
+<meta name="description" content="A calm, living digital toybox for ages 2–4. No ads, no scores, no timers — just warm, hand-made toys that wake when touched and settle back to calm. Free for 7 days, then $9.99 once." />
+<meta name="theme-color" content="#F2E8C6" />
+<link rel="canonical" href="https://lull.app/" />
+
+<!-- Social sharing -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://lull.app/" />
+<meta property="og:title" content="Lull — Calm toys, made for little hands" />
+<meta property="og:description" content="A calm, living toybox for ages 2–4. No ads, no scores — just play. Free for 7 days, then $9.99 once." />
+<meta property="og:image" content="og-icon.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Lull — Calm toys, made for little hands" />
+<meta name="twitter:description" content="A calm, living toybox for ages 2–4. No ads, no scores — just play." />
+<meta name="twitter:image" content="og-icon.png" />
+
+<!-- TODO: replace PLACEHOLDER with the real App Store id once live, e.g. app-id=6700000000 -->
+<meta name="apple-itunes-app" content="app-id=PLACEHOLDER" />
+
+<link rel="icon" href="icon.png" />
+<link rel="apple-touch-icon" href="icon.png" />
+
+<style>
+  :root{
+    /* Lull's real palette (WarmShelfPalette) */
+    --linen:#F2E8C6; --paper:#FAF0D8; --cream:#ECDFAF; --softline:#D4C89E;
+    --clayink:#3D1F0E; --cocoa:#5C3320; --labelink:#4A2D18;
+    --rhubarb:#A6473C; --terracotta:#D4583A; --sage:#6A8B66; --sand:#CDA96A;
+    --water:#85C5CF; --butter:#E8C045; --lavender:#A08BBB; --petal:#EA8E82;
+    --card:#FAF4E0; --cardborder:#D4C08A;
+    --maxw:600px;
+  }
+
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--clayink);
+    background:radial-gradient(125% 80% at 50% -8%, var(--paper) 0%, var(--linen) 48%, var(--cream) 100%) fixed;
+    line-height:1.55;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  /* tactile paper grain */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/></svg>");
+    mix-blend-mode:multiply;
+  }
+
+  .wrap{position:relative;z-index:1;max-width:var(--maxw);margin:0 auto;padding:0 22px;}
+  .serif{font-family:Georgia,"Times New Roman",serif;}
+  h1,h2,h3{font-family:Georgia,"Times New Roman",serif;font-weight:600;line-height:1.12;letter-spacing:-.01em;margin:0;}
+  h1{font-size:clamp(34px,9vw,46px);}
+  h2{font-size:clamp(26px,6.4vw,32px);}
+  h3{font-size:19px;}
+  p{margin:0;}
+  a{color:inherit;}
+  img{max-width:100%;display:block;}
+
+  .eyebrow{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--cocoa);opacity:.72;}
+  .muted{color:var(--cocoa);opacity:.82;}
+
+  /* ---------- top bar ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:30;
+    backdrop-filter:saturate(140%) blur(10px);-webkit-backdrop-filter:saturate(140%) blur(10px);
+    background:rgba(242,232,198,.74);border-bottom:1px solid rgba(212,200,158,.5);
+  }
+  .topbar .row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;}
+  .brand{display:flex;align-items:center;gap:10px;font-family:Georgia,serif;font-size:21px;font-weight:600;text-decoration:none;}
+  .brand img{width:30px;height:30px;border-radius:9px;box-shadow:0 2px 5px rgba(47,26,18,.18);}
+  .navget{
+    font-size:14px;font-weight:700;color:#fff;background:var(--terracotta);
+    padding:9px 15px;border-radius:999px;text-decoration:none;
+    box-shadow:0 4px 12px rgba(166,71,60,.28);white-space:nowrap;
+  }
+
+  /* ---------- buttons ---------- */
+  .appstore{
+    display:inline-flex;align-items:center;gap:11px;
+    background:#1b1208;color:#fff;text-decoration:none;
+    padding:13px 20px;border-radius:15px;
+    box-shadow:0 8px 22px rgba(27,18,8,.28);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .appstore:active{transform:scale(.97);}
+  .appstore svg{width:26px;height:26px;flex:0 0 auto;}
+  .appstore .l{font-size:11px;line-height:1.1;opacity:.86;letter-spacing:.02em;}
+  .appstore .b{font-size:19px;line-height:1.12;font-weight:600;font-family:Georgia,serif;}
+  .ctaline{font-size:14px;margin-top:12px;color:var(--cocoa);}
+  .ctaline b{color:var(--clayink);}
+
+  /* ---------- hero ---------- */
+  .hero{padding:34px 0 10px;text-align:center;}
+  .hero .eyebrow{margin-bottom:14px;}
+  .hero h1{margin-bottom:14px;}
+  .hero .sub{font-size:17px;max-width:30em;margin:0 auto 22px;}
+  .heroart{
+    margin:26px auto 0;border-radius:26px;overflow:hidden;max-width:420px;
+    border:1px solid var(--cardborder);
+    box-shadow:0 18px 44px rgba(47,26,18,.20);
+  }
+  .heroart img{width:100%;height:auto;}
+
+  /* ---------- sections ---------- */
+  section{padding:38px 0;}
+  .sechead{text-align:center;margin-bottom:24px;}
+  .sechead p{margin-top:9px;font-size:15.5px;}
+
+  .feature{
+    display:flex;gap:16px;align-items:center;
+    background:var(--card);border:1px solid var(--cardborder);
+    border-radius:22px;padding:16px;margin-bottom:16px;
+    box-shadow:0 8px 20px rgba(47,26,18,.07);
+  }
+  .feature .pic{flex:0 0 104px;width:104px;border-radius:15px;overflow:hidden;border:1px solid var(--cardborder);}
+  .feature .pic img{width:100%;height:124px;object-fit:cover;}
+  .feature h3{margin-bottom:5px;}
+  .feature p{font-size:14.5px;}
+  .feature.flip{flex-direction:row-reverse;}
+
+  /* promises */
+  .promises{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+  .promise{background:var(--card);border:1px solid var(--cardborder);border-radius:18px;padding:14px 14px 15px;}
+  .promise .tick{display:flex;align-items:center;gap:7px;font-weight:800;font-size:14.5px;}
+  .promise .tick i{width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--sage);color:#fff;font-style:normal;font-size:11px;flex:0 0 auto;}
+  .promise small{display:block;margin-top:6px;font-size:12.8px;color:var(--cocoa);opacity:.86;line-height:1.45;}
+
+  /* toy chips */
+  .toys{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;}
+  .toy{display:inline-flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--cardborder);border-radius:999px;padding:9px 15px;font-weight:700;font-size:14.5px;}
+  .toy .dot{width:13px;height:13px;border-radius:50%;box-shadow:inset 0 -2px 3px rgba(0,0,0,.12);}
+
+  /* steps */
+  .steps{counter-reset:step;display:grid;gap:13px;}
+  .step{display:flex;gap:14px;align-items:flex-start;background:var(--card);border:1px solid var(--cardborder);border-radius:20px;padding:15px 16px;}
+  .step .n{counter-increment:step;flex:0 0 auto;width:34px;height:34px;border-radius:50%;background:var(--terracotta);color:#fff;font-family:Georgia,serif;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 4px 10px rgba(166,71,60,.28);}
+  .step .n::before{content:counter(step);}
+  .step h3{font-size:17px;margin-bottom:3px;}
+  .step p{font-size:14px;}
+
+  .cta-band{text-align:center;background:var(--card);border:1px solid var(--cardborder);border-radius:26px;padding:28px 20px;box-shadow:0 12px 30px rgba(47,26,18,.10);}
+  .cta-band h2{margin-bottom:8px;}
+  .cta-band .sub{margin-bottom:20px;font-size:15.5px;}
+
+  /* press kit */
+  .press{background:#1b1208;color:#fbf3df;border-radius:26px;padding:26px 22px;box-shadow:0 14px 34px rgba(27,18,8,.22);}
+  .press h2{color:#fbf3df;}
+  .press .boiler{font-size:14.5px;color:rgba(251,243,223,.84);margin:12px 0 20px;}
+  .facts{list-style:none;padding:0;margin:0 0 20px;font-size:14px;}
+  .facts li{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid rgba(251,243,223,.12);}
+  .facts li:last-child{border-bottom:0;}
+  .facts b{flex:0 0 96px;color:var(--butter);font-weight:700;}
+  .assets{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:8px;}
+  .assets a{font-size:13px;font-weight:700;text-decoration:none;color:#1b1208;background:var(--butter);padding:9px 13px;border-radius:999px;}
+  .assets a.ghost{background:transparent;color:#fbf3df;border:1px solid rgba(251,243,223,.34);}
+  .press .contact{margin-top:16px;font-size:14px;color:rgba(251,243,223,.78);}
+  .press .contact a{color:var(--butter);font-weight:700;text-decoration:none;}
+
+  /* footer */
+  footer{text-align:center;padding:34px 0 46px;color:var(--cocoa);}
+  footer .links{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;font-size:14px;font-weight:600;margin-bottom:10px;}
+  footer .links a{text-decoration:none;}
+  footer .links span{opacity:.4;}
+  footer small{font-size:12.5px;opacity:.7;}
+
+  @media (max-width:420px){
+    .feature{flex-direction:column;text-align:center;}
+    .feature.flip{flex-direction:column;}
+    .feature .pic{flex-basis:auto;width:100%;max-width:240px;}
+    .feature .pic img{height:150px;}
+    .facts b{flex-basis:84px;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto;}
+    .appstore{transition:none;}
+  }
+  :focus-visible{outline:3px solid var(--terracotta);outline-offset:3px;border-radius:6px;}
+</style>
+</head>
+<body>
+
+<!-- The App Store link repeats; swap the placeholder URL once the app id is live. -->
+<div class="topbar">
+  <div class="wrap row">
+    <a href="#top" class="brand">
+      <img src="img/icon-web.png" alt="Lull app icon" width="30" height="30" />
+      <span>Lull</span>
+    </a>
+    <a class="navget" href="https://apps.apple.com/app/lull">Get the app</a>
+  </div>
+</div>
+
+<a id="top"></a>
+
+<!-- HERO — what is it -->
+<header class="hero wrap">
+  <div class="eyebrow">A calm toybox · ages 2–4</div>
+  <h1>Calm toys,<br>made for little hands.</h1>
+  <p class="sub muted">A gentle digital toybox where every toy is <b>alive</b> — it wakes the moment your child touches it, and settles back to calm. No ads. No scores. No timers.</p>
+
+  <a class="appstore" href="https://apps.apple.com/app/lull" aria-label="Download Lull on the App Store">
+    <svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M16.36 12.78c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.78-3.32-1.8-1.41-.14-2.76.83-3.48.83-.72 0-1.82-.81-3-.79-1.54.02-2.96.9-3.75 2.27-1.6 2.78-.41 6.89 1.15 9.14.76 1.1 1.67 2.34 2.86 2.29 1.15-.05 1.58-.74 2.97-.74 1.38 0 1.77.74 2.98.72 1.23-.02 2.01-1.12 2.76-2.23.87-1.28 1.23-2.52 1.25-2.58-.03-.01-2.4-.92-2.42-3.66zM14.13 6.04c.63-.77 1.06-1.84.94-2.91-.91.04-2.02.61-2.67 1.37-.58.68-1.09 1.77-.95 2.81 1.02.08 2.05-.52 2.68-1.27z"/></svg>
+    <span><span class="l">Download on the</span><br><span class="b">App Store</span></span>
+  </a>
+  <p class="ctaline">Try the whole toybox <b>free for 7 days</b>. Then <b>$9.99 once</b> — yours forever.</p>
+
+  <div class="heroart">
+    <img src="img/shelf-hero.jpg" width="533" height="1000" alt="A warm wooden shelf of soft clay toys — a stacker, a bubble jar, a little crowned friend, and tiny plants." />
+  </div>
+</header>
+
+<!-- WHY you need it -->
+<section class="wrap" id="why">
+  <div class="sechead">
+    <div class="eyebrow">Why families love it</div>
+    <h2>Real play. Real calm.</h2>
+    <p class="muted">Made the way good toys are made — for the child's attention, and the parent's peace of mind.</p>
+  </div>
+
+  <div class="feature">
+    <div class="pic"><img src="img/bloom-touch.jpg" loading="lazy" alt="A child's hand touching a glowing flower in the Bloom garden." /></div>
+    <div>
+      <h3>Alive in their hands</h3>
+      <p class="muted">Touch a toy and it wakes — a quick perk toward your child — then exhales slowly back to rest. Open-ended, Montessori-calm, with nothing to win or lose.</p>
+    </div>
+  </div>
+
+  <div class="feature flip">
+    <div class="pic"><img src="img/parent-trust.jpg" loading="lazy" alt="A parent and toddler sharing the app together, calm and warm." /></div>
+    <div>
+      <h3>Made for parents to trust</h3>
+      <p class="muted">No ads. No tracking. No pestering. Lull even warms and dims toward your family's bedtime, so play winds down on its own. Pay once — never a subscription.</p>
+    </div>
+  </div>
+</section>
+
+<!-- promises -->
+<section class="wrap" id="promises">
+  <div class="sechead">
+    <div class="eyebrow">What your child never sees</div>
+    <h2>The quiet guarantee</h2>
+  </div>
+  <div class="promises">
+    <div class="promise"><div class="tick"><i>✓</i>No ads, ever</div><small>No banners, rewarded videos, pop-ups, or sponsored toys.</small></div>
+    <div class="promise"><div class="tick"><i>✓</i>No pressure</div><small>No stars, streaks, timers, levels, or engineered urgency.</small></div>
+    <div class="promise"><div class="tick"><i>✓</i>No child-facing money</div><small>Children never see prices, purchase prompts, or upgrades.</small></div>
+    <div class="promise"><div class="tick"><i>✓</i>No tracking</div><small>Built for the Kids Category. Play stays private and calm.</small></div>
+  </div>
+</section>
+
+<!-- the toys -->
+<section class="wrap" id="toys">
+  <div class="sechead">
+    <div class="eyebrow">Inside the toybox</div>
+    <h2>A shelf of living toys</h2>
+    <p class="muted">Bubbles and Stack are always free. The rest unlock together.</p>
+  </div>
+  <div class="toys">
+    <span class="toy"><span class="dot" style="background:var(--water)"></span>Bubbles</span>
+    <span class="toy"><span class="dot" style="background:var(--sand)"></span>Stack</span>
+    <span class="toy"><span class="dot" style="background:var(--butter)"></span>Hum</span>
+    <span class="toy"><span class="dot" style="background:var(--sage)"></span>Bloom</span>
+    <span class="toy"><span class="dot" style="background:var(--petal)"></span>Mix-Up</span>
+    <span class="toy"><span class="dot" style="background:var(--terracotta)"></span>Feed the People</span>
+    <span class="toy"><span class="dot" style="background:var(--lavender)"></span>…and more</span>
+  </div>
+</section>
+
+<!-- HOW to get it FAST -->
+<section class="wrap" id="get">
+  <div class="sechead">
+    <div class="eyebrow">How to get it — fast</div>
+    <h2>Three taps to calm</h2>
+  </div>
+  <div class="steps">
+    <div class="step"><div class="n"></div><div><h3>Download</h3><p class="muted">Get Lull from the App Store. No account, no setup, no email.</p></div></div>
+    <div class="step"><div class="n"></div><div><h3>Open &amp; hand it over</h3><p class="muted">Lull opens straight into play — a sleepy shelf waiting for little hands.</p></div></div>
+    <div class="step"><div class="n"></div><div><h3>Play it all, free for 7 days</h3><p class="muted">The whole toybox is open. Keep everything for $9.99 once, or stay on the free Bubbles &amp; Stack shelf — your call.</p></div></div>
+  </div>
+
+  <div class="cta-band" style="margin-top:26px;">
+    <h2>Bring home the calm.</h2>
+    <p class="sub muted">Free for 7 days. Then $9.99, once. No subscription, ever.</p>
+    <a class="appstore" href="https://apps.apple.com/app/lull" aria-label="Download Lull on the App Store">
+      <svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M16.36 12.78c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.78-3.32-1.8-1.41-.14-2.76.83-3.48.83-.72 0-1.82-.81-3-.79-1.54.02-2.96.9-3.75 2.27-1.6 2.78-.41 6.89 1.15 9.14.76 1.1 1.67 2.34 2.86 2.29 1.15-.05 1.58-.74 2.97-.74 1.38 0 1.77.74 2.98.72 1.23-.02 2.01-1.12 2.76-2.23.87-1.28 1.23-2.52 1.25-2.58-.03-.01-2.4-.92-2.42-3.66zM14.13 6.04c.63-.77 1.06-1.84.94-2.91-.91.04-2.02.61-2.67 1.37-.58.68-1.09 1.77-.95 2.81 1.02.08 2.05-.52 2.68-1.27z"/></svg>
+      <span><span class="l">Download on the</span><br><span class="b">App Store</span></span>
+    </a>
+  </div>
+</section>
+
+<!-- PRESS KIT -->
+<section class="wrap" id="press">
+  <div class="press">
+    <div class="eyebrow" style="color:var(--butter);opacity:1;">Press &amp; media</div>
+    <h2 style="margin-top:8px;">Press kit</h2>
+    <p class="boiler">Lull is a calm, hand-made digital toybox for children ages 2–4. Every toy is alive — it wakes when a child touches it and settles slowly back to calm, with no scores, timers, or ads. Built on Montessori principles and the restraint of a good lullaby, it even winds down toward your family's bedtime.</p>
+    <ul class="facts">
+      <li><b>Platform</b><span>iPhone &amp; iPad (iOS)</span></li>
+      <li><b>Category</b><span>Kids / Education</span></li>
+      <li><b>Ages</b><span>2–4</span></li>
+      <li><b>Price</b><span>Free 7-day trial, then $9.99 once — no subscription</span></li>
+      <li><b>Privacy</b><span>No ads, no third-party tracking</span></li>
+    </ul>
+    <div class="assets">
+      <a href="press/lull-press-kit.zip" download>Download full press kit (.zip)</a>
+      <a class="ghost" href="press/lull-app-icon.png" download>App icon</a>
+      <a class="ghost" href="press/lull-shelf-hero-concept.png" download>Hero art</a>
+      <a class="ghost" href="press/lull-bloom-touch-concept.png" download>Bloom art</a>
+      <a class="ghost" href="press/lull-parent-trust-concept.png" download>Parent art</a>
+    </div>
+    <p class="contact">Press &amp; partnerships: <a href="mailto:press@lull.app">press@lull.app</a></p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="wrap">
+  <div class="links">
+    <a href="#why">Why Lull</a><span>·</span>
+    <a href="#get">Get it</a><span>·</span>
+    <a href="#press">Press</a><span>·</span>
+    <a href="mailto:support@lull.app">Support</a>
+  </div>
+  <small>Made with care for little hands. © <span id="yr">2026</span> Lull · lull.app</small>
+</footer>
+
+<script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
+</body>
+</html>

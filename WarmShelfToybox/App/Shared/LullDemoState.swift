@@ -345,7 +345,7 @@ final class LullPurchaseManager {
         }
 
         guard let product = product(for: productID) else {
-            lastErrorMessage = "This unlock is not available yet. Check the App Store product setup."
+            lastErrorMessage = "The full toybox isn't available from the App Store right now. Please try again later."
             return false
         }
 
@@ -417,6 +417,9 @@ final class LullPurchaseManager {
         guard let transaction = verifiedTransaction(from: result) else { return }
         if isFullToyboxTransaction(transaction) {
             LullDemoState.shared.accessTier = .fullToybox
+        } else if LullStoreProduct.entitlementProductIDs.contains(transaction.productID) {
+            // A refund or revocation arrives as an update too: recheck instead of keeping access.
+            await refreshEntitlements()
         }
         await transaction.finish()
     }

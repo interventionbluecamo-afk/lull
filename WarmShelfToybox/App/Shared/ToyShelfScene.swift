@@ -711,7 +711,7 @@ final class ToyShelfScene: BaseToyScene {
         return node
     }
 
-    private static func shelfObjectSlot(for id: String) -> String? {
+    static func shelfObjectSlot(for id: String) -> String? {
         switch id {
         case ToyRegistry.bubblesID: return "shelf-bubbles"
         case ToyRegistry.feedThePeopleID: return "shelf-feed"
@@ -728,7 +728,7 @@ final class ToyShelfScene: BaseToyScene {
 
     /// Export padding varies between authored objects. Fit their visible silhouettes,
     /// so padding cannot make one toy tiny or make its feet float above the shelf.
-    private static func shelfObjectArt(slot: String, fit: CGSize) -> SKSpriteNode? {
+    static func shelfObjectArt(slot: String, fit: CGSize) -> SKSpriteNode? {
         let visible: [String: (CGSize, CGRect)] = [
             "shelf-bubbles": (CGSize(width: 1374, height: 1145), CGRect(x: 223, y: 73, width: 1060, height: 1004)),
             "shelf-stack": (CGSize(width: 1374, height: 1145), CGRect(x: 342, y: 123, width: 693, height: 935)),

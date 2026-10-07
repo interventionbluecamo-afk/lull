@@ -11,11 +11,41 @@ enum AdultGate {
     }
 }
 
+/// The question itself, kept free of UIKit so it can be checked off-device.
+///
+/// Three digits spelled out as words ("four · seven · two"), typed back as digits. A pre-reader
+/// can't decode the words, and a toddler mashing the number pad has 1 in 1,000 odds per try.
+/// Every miss draws a new question; three misses in a row rest the check for half a minute.
+struct AdultGateChallenge {
+    static let digitWords = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
+    static let maxMisses = 3
+    static let restDuration: TimeInterval = 30
+
+    let digits: [Int]
+
+    init(digits: [Int]) { self.digits = digits }
+
+    static func random() -> AdultGateChallenge {
+        AdultGateChallenge(digits: (0..<3).map { _ in Int.random(in: 0...9) })
+    }
+
+    var prompt: String { digits.map { Self.digitWords[$0] }.joined(separator: " · ") }
+    var spokenPrompt: String { digits.map { Self.digitWords[$0] }.joined(separator: ", ") }
+    var answer: String { digits.map(String.init).joined() }
+
+    func accepts(_ typed: String) -> Bool {
+        typed.trimmingCharacters(in: .whitespaces) == answer
+    }
+}
+
 final class AdultGateViewController: UIViewController {
     private let onSuccess: () -> Void
-    private let left = Int.random(in: 4...9)
-    private let right = Int.random(in: 5...9)
-    private var answer: Int { left + right }
+    private var challenge = AdultGateChallenge.random()
+
+    /// Misses survive closing and reopening the check, so tapping "Not now" can't reset the rest.
+    private static var consecutiveMisses = 0
+    private static var restingUntil: Date?
+    private var restTimer: Timer?
 
     private let card = UIView()
     private let field = UITextField()
@@ -70,16 +100,19 @@ final class AdultGateViewController: UIViewController {
         eyebrow.textAlignment = .center
 
         let title = UILabel()
-        title.text = "A quick question\nfor a grown-up"
+        title.text = "Type these numbers\nas digits"
         title.numberOfLines = 0
         title.textAlignment = .center
         title.font = UIFont(name: "Georgia", size: 26) ?? .systemFont(ofSize: 26, weight: .semibold)
         title.textColor = WarmShelfPalette.clayInk
 
-        promptLabel.text = "\(left)  +  \(right)  =  ?"
         promptLabel.textAlignment = .center
-        promptLabel.font = UIFont(name: "Georgia-Bold", size: 34) ?? .systemFont(ofSize: 34, weight: .bold)
+        promptLabel.font = UIFont(name: "Georgia-Bold", size: 28) ?? .systemFont(ofSize: 28, weight: .bold)
         promptLabel.textColor = WarmShelfPalette.terracotta
+        promptLabel.numberOfLines = 0
+        promptLabel.adjustsFontSizeToFitWidth = true
+        promptLabel.minimumScaleFactor = 0.6
+        showChallenge()
 
         field.translatesAutoresizingMaskIntoConstraints = false
         field.keyboardType = .numberPad
@@ -129,16 +162,51 @@ final class AdultGateViewController: UIViewController {
         ])
     }
 
+    private var isResting: Bool {
+        guard let until = Self.restingUntil else { return false }
+        if until > Date() { return true }
+        Self.restingUntil = nil
+        Self.consecutiveMisses = 0
+        return false
+    }
+
+    private func showChallenge() {
+        restTimer?.invalidate()
+        restTimer = nil
+        if isResting {
+            promptLabel.text = "Let's try again\nin a moment"
+            promptLabel.accessibilityLabel = "Let's try again in a moment"
+            field.text = ""
+            field.isEnabled = false
+            let wait = max(0.5, Self.restingUntil?.timeIntervalSinceNow ?? 0)
+            restTimer = Timer.scheduledTimer(withTimeInterval: wait, repeats: false) { [weak self] _ in
+                guard let self else { return }
+                self.challenge = .random()
+                self.showChallenge()
+                self.field.becomeFirstResponder()
+            }
+            return
+        }
+        field.isEnabled = true
+        promptLabel.text = challenge.prompt
+        promptLabel.accessibilityLabel = challenge.spokenPrompt
+    }
+
     @objc private func answerChanged() {
-        // Auto-submit when the right answer is typed.
-        if field.text == "\(answer)" { submit() }
+        let typed = String((field.text ?? "").filter(\.isNumber).prefix(challenge.answer.count))
+        if field.text != typed { field.text = typed }
+        // Judge as soon as the last digit lands; there is never a wrong answer left on screen.
+        if typed.count == challenge.answer.count { submit() }
     }
 
     @objc private func submit() {
-        guard field.text?.trimmingCharacters(in: .whitespaces) == "\(answer)" else {
+        guard !isResting else { return }
+        guard challenge.accepts(field.text ?? "") else {
             rejectShake()
             return
         }
+        Self.consecutiveMisses = 0
+        restTimer?.invalidate()
         view.endEditing(true)
         dismiss(animated: true) { [weak self] in self?.onSuccess() }
     }
@@ -150,9 +218,16 @@ final class AdultGateViewController: UIViewController {
         card.layer.add(shake, forKey: "shake")
         field.text = ""
         HapticsManager.shared.emptyTap()
+        Self.consecutiveMisses += 1
+        if Self.consecutiveMisses >= AdultGateChallenge.maxMisses {
+            Self.restingUntil = Date().addingTimeInterval(AdultGateChallenge.restDuration)
+        }
+        challenge = .random()
+        showChallenge()
     }
 
     @objc private func cancel() {
+        restTimer?.invalidate()
         view.endEditing(true)
         dismiss(animated: true)
     }

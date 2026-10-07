@@ -1,10 +1,19 @@
 import UIKit
 import StoreKit
 
+/// Contact and policy destinations, in one place. Keep these identical to the website
+/// (`LandingPageDeploy/`) and App Store Connect (Support URL, Privacy Policy URL).
+enum LullLinks {
+    /// FOUNDER: must be a mailbox you control before public release (see Docs/AppStore/).
+    static let supportEmail = "support@lull.app"
+    /// The hosted copy of `LullPrivacyViewController.sections`. nil hides "Read it on the web".
+    static let privacyPolicyURL: URL? = nil
+}
+
 /// Parent-only access, preferences, and a clear description of the current toybox.
 final class ParentInfoViewController: UIViewController {
     private let stack = UIStackView()
-    private let supportEmail = "support@lull.app"
+    private let supportEmail = LullLinks.supportEmail
     private var statusMessage: String?
     private var isLoadingProducts = true
     private var isPurchaseInProgress = false
@@ -122,7 +131,9 @@ final class ParentInfoViewController: UIViewController {
             toyRows.append(makeSwitchGroupRow(
                 icon: "circle.grid.2x2.fill", tint: toyAccent(index),
                 title: toy.parentName,
-                detail: isVisible ? "On the child's shelf" : "Tucked away for now",
+                detail: ToyRegistry.isToyLocked(toyID)
+                    ? "Part of the full toybox"
+                    : (isVisible ? "On the child's shelf" : "Tucked away for now"),
                 isOn: isVisible, tag: index,
                 action: #selector(toyRowTapped(_:))
             ))
@@ -164,6 +175,8 @@ final class ParentInfoViewController: UIViewController {
         stack.addArrangedSubview(makeGroupCard([
             makeChevronRow(icon: "envelope.fill", tint: WarmShelfPalette.butter,
                            title: "Support — \(supportEmail)", action: #selector(contactSupport)),
+            makeChevronRow(icon: "hand.raised.fill", tint: WarmShelfPalette.sage,
+                           title: "Privacy", action: #selector(showPrivacy)),
             makeChevronRow(icon: "arrow.counterclockwise", tint: WarmShelfPalette.petal,
                            title: "See the welcome again", action: #selector(resetOnboarding))
         ]))
@@ -263,6 +276,8 @@ final class ParentInfoViewController: UIViewController {
         let product = LullPurchaseManager.shared.product(for: LullStoreProduct.lifetime)
         // Never advertise the fallback price or one-payment terms for an unknown product.
         let price = product?.type == .nonConsumable ? product?.displayPrice : nil
+        // Screen Time can switch purchases off; say so instead of offering a dead button.
+        let purchasesAllowed = AppStore.canMakePayments
 
         let eyebrow = UILabel()
         let title = UILabel()
@@ -328,12 +343,14 @@ final class ParentInfoViewController: UIViewController {
             cta.translatesAutoresizingMaskIntoConstraints = false
             cta.heightAnchor.constraint(greaterThanOrEqualToConstant: 56).isActive = true
             cta.addTarget(self, action: #selector(purchaseLifetime), for: .touchUpInside)
-            cta.isEnabled = price != nil && !isLoadingProducts && !isPurchaseInProgress
+            cta.isEnabled = price != nil && purchasesAllowed && !isLoadingProducts && !isPurchaseInProgress
             cta.alpha = cta.isEnabled ? 1 : 0.65
             content.addArrangedSubview(cta)
 
             let reassurance = UILabel()
-            reassurance.text = price != nil
+            reassurance.text = price != nil && !purchasesAllowed
+                ? "In-App Purchases are turned off in Screen Time on this device. The free toys stay open."
+                : price != nil
                 ? "One payment. No subscription or automatic renewal. The free week never charges you."
                 : (isLoadingProducts
                     ? "The free week never turns into a charge. You can keep playing the free toys."
@@ -668,7 +685,7 @@ final class ParentInfoViewController: UIViewController {
             ("rectangle.slash", "No ads — no banners, videos, or sponsored toys", WarmShelfPalette.waterBlue),
             ("star.slash", "No stars, streaks, levels, or engineered urgency", WarmShelfPalette.butter),
             ("dollarsign.circle", "No child-facing prices or upgrade language", WarmShelfPalette.petal),
-            ("eye.slash", "No tracking-based ads — play stays private", WarmShelfPalette.sage)
+            ("eye.slash", "No tracking or accounts — play stays on this device", WarmShelfPalette.sage)
         ]
         let column = UIStackView(arrangedSubviews: promises.map { symbol, text, tint in
             let icon = makeIconSquircle(symbol, tint: tint)
@@ -845,9 +862,24 @@ final class ParentInfoViewController: UIViewController {
     }
 
     @objc private func contactSupport() {
-        if let url = URL(string: "mailto:\(supportEmail)") {
-            UIApplication.shared.open(url)
+        guard let url = URL(string: "mailto:\(supportEmail)") else { return }
+        UIApplication.shared.open(url) { [weak self] opened in
+            guard !opened, let self else { return }
+            let alert = UIAlertController(title: "Write to us",
+                                          message: "No mail app is set up on this device. Our address is \(self.supportEmail).",
+                                          preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Copy address", style: .default) { _ in
+                UIPasteboard.general.string = self.supportEmail
+            })
+            alert.addAction(UIAlertAction(title: "Done", style: .cancel))
+            self.present(alert, animated: true)
         }
+    }
+
+    @objc private func showPrivacy() {
+        let privacy = LullPrivacyViewController()
+        privacy.modalPresentationStyle = .pageSheet
+        present(privacy, animated: true)
     }
 
     @objc private func toggleSound() {
@@ -965,4 +997,114 @@ final class ParentInfoViewController: UIViewController {
 
     override var prefersStatusBarHidden: Bool { true }
     override var prefersHomeIndicatorAutoHidden: Bool { true }
+}
+
+// MARK: - Privacy policy
+
+/// The privacy policy, readable offline inside the gated grown-up room (Guideline 5.1.1(i)).
+/// Keep `sections` word-for-word with `LandingPageDeploy/privacy.html`.
+final class LullPrivacyViewController: UIViewController {
+    static let effectiveDate = "October 7, 2026"
+
+    static var sections: [(String, String)] {
+        [
+            ("The short version",
+             "Lull does not collect, store on a server, share, or sell any information about you or your child. There are no accounts, ads, analytics, or tracking, and no third-party code that could do these things."),
+            ("What stays on this device",
+             "Your family settings (sound, haptics, calmer motion, play timer, wind-down hour, which toys are on the shelf), the date the free week began, which hints were shown, and Mix-Up creations are saved only in Lull's storage on this device. They are not sent anywhere. Deleting Lull deletes them."),
+            ("Purchases",
+             "The full toybox is a one-time In-App Purchase handled entirely by Apple. Lull never sees your name, Apple Account, or payment details; Apple tells the app only whether the full toybox is unlocked. Apple's privacy policy covers the purchase itself."),
+            ("Device features",
+             "Lull does not use the camera, microphone, location, contacts, photos, or notifications. The shelf may read the device's tilt to move its picture gently; that motion is used in the moment and never saved."),
+            ("Children",
+             "Lull is made for children aged 2 to 6. We do not knowingly collect personal information from children, and the app gives a child no way to type, share, or send information. Settings, purchases, and links live in the grown-up area behind an adult check."),
+            ("If you contact us",
+             "If you email us, we receive the address and whatever you choose to write. We use it only to reply, never for marketing, and we delete it on request."),
+            ("Changes and contact",
+             "If this policy changes, the new version will be in the app and on our website with a new date. Questions: \(LullLinks.supportEmail). Effective \(effectiveDate).")
+        ]
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = WarmShelfPalette.linen
+
+        let scroll = UIScrollView()
+        scroll.translatesAutoresizingMaskIntoConstraints = false
+        scroll.alwaysBounceVertical = true
+        view.addSubview(scroll)
+
+        let column = UIStackView()
+        column.axis = .vertical
+        column.spacing = 8
+        column.translatesAutoresizingMaskIntoConstraints = false
+        scroll.addSubview(column)
+
+        let title = UILabel()
+        title.text = "Privacy"
+        title.font = UIFontMetrics(forTextStyle: .largeTitle)
+            .scaledFont(for: UIFont(name: "Georgia", size: 30) ?? .systemFont(ofSize: 30, weight: .semibold))
+        title.adjustsFontForContentSizeCategory = true
+        title.textColor = WarmShelfPalette.clayInk
+        title.accessibilityTraits = .header
+        column.addArrangedSubview(title)
+        column.setCustomSpacing(16, after: title)
+
+        for (heading, body) in Self.sections {
+            let h = UILabel()
+            h.text = heading
+            h.font = UIFontMetrics(forTextStyle: .headline).scaledFont(for: .systemFont(ofSize: 16, weight: .bold))
+            h.adjustsFontForContentSizeCategory = true
+            h.textColor = WarmShelfPalette.clayInk
+            h.numberOfLines = 0
+            h.accessibilityTraits = .header
+            let b = UILabel()
+            b.text = body
+            b.font = UIFontMetrics(forTextStyle: .body).scaledFont(for: .systemFont(ofSize: 15))
+            b.adjustsFontForContentSizeCategory = true
+            b.textColor = WarmShelfPalette.cocoa
+            b.numberOfLines = 0
+            column.addArrangedSubview(h)
+            column.setCustomSpacing(4, after: h)
+            column.addArrangedSubview(b)
+            column.setCustomSpacing(18, after: b)
+        }
+
+        if LullLinks.privacyPolicyURL != nil {
+            let web = UIButton(type: .system)
+            web.setTitle("Read it on the web", for: .normal)
+            web.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
+            web.setTitleColor(WarmShelfPalette.terracotta, for: .normal)
+            web.contentHorizontalAlignment = .leading
+            web.addTarget(self, action: #selector(openWeb), for: .touchUpInside)
+            column.addArrangedSubview(web)
+        }
+
+        let done = UIButton(type: .system)
+        done.setTitle("Done", for: .normal)
+        done.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
+        done.setTitleColor(WarmShelfPalette.paperHighlight, for: .normal)
+        done.backgroundColor = WarmShelfPalette.clayInk
+        done.layer.cornerRadius = 18
+        done.heightAnchor.constraint(greaterThanOrEqualToConstant: 52).isActive = true
+        done.addTarget(self, action: #selector(close), for: .touchUpInside)
+        column.addArrangedSubview(done)
+
+        NSLayoutConstraint.activate([
+            scroll.topAnchor.constraint(equalTo: view.topAnchor),
+            scroll.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scroll.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            scroll.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            column.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor, constant: 28),
+            column.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor, constant: -28),
+            column.leadingAnchor.constraint(equalTo: scroll.frameLayoutGuide.leadingAnchor, constant: 24),
+            column.trailingAnchor.constraint(equalTo: scroll.frameLayoutGuide.trailingAnchor, constant: -24)
+        ])
+    }
+
+    @objc private func openWeb() {
+        if let url = LullLinks.privacyPolicyURL { UIApplication.shared.open(url) }
+    }
+
+    @objc private func close() { dismiss(animated: true) }
 }

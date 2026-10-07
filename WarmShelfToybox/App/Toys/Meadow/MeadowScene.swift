@@ -35,6 +35,7 @@ final class MeadowScene: BaseToyScene {
     private var wandererFlutter: SKTexture?
     private var snailEyes: [SKShapeNode] = []
     private var snailTarget: CGPoint?     // world coords
+    private var leadTouch: UITouch?
     private var snailAwake = false
     private var lastMeadowTouchTime: TimeInterval = 0   // for the recurring "lead me" invite
     private var lastInviteTime: TimeInterval = 0
@@ -138,6 +139,7 @@ final class MeadowScene: BaseToyScene {
         trailHalo = nil; petalBudget = 0
         springArea = 0; bloomMomentFired = false
         snailTarget = nil
+        leadTouch = nil
         lastPaintPoint = nil
         paintedSpringPoints.removeAll()
         paintRadius = min(max(min(size.width, size.height) * 0.13, 48), 72) // the bloom her aura paints
@@ -492,7 +494,7 @@ final class MeadowScene: BaseToyScene {
         snail?.setScale(1)                     // in case a bob was mid-flight
         for touch in touches {
             let screenP = touch.location(in: self)
-            if snailTarget == nil, consumeShelfReturnTouch(at: screenP) { return }
+            if leadTouch == nil, consumeShelfReturnTouch(at: screenP) { return }
             let p = worldNode.convert(screenP, from: self)
 
             if let puff = dandelion, puff.parent != nil,
@@ -518,7 +520,8 @@ final class MeadowScene: BaseToyScene {
                 HapticsManager.shared.impact(style: .soft, intensity: 0.14)
                 continue
             }
-            if snailTarget == nil {
+            if leadTouch == nil {
+                leadTouch = touch
                 removeAction(forKey: "watchme")
                 removeAction(forKey: "trailRest")   // the journey resumes; the dew stays
                 snailTarget = p
@@ -532,14 +535,19 @@ final class MeadowScene: BaseToyScene {
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let touch = touches.first else { return }
+        guard let touch = leadTouch, touches.contains(touch) else { return }
         snailTarget = worldNode.convert(touch.location(in: self), from: self)
     }
 
-    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) { endLead() }
-    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) { endLead() }
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if let touch = leadTouch, touches.contains(touch) { endLead() }
+    }
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if let touch = leadTouch, touches.contains(touch) { endLead() }
+    }
 
     private func endLead() {
+        leadTouch = nil
         snailTarget = nil
         run(.sequence([.wait(forDuration: 1.6), .run { [weak self] in
             guard let self, self.snailTarget == nil else { return }
@@ -1235,7 +1243,7 @@ final class MeadowScene: BaseToyScene {
         var elements = super.accessibilityElements(in: view)
         if let snail {
             elements.append(makeActivatableAccessibilityElement(
-                in: view, label: "Ladybug — lead her out of the garden and home again, and spring fills the shape",
+                in: view, label: "Ladybug — tap to lead her to a new spot and paint spring as she moves",
                 scenePosition: worldNode.convert(snail.position, to: self),
                 size: CGSize(width: 120, height: 100), traits: .button
             ) { [weak self] in

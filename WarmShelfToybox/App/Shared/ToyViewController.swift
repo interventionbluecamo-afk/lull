@@ -1,6 +1,73 @@
 import SpriteKit
 import UIKit
 
+/// Keep the real fingers that SpriteKit received so a covering rest screen can cancel
+/// their ownership before pausing. No release is interpreted as a completed play action.
+final class ToyPlayView: SKView {
+    private var activeTouches = Set<UITouch>()
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        activeTouches.formUnion(touches)
+        super.touchesBegan(touches, with: event)
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        activeTouches.subtract(touches)
+        super.touchesEnded(touches, with: event)
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        activeTouches.subtract(touches)
+        super.touchesCancelled(touches, with: event)
+    }
+
+    func cancelActiveSceneTouches() {
+        let cancelled = activeTouches
+        activeTouches.removeAll()
+        if !cancelled.isEmpty { scene?.touchesCancelled(cancelled, with: nil) }
+    }
+}
+
+/// Owns the exact pre-rest state of a playable SpriteKit view. An over-full-screen
+/// modal cannot rely on UIViewController disappearance callbacks to stop the toy.
+final class LullRestPlaybackSuspension {
+    private weak var skView: SKView?
+    private weak var scene: BaseToyScene?
+    private let wasPaused: Bool
+    private let wasInteractive: Bool
+    private var recognizers: [(UIGestureRecognizer, Bool)]
+    private var hasResumed = false
+
+    init?(presenter: UIViewController) {
+        guard let skView = presenter.viewIfLoaded as? SKView,
+              let scene = skView.scene as? BaseToyScene else { return nil }
+        self.skView = skView
+        self.scene = scene
+        wasPaused = skView.isPaused
+        wasInteractive = skView.isUserInteractionEnabled
+        recognizers = (skView.gestureRecognizers ?? []).map { ($0, $0.isEnabled) }
+
+        // Let toys settle their held objects immediately before generic cancellation
+        // drains touch ownership or schedules a return animation in their cancel path.
+        scene.suspendToyForRest()
+        (skView as? ToyPlayView)?.cancelActiveSceneTouches()
+        skView.isUserInteractionEnabled = false
+        recognizers.forEach { $0.0.isEnabled = false }
+        skView.isPaused = true
+    }
+
+    func resume() {
+        guard !hasResumed else { return }
+        hasResumed = true
+        guard let skView else { return }
+        if let scene, skView.scene === scene { scene.resumeToyAfterRest() }
+        skView.isPaused = wasPaused
+        recognizers.forEach { $0.0.isEnabled = $0.1 }
+        recognizers.removeAll()
+        skView.isUserInteractionEnabled = wasInteractive
+    }
+}
+
 final class ToyViewController: UIViewController {
     private let descriptor: ToyDescriptor
     private var hasPresentedToyScene = false
@@ -19,7 +86,8 @@ final class ToyViewController: UIViewController {
     }
 
     override func loadView() {
-        let skView = SKView()
+        let skView = ToyPlayView()
+        skView.isMultipleTouchEnabled = true
         skView.ignoresSiblingOrder = true
         skView.shouldCullNonVisibleNodes = true
         skView.preferredFramesPerSecond = 120  // ProMotion; auto-caps to 60 elsewhere
@@ -27,14 +95,15 @@ final class ToyViewController: UIViewController {
         view = skView
     }
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        installParentAreaGesture()
-    }
-
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         presentToySceneIfReady()
+        refreshSceneNavigationAndAccessibility()
+    }
+
+    override func viewSafeAreaInsetsDidChange() {
+        super.viewSafeAreaInsetsDidChange()
+        refreshSceneNavigationAndAccessibility()
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -74,6 +143,13 @@ final class ToyViewController: UIViewController {
         )
         configureAccessibility(for: scene, in: skView)
     }
+
+    private func refreshSceneNavigationAndAccessibility() {
+        guard let skView = view as? SKView, let scene = currentScene else { return }
+        scene.refreshSharedNavigationLayout()
+        configureAccessibility(for: scene, in: skView)
+    }
+
     private func configureAccessibility(for scene: BaseToyScene, in skView: SKView) {
         skView.isAccessibilityElement = false
         skView.accessibilityLabel = descriptor.parentName
@@ -82,29 +158,8 @@ final class ToyViewController: UIViewController {
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self, weak skView, weak scene] in
             guard let self, let skView, let scene, scene === self.currentScene else { return }
+            scene.refreshSharedNavigationLayout()
             skView.accessibilityElements = scene.accessibilityElements(in: skView)
-        }
-    }
-
-    private func installParentAreaGesture() {
-        let recognizer = UILongPressGestureRecognizer(target: self, action: #selector(openParentArea(_:)))
-        recognizer.minimumPressDuration = 1.4
-        recognizer.numberOfTouchesRequired = 2
-        recognizer.cancelsTouchesInView = false
-        recognizer.delaysTouchesBegan = false
-        recognizer.delaysTouchesEnded = false   // default true HOLDS touchesEnded while this 2-finger
-                                                // press is .possible — i.e. whenever a toddler's second
-                                                // finger lands. That delay = lost releases = stuck notes.
-        view.addGestureRecognizer(recognizer)
-    }
-
-    @objc private func openParentArea(_ recognizer: UILongPressGestureRecognizer) {
-        guard recognizer.state == .began, presentedViewController == nil else { return }
-        AdultGate.present(from: self) { [weak self] in
-            guard let self, self.presentedViewController == nil else { return }
-            let parentInfo = ParentInfoViewController()
-            parentInfo.modalPresentationStyle = .formSheet
-            self.present(parentInfo, animated: true)
         }
     }
 

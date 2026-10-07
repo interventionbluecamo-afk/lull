@@ -1,7 +1,7 @@
 import SpriteKit
 
 /// A little tactile treasure the child posts into the Sleepy Drop Box. Four distinct, cute,
-/// readable silhouettes — a berry ball, a moon coin, a soft cube, and a star biscuit — each with
+/// readable silhouettes — a round ball, a triangle, a soft square, and an upright star — each with
 /// matte clay/felt material, a soft separating contact shadow, and a gentle lift wobble. No
 /// physics: the scene authors all motion, so a treasure can never fly off, stick, or vanish.
 final class DropTreasureNode: SKNode {
@@ -9,7 +9,7 @@ final class DropTreasureNode: SKNode {
 
     let kind: Kind
     let radius: CGFloat
-    let variant: Int   // each drawer-pull brings the same shapes back in fresh "outfits"
+    let variant: Int   // optional legacy tint; Sleepy Box keeps the same four colors every round
 
     private let body = SKShapeNode()
     private let shadow: SKSpriteNode
@@ -30,14 +30,14 @@ final class DropTreasureNode: SKNode {
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    /// Three warm tints per shape family. The SHAPE stays matched to its socket (the rule never
-    /// changes); the colour cycles each return, so the toy feels quietly new every pull.
+    /// The default tint gives each shape a stable identity. Alternate legacy tints remain
+    /// available to other callers, but returning a treasure never changes it in this toy.
     var color: UIColor {
         let families: [Kind: [UInt32]] = [
-            .berry:    [0xD24B3E, 0xC4583F, 0xE0614A],   // berry red → clay rust → warm coral
-            .triangle: [0xF2C24C, 0xEAA93C, 0xF6CF6E],   // butter → honey → light gold
-            .cube:     [0x82A648, 0x6F9655, 0x93B05A],   // sage → moss → spring sage
-            .star:     [0xEACF86, 0xE8C46E, 0xF2DCA0]    // biscuit → toasted → vanilla cream
+            .berry:    [0xC96F50, 0xC4583F, 0xE0614A],
+            .triangle: [0xD9B452, 0xEAA93C, 0xF6CF6E],
+            .cube:     [0x829B82, 0x6F9655, 0x93B05A],
+            .star:     [0x83AAB9, 0xE8C46E, 0xF2DCA0]
         ]
         let family = families[kind] ?? [0xD24B3E]
         return UIColor(hex: family[((variant % family.count) + family.count) % family.count])
@@ -77,7 +77,7 @@ final class DropTreasureNode: SKNode {
         // A soft static highlight, sized to the silhouette.
         // Matte clay light: one soft, broad sheen — no hard white specular, which read as plastic.
         let glint = SKShapeNode(ellipseOf: CGSize(width: r * 0.9, height: r * 0.6))
-        glint.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.32)
+        glint.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.12)
         glint.strokeColor = .clear
         glint.position = CGPoint(x: -r * 0.28, y: r * 0.32)
         glint.zRotation = -0.5
@@ -109,7 +109,7 @@ final class DropTreasureNode: SKNode {
             // A lighter top face so the block reads chunky and dimensional.
             let s = r * 1.66
             let topFace = SKShapeNode(rect: CGRect(x: -s * 0.38, y: s * 0.1, width: s * 0.76, height: s * 0.26), cornerRadius: s * 0.12)
-            topFace.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.26)
+            topFace.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.10)
             topFace.strokeColor = .clear
             topFace.zPosition = 0.35
             body.addChild(topFace)
@@ -191,13 +191,16 @@ final class DropTreasureNode: SKNode {
     }
 
     private static func artSprite(for kind: Kind, radius r: CGFloat) -> SKSpriteNode? {
+        // The new sorter uses the exact shared geometry for pieces and openings.
+        // Older bitmaps had padding and a differently oriented star silhouette.
+        if ToyArt.texture("sleepybox-v2-shell") != nil { return nil }
         let slot: String
         let fit: CGSize
         switch kind {
         case .berry:    slot = "sleepybox-ball";     fit = CGSize(width: r * 2.0, height: r * 2.0)
-        case .triangle: slot = "sleepybox-triangle"; fit = CGSize(width: r * 2.3, height: r * 2.3)
+        case .triangle: slot = "sleepybox-triangle"; fit = CGSize(width: r * 2.15, height: r * 2.15)
         case .cube:     slot = "sleepybox-cube";     fit = CGSize(width: r * 1.95, height: r * 1.95)
-        case .star:     slot = "sleepybox-star";     fit = CGSize(width: r * 2.6, height: r * 2.6)
+        case .star:     slot = "sleepybox-star";     fit = CGSize(width: r * 2.15, height: r * 2.15)
         }
         return ToyArt.sprite(slot, fit: fit)
     }
@@ -220,7 +223,7 @@ final class DropTreasureNode: SKNode {
     static func softStarPath(outer: CGFloat, inner: CGFloat, points: Int) -> CGPath {
         var pts: [CGPoint] = []
         for i in 0..<(points * 2) {
-            let a = CGFloat(i) / CGFloat(points * 2) * .pi * 2 - .pi / 2
+            let a = CGFloat(i) / CGFloat(points * 2) * .pi * 2 + .pi / 2
             let rad = i.isMultiple(of: 2) ? outer : inner
             pts.append(CGPoint(x: cos(a) * rad, y: sin(a) * rad))
         }

@@ -61,6 +61,7 @@ final class FeedScene: BaseToyScene {
         let spec: CharacterSpec
         let mood: CharacterMood
         let bitesRemaining: Int
+        let wishGranted: Bool
         let xRatio: CGFloat
         let yOffsetFromTable: CGFloat
         let zRotation: CGFloat
@@ -70,16 +71,7 @@ final class FeedScene: BaseToyScene {
 
     private struct FoodSnapshot {
         let kind: FoodKind
-        let xRatio: CGFloat
-        let yOffsetFromTable: CGFloat
-        let zRotation: CGFloat
-        let zPosition: CGFloat
-        let alpha: CGFloat
     }
-
-    // Drag-trail state — tiny motes follow the food to make dragging feel physical.
-    private var lastTrailPoint: CGPoint = .zero
-    private var trailAccumulator: CGFloat = 0
 
     private var tableTopY: CGFloat {
         tableTopY(for: size)
@@ -368,6 +360,7 @@ final class FeedScene: BaseToyScene {
                 spec: spec,
                 mood: character.snapshotMood,
                 bitesRemaining: character.snapshotBitesRemaining,
+                wishGranted: character.wishGranted,
                 xRatio: oldSize.width > 0 ? character.position.x / oldSize.width : 0.5,
                 yOffsetFromTable: character.position.y - oldTableTopY,
                 zRotation: character.zRotation,
@@ -378,24 +371,14 @@ final class FeedScene: BaseToyScene {
     }
 
     private func snapshotFoods(oldSize: CGSize) -> [FoodSnapshot] {
-        guard oldSize.width > 20, oldSize.height > 20 else { return [] }
-        let oldTableTopY = tableTopY(for: oldSize)
-
-        return foodLayer.children.compactMap { node in
-            guard let food = node as? FoodNode else { return nil }
-            return FoodSnapshot(
-                kind: food.kind,
-                xRatio: oldSize.width > 0 ? food.position.x / oldSize.width : 0.5,
-                yOffsetFromTable: food.position.y - oldTableTopY,
-                zRotation: food.zRotation,
-                zPosition: food.zPosition,
-                alpha: food.alpha
-            )
+        // A bite commits before its visual flight. Serving sprites are transient and
+        // never reconstructed; ordinary food returns to its table home on rotation.
+        foodLayer.children.compactMap { node in
+            guard let food = node as? FoodNode, !food.isServing else { return nil }
+            return FoodSnapshot(kind: food.kind)
         }
     }
 
-    /// A real wooden table in gentle perspective — the friends gather behind it, plates and
-    /// the food bowl rest on its surface. Replaces the old thin bar + cramped clutter.
     private func addTable() {
         let cx = size.width / 2
 
@@ -569,15 +552,16 @@ final class FeedScene: BaseToyScene {
             let character = addCharacter(spec: snapshot.spec, in: slot, arrivalSide: nil)
             character.alpha = max(0.82, snapshot.alpha)
             character.restoreBitesRemaining(snapshot.bitesRemaining)
+            character.restoreWishGranted(snapshot.wishGranted)
             character.restoreMood(snapshot.mood)
             return character
         }
         addPlates(under: characters)
         for character in characters where character.mood != .hungry {
-            if character.needsMoreFood {
-                character.inviteAnotherBite(after: character.mood == .eating ? 0.8 : 0.3)
-            } else {
+            if character.visitIsComplete {
                 satisfyAndReplace(character, after: character.mood == .eating ? 1.0 : 1.4)
+            } else {
+                character.inviteAnotherBite(after: character.mood == .eating ? 0.8 : 0.3)
             }
         }
     }
@@ -877,28 +861,17 @@ final class FeedScene: BaseToyScene {
     private func addFoods(from snapshots: [FoodSnapshot]) {
         for (index, snapshot) in snapshots.enumerated() {
             let food = makeFood(kind: snapshot.kind, index: index)
-            food.position = restoredFoodPosition(from: snapshot, for: food)
-            food.zRotation = snapshot.zRotation
-            food.zPosition = snapshot.zPosition
-            food.alpha = snapshot.alpha
+            food.position = food.homePosition
             foodLayer.addChild(food)
             runIdleFoodMotion(food, index: index)
         }
     }
 
-    private func restoredFoodPosition(from snapshot: FoodSnapshot, for food: FoodNode) -> CGPoint {
-        let x = min(
-            max(snapshot.xRatio * size.width, food.foodSize.width * 0.50),
-            size.width - food.foodSize.width * 0.50
-        )
-        let minY = max(28, food.foodSize.height * 0.42)
-        let maxY = max(minY, size.height - food.foodSize.height * 0.44)
-        let y = min(max(tableTopY + snapshot.yOffsetFromTable, minY), maxY)
-        return CGPoint(x: x, y: y)
-    }
-
     private func makeFood(kind: FoodKind, index: Int) -> FoodNode {
         let food = FoodNode(kind: kind, scale: foodScale)
+        let homeIndex = availableFoodKinds.firstIndex(of: kind) ?? index
+        let homes = startingFoodPositions(count: availableFoodKinds.count)
+        food.homePosition = homes[min(homeIndex, homes.count - 1)]
         food.zPosition = CGFloat(40 + index)
         food.zRotation = CGFloat.random(in: -0.18...0.18)
         return food
@@ -1062,20 +1035,18 @@ final class FeedScene: BaseToyScene {
             guard let food = activeFoodTouches[touch] else { continue }
             let point = touch.location(in: self)
 
-            // Drag-trail motes every ~20pts — the food leaves a little wake.
-            let moved = hypot(point.x - lastTrailPoint.x, point.y - lastTrailPoint.y)
-            trailAccumulator += moved
-            lastTrailPoint = point
-            if trailAccumulator > 20, !AmbientAnimator.reduceMotion {
-                trailAccumulator = 0
+            // Each dragged food owns its trail distance, including under multitouch.
+            if food.shouldEmitTrail(at: point), !AmbientAnimator.reduceMotion {
                 spawnFoodTrailMote(at: food.convert(.zero, to: self), color: food.kind.fillColor)
             }
 
             food.drag(to: point, in: self, bounds: dragBounds(for: food))
 
             // Snap zone: a clear pulsing signal that the food will land in the right place.
-            if let character = nearestHungryCharacter(to: point),
-               character.mouthDistance(to: point) < character.snapRadius {
+            let foodPoint = food.convert(CGPoint.zero, to: self)
+            if food.dragTravel >= FeedServingRules.minimumDragTravel,
+               let character = nearestHungryCharacter(to: foodPoint),
+               character.mouthDistance(to: foodPoint) < character.snapRadius {
                 if food.action(forKey: "snapPulse") == nil {
                     let grow = SKAction.scale(to: 1.16, duration: 0.14); grow.timingMode = .easeOut
                     let shrink = SKAction.scale(to: 1.08, duration: 0.18); shrink.timingMode = .easeInEaseOut
@@ -1116,78 +1087,85 @@ final class FeedScene: BaseToyScene {
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         for touch in touches {
-            finishFoodDrag(for: touch)
+            finishFoodDrag(for: touch, cancelled: true)
         }
+    }
+
+    override func suspendToyForRest() {
+        super.suspendToyForRest()
+        for food in activeFoodTouches.values { food.settleAtHomeImmediately() }
+        activeFoodTouches.removeAll()
     }
 
     private func isFoodAlreadyBeingDragged(_ food: FoodNode) -> Bool {
         activeFoodTouches.values.contains { $0 === food }
     }
 
-    private func finishFoodDrag(for touch: UITouch) {
+    private func finishFoodDrag(for touch: UITouch, cancelled: Bool = false) {
         guard let food = activeFoodTouches.removeValue(forKey: touch) else { return }
         food.removeAction(forKey: "snapPulse")
-        trailAccumulator = 0
 
         let foodPoint = food.convert(CGPoint.zero, to: self)
-        if let character = nearestHungryCharacter(to: foodPoint),
+        if !cancelled, food.dragTravel >= FeedServingRules.minimumDragTravel,
+           let character = nearestHungryCharacter(to: foodPoint),
            let mouthPoint = character.mouthScenePosition,
            character.mouthDistance(to: foodPoint) < character.snapRadius {
-            // Positive-only: every food is happily accepted. The friend's *wished* food simply earns
-            // extra delight (a dance + a wow) — a 2-year-old never experiences a refusal or a "wrong".
+            // Every food is warmly accepted. The pictured request remains until matched.
             feed(food, to: character, mouthPoint: mouthPoint)
         } else {
-            food.endDrag()
-            runIdleFoodMotion(food, index: Int(food.zPosition))
+            returnFoodHome(food)
         }
     }
 
-    private func feed(_ food: FoodNode, to character: CharacterNode, mouthPoint: CGPoint) {
-        food.isDragging = false
+    private func returnFoodHome(_ food: FoodNode) {
+        food.endDrag()
         food.removeAllActions()
+        let move = SKAction.move(to: food.homePosition, duration: 0.26)
+        move.timingMode = .easeInEaseOut
+        food.run(.sequence([
+            .group([move, .scale(to: 1, duration: 0.20)]),
+            .run { [weak self, weak food] in
+                guard let self, let food, !food.isDragging else { return }
+                self.runIdleFoodMotion(food, index: Int(food.zPosition))
+            }
+        ]), withKey: "returnHome")
+    }
+
+    private func feed(_ food: FoodNode, to character: CharacterNode, mouthPoint: CGPoint) {
+        guard !food.isServing, character.mood == .hungry else { return }
+        food.beginServing()
         food.zPosition = 96
 
-        let move = SKAction.move(to: mouthPoint, duration: 0.13)
-        let shrink = SKAction.scale(to: 0.18, duration: 0.15)
-        let fade = SKAction.fadeAlpha(to: 0, duration: 0.15)
-        move.timingMode = .easeOut
-        shrink.timingMode = .easeIn
+        // Commit once, before animation: another finger or rotation cannot accept
+        // the same bite twice or cancel an accepted bite halfway through its flight.
+        let hadRequest = character.hasRemainingDesires
+        let matchedWish = character.fulfillDesire(food.kind)
+        _ = character.receivedFood(countsTowardRequest: matchedWish || !hadRequest)
+        playFeedEffects(at: mouthPoint, for: character, food: food)
+        playMouthSound(for: food.kind)
+        respawnFood(kind: food.kind)
 
+        let move = SKAction.move(to: mouthPoint, duration: 0.18)
+        move.timingMode = .easeOut
         food.run(.sequence([
-            .group([move, shrink, fade]),
-            .run { [weak self, weak food, weak character] in
-                guard let self, let food, let character else { return }
-                food.removeFromParent()
-                let isFull = character.receivedFood()
-                // Consumes the wish: pops that mini-food out of the bubble and, if one
-                // remains, recentres it. Sets wishGranted when the last wish is served.
-                let matchedWish = character.fulfillDesire(food.kind)
-                self.playFeedEffects(at: mouthPoint, for: character, food: food)
-                self.playMouthSound(for: food.kind)
-                self.respawnFood(kind: food.kind)
-                if !isFull {
-                    if matchedWish {
-                        character.playDesiredFoodDance()
-                    }
-                    character.inviteAnotherBite(after: 0.92)
-                    self.run(.sequence([
-                        .wait(forDuration: 1.12),
-                        .run { [weak self] in self?.inviteFirstDesiredFood() }
-                    ]), withKey: "feed.moreFoodInvite")
-                } else if character.wishGranted {
-                    // Every wish served — single want, or both halves of the sandwich
-                    // ask — full wow moment, then wave off for the next friend.
-                    character.playDesiredFoodDance()
-                    self.playWowMoment(for: character)
-                    self.satisfyAndReplace(character)
-                } else {
-                    // Good meal even without the wish — a quiet happy pause then departure.
-                    // Without this every non-matching food locks the child with the same
-                    // character forever, because satisfyAndReplace is never called.
-                    self.satisfyAndReplace(character, after: 2.8)
-                }
+            .group([move, .scale(to: 0.18, duration: 0.18), .fadeOut(withDuration: 0.18)]),
+            .removeFromParent()
+        ]), withKey: "serve")
+
+        if character.visitIsComplete {
+            if character.wishGranted {
+                character.playDesiredFoodDance()
+                playWowMoment(for: character)
             }
-        ]))
+            satisfyAndReplace(character, after: character.wishGranted ? 1.2 : 2.8)
+        } else {
+            if matchedWish { character.playDesiredFoodDance() }
+            character.inviteAnotherBite(after: 0.92)
+            run(.sequence([
+                .wait(forDuration: 1.12),
+                .run { [weak self] in self?.inviteFirstDesiredFood() }
+            ]), withKey: "feed.moreFoodInvite")
+        }
     }
 
     private func playMouthSound(for kind: FoodKind) {
@@ -1368,7 +1346,7 @@ final class FeedScene: BaseToyScene {
             guard let self else { return }
 
             let existingFoods = self.foodLayer.children.compactMap { $0 as? FoodNode }
-            let targetX = self.spawnXForNewFood(avoiding: existingFoods)
+            guard !existingFoods.contains(where: { $0.kind == kind && !$0.isServing }) else { return }
             let food = self.makeFood(kind: kind, index: existingFoods.count)
             food.position = CGPoint(
                 x: self.foodSourcePosition.x + CGFloat.random(in: -28...28),
@@ -1379,11 +1357,7 @@ final class FeedScene: BaseToyScene {
             self.foodLayer.addChild(food)
             AudioManager.shared.playFoodPlop()
 
-            let targetY = self.tableTopY - (self.isPadLikeCanvas ? 64 : 52)
-            let target = CGPoint(
-                x: targetX,
-                y: targetY + CGFloat.random(in: -8...8)
-            )
+            let target = food.homePosition
             let move = SKAction.move(to: target, duration: Double.random(in: 0.34...0.50))
             let fade = SKAction.fadeAlpha(to: 1, duration: 0.20)
             let grow = SKAction.scale(to: 1.0, duration: 0.26)
@@ -1400,35 +1374,10 @@ final class FeedScene: BaseToyScene {
         run(.sequence([delay, appear]), withKey: "feed.respawn.\(kind.accessibilityName)")
     }
 
-    private func spawnXForNewFood(avoiding existing: [FoodNode]) -> CGFloat {
-        let spread = min(size.width * 0.62, isPadLikeCanvas ? 560 : 320)
-        let startX = size.width / 2 - spread / 2
-        let slots = 5
-        let minClearance: CGFloat = 52
-
-        let emptySlot = (0..<slots).first { slotIndex in
-            let x = startX + spread * CGFloat(slotIndex) / CGFloat(slots - 1)
-            return !existing.contains { abs($0.position.x - x) < minClearance }
-        }
-        if let slot = emptySlot {
-            return startX + spread * CGFloat(slot) / CGFloat(slots - 1)
-        }
-
-        let bestSlot = (0..<slots).min(by: { a, b in
-            let xA = startX + spread * CGFloat(a) / CGFloat(slots - 1)
-            let xB = startX + spread * CGFloat(b) / CGFloat(slots - 1)
-            let countA = existing.filter { abs($0.position.x - xA) < minClearance }.count
-            let countB = existing.filter { abs($0.position.x - xB) < minClearance }.count
-            return countA < countB
-        }) ?? 2
-
-        return startX + spread * CGFloat(bestSlot) / CGFloat(slots - 1)
-    }
-
     private func topFood(at point: CGPoint) -> FoodNode? {
         foodLayer.children
             .compactMap { $0 as? FoodNode }
-            .filter { $0.containsScenePoint(point) }
+            .filter { !$0.isDragging && $0.containsScenePoint(point) }
             .sorted { $0.zPosition > $1.zPosition }
             .first
     }
@@ -1437,7 +1386,7 @@ final class FeedScene: BaseToyScene {
         // Only hungry friends accept food; once a friend is happy, the next clear action is
         // watching them leave and meeting the new visitor.
         characters
-            .filter { $0.mood == .hungry }
+            .filter { $0.mood == .hungry && $0.action(forKey: "arrival") == nil }
             .sorted { $0.mouthDistance(to: point) < $1.mouthDistance(to: point) }
             .first
     }
@@ -1481,26 +1430,30 @@ final class FeedScene: BaseToyScene {
         })
 
         elements.append(contentsOf: foodLayer.children.compactMap { node -> UIAccessibilityElement? in
-            guard let food = node as? FoodNode else { return nil }
-            let pos = food.position
-            let dy = food.foodSize.height * 0.12
+            guard let food = node as? FoodNode, !food.isServing, !food.isDragging, food.alpha > 0.8 else { return nil }
             return makeActivatableAccessibilityElement(
                 in: view,
-                label: food.kind.accessibilityName,
-                scenePosition: pos,
+                label: "Offer \(food.kind.accessibilityName) to the friend",
+                scenePosition: food.position,
                 size: CGSize(width: food.foodSize.width * 1.5, height: food.foodSize.height * 1.5),
                 traits: .button
-            ) { [weak food] in
-                guard let food else { return }
-                let lift = SKAction.moveBy(x: 0, y: dy, duration: 0.14)
-                let settle = SKAction.moveBy(x: 0, y: -dy, duration: 0.28)
-                lift.timingMode = .easeOut
-                settle.timingMode = .easeInEaseOut
-                food.run(.sequence([lift, settle]))
-                AudioManager.shared.playSoftTap()
+            ) { [weak self, weak food] in
+                guard let self, let food, !food.isServing, !food.isDragging,
+                      let character = self.nearestHungryCharacter(to: food.convert(.zero, to: self)),
+                      let mouth = character.mouthScenePosition else { return }
+                self.feed(food, to: character, mouthPoint: mouth)
             }
         })
 
         return elements
+    }
+}
+
+// Keeps physical acceptance independent of art scale and phone/tablet layout.
+enum FeedServingRules {
+    static let minimumDragTravel: CGFloat = 18
+
+    static func snapRadius(headRadius: CGFloat) -> CGFloat {
+        min(60, max(40, headRadius * 0.50))
     }
 }

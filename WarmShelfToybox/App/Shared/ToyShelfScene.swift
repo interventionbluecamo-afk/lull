@@ -32,7 +32,7 @@ final class ToyShelfScene: BaseToyScene {
     override func didMove(to view: SKView) {
         super.didMove(to: view)
         rebuildShelf()
-        resetShelfInvitationClock(delay: 4.8)
+        resetShelfInvitationClock(delay: 12.0)
         startShelfParallax()
     }
 
@@ -57,7 +57,7 @@ final class ToyShelfScene: BaseToyScene {
             didBloomIntoToy = false
             rebuildShelf()
         }
-        resetShelfInvitationClock(delay: 4.2)
+        resetShelfInvitationClock(delay: 12.0)
         playCardReturnSettle()
     }
 
@@ -188,69 +188,26 @@ final class ToyShelfScene: BaseToyScene {
         childNode(withName: "shelfNightVeil")?.removeFromParent()
         let layer = SKNode()
         layer.name = "shelfDayNight"
-        layer.zPosition = 5   // above the paper background (-100), behind the shelves/toys (z 10)
+        layer.zPosition = 5
         addChild(layer)
 
+        if let room = ToyArt.texture("shelfroom-v2-day") {
+            let plate = SKSpriteNode(texture: room)
+            // This object-free wall/floor plate scales with the room. Interactive
+            // furniture and toys retain their own aspect ratios above it.
+            plate.size = CGSize(width: size.width + 12, height: size.height + 12)
+            plate.position = CGPoint(x: size.width / 2, y: size.height / 2)
+            layer.addChild(plate)
+        }
         let sky = TimeOfDay.sky
         let hour = TimeOfDay.hour
-        let windDown = LullDemoState.shared.windDownHour
-        let isWindDown = !sky.isNight && (hour >= windDown || hour < 5)
-
-        // The authored room (Docs/NorthStar.md): day and night plates cross-fade with the
-        // household's real hour, under the existing time-of-day grade.
-        if let day = ToyArt.texture("shelfroom-day"), let night = ToyArt.texture("shelfroom-night") {
-            func plate(_ tex: SKTexture) -> SKSpriteNode {
-                let p = SKSpriteNode(texture: tex)
-                let ts = tex.size()
-                // +12pt overscan: the parallax breath shifts this layer ±5pt and must
-                // never expose a sliver of the paper behind it at the screen edge.
-                let cover = max((size.width + 12) / max(1, ts.width), (size.height + 12) / max(1, ts.height))
-                p.size = CGSize(width: ts.width * cover, height: ts.height * cover)
-                p.position = CGPoint(x: size.width / 2, y: size.height / 2)
-                return p
-            }
-            let dayPlate = plate(day)
-            dayPlate.zPosition = -0.2
-            layer.addChild(dayPlate)
-            let nightPlate = plate(night)
-            nightPlate.zPosition = -0.1
-            nightPlate.alpha = sky.isNight ? 1 : (isWindDown ? 0.45 : 0)
-            layer.addChild(nightPlate)
-        }
-
-        let grad = SKSpriteNode(texture: TimeOfDay.gradientTexture(size: CGSize(width: 16, height: 96), top: sky.top, bottom: sky.bottom))
-        grad.size = CGSize(width: size.width + 12, height: size.height + 12)   // parallax overscan
-        grad.position = CGPoint(x: size.width / 2, y: size.height / 2)
-        grad.alpha = sky.isNight ? 0.3 : (isWindDown ? 0.22 : 0.12)
-        layer.addChild(grad)
-
-        if sky.lightTintAlpha > 0 {
-            let tint = SKShapeNode(rect: CGRect(x: 0, y: 0, width: size.width, height: size.height))
-            tint.fillColor = sky.lightTint.withAlpha(sky.lightTintAlpha * (isWindDown ? 1.6 : 1.0))
-            tint.strokeColor = .clear; tint.zPosition = 0.1
-            layer.addChild(tint)
-        }
-
-        if sky.starAlpha > 0.2 {
-            for _ in 0..<14 {
-                let star = SKShapeNode(circleOfRadius: CGFloat.random(in: 1...2.2))
-                star.fillColor = UIColor(hex: 0xFFF6D9).withAlpha(.random(in: 0.4...sky.starAlpha))
-                star.strokeColor = .clear
-                star.position = CGPoint(x: .random(in: 0...size.width), y: .random(in: size.height * 0.6...size.height * 0.97))
-                star.zPosition = 0.3
-                layer.addChild(star)
-            }
-        }
-
-        // A whisper-soft cool veil over the whole shelf at night for cohesion (kept low so toys read).
-        if sky.isNight {
-            let veil = SKShapeNode(rect: CGRect(x: 0, y: 0, width: size.width, height: size.height))
-            veil.fillColor = UIColor(hex: 0x20243A).withAlpha(0.1)
-            veil.strokeColor = .clear
-            veil.zPosition = 60   // above the toys, very faint
-            addChild(veil)
-            veil.name = "shelfNightVeil"
-        }
+        let isWindDown = !sky.isNight && (hour >= LullDemoState.shared.windDownHour || hour < 5)
+        let grade = SKSpriteNode(color: sky.isNight ? UIColor(hex: 0x354456) : UIColor(hex: 0xD5AC79),
+                                 size: CGSize(width: size.width + 12, height: size.height + 12))
+        grade.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        grade.alpha = sky.isNight ? 0.24 : (isWindDown ? 0.12 : 0.025)
+        grade.zPosition = 0.2
+        layer.addChild(grade)
     }
 
     private func rebuildShelf() {
@@ -266,12 +223,9 @@ final class ToyShelfScene: BaseToyScene {
 
         let shelfToys = ToyRegistry.childShelfToys
         let toyCount = max(1, shelfToys.count)
-        // A small shelf must read loved, never vacated: when four or fewer toys remain
-        // (the post-trial free shelf), quiet little possessions fill the empty places —
-        // a plant, a folded blanket. Furniture, not toys: still, unnamed, sit-there things.
-        let companionSlots: [String] = shelfToys.count <= 4
-            ? ["shelf-plant", "shelf-blanket"].filter { ToyArt.texture($0) != nil }
-            : []
+        // Every visible object is an available toy. The free shelf uses the same
+        // balanced layout without decorative objects that look selectable.
+        let companionSlots: [String] = []
         let displayCount = toyCount + companionSlots.count
         let layout = makeShelfLayout(toyCount: displayCount)
 
@@ -530,7 +484,7 @@ final class ToyShelfScene: BaseToyScene {
 
         // The band the grid must fit inside. The bottom reserve always clears Wren in their corner,
         // so the lowest row never collides with him at any size or orientation.
-        let topMargin = safe.top + (isLandscape ? 14 : 22)
+        let topMargin = safe.top + (isLandscape ? 65 : 88)
         let wrenTop = hostRestingPosition().y + 58 * hostScale() + 14
         // Portrait reserve lifted (founder: the lowest shelf sat on the baked rug — a
         // shelf is on a wall, so it must clear the floor rug below it).
@@ -542,7 +496,7 @@ final class ToyShelfScene: BaseToyScene {
         // Generous gaps so the toys read as separate objects with calm space between them.
         let colGap: CGFloat = isPhone ? (isLandscape ? 20 : 22) : (isLandscape ? 34 : 30)
         let rowGap: CGFloat = isPhone ? (isLandscape ? 30 : 52) : (isLandscape ? 46 : 62)
-        let aspect: CGFloat = isLandscape ? 1.28 : 1.4   // card height ÷ width
+        let aspect: CGFloat = isLandscape ? 1.08 : 1.10   // card height ÷ width
 
         // Two-axis fit: the width that satisfies BOTH the row width and the column height.
         let widthByColumns = (availableWidth - colGap * CGFloat(columns - 1)) / CGFloat(columns)
@@ -588,98 +542,18 @@ final class ToyShelfScene: BaseToyScene {
     }
 
     private func addShelfMomentBackdrop(layout: ShelfLayout, toyCount: Int) {
-        let rows = Int(ceil(Double(toyCount) / Double(max(1, layout.columns))))
-        let lowestShelfY = layout.shelfY - CGFloat(max(0, rows - 1)) * layout.rowSpacing
+        let safe = view?.safeAreaInsets ?? .zero
         let isPhone = min(size.width, size.height) < 600
-        let rowToyCount = min(layout.columns, toyCount)
-        let stageWidth = min(
-            size.width * (isPhone ? 0.92 : 0.84),
-            layout.spacing * CGFloat(max(0, rowToyCount - 1)) + layout.objectSize.width * 1.38
-        )
-        let stageHeight = max(
-            layout.objectSize.height * (rows > 1 ? 0.74 : 0.88),
-            isPhone ? 150 : 190
-        )
-        let stageY = min(
-            size.height * (isPhone ? 0.80 : 0.78),
-            layout.shelfY + layout.objectSize.height * 0.62
-        )
-
-        let wallGlow = SKShapeNode(ellipseOf: CGSize(width: size.width * 0.94, height: size.height * 0.42))
-        wallGlow.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.16)
-        wallGlow.strokeColor = .clear
-        wallGlow.position = CGPoint(x: size.width / 2, y: stageY)
-        wallGlow.zPosition = 4.5
-        contentRoot.addChild(wallGlow)
-
-        // A soft, borderless warm wash behind the toys — gentle staging, never a framed panel.
-        let alcove = makeRoundedRect(
-            size: CGSize(width: stageWidth, height: stageHeight),
-            radius: min(46, stageHeight * 0.24),
-            fill: WarmShelfPalette.paperHighlight.withAlpha(0.09)
-        )
-        alcove.position = CGPoint(x: size.width / 2, y: stageY - stageHeight * 0.04)
-        alcove.zPosition = 4.8
-        contentRoot.addChild(alcove)
-
-        let plaqueY = min(
-            size.height - (isPhone ? 42 : 58),
-            max(stageY + stageHeight * 0.33, lowestShelfY + layout.objectSize.height * 1.34)
-        )
-        // The wordmark is a possession, not a watermark: a carved wooden nameplate (art
-        // slot "shelf-nameplate") with real Georgia type composited on top — generated
-        // plates, never generated letterforms. The cream pill remains the no-art fallback.
-        let plaque: SKNode
-        if let plate = ToyArt.sprite("shelf-nameplate", fit: CGSize(width: isPhone ? 132 : 166, height: isPhone ? 50 : 62)) {
-            plaque = plate
-        } else {
-            let pill = makeRoundedRect(
-                size: CGSize(width: isPhone ? 94 : 118, height: isPhone ? 34 : 40),
-                radius: isPhone ? 17 : 20,
-                fill: WarmShelfPalette.warmCream.withAlpha(0.54),
-                stroke: WarmShelfPalette.softLine.withAlpha(0.34)
-            )
-            pill.lineWidth = 1
-            plaque = pill
-        }
-        plaque.position = CGPoint(x: size.width / 2, y: plaqueY)
-        plaque.zPosition = 5.4
-        contentRoot.addChild(plaque)
-
-        // Carved, not printed: a faint cream catch-light just below the ink so the
-        // letters read chiselled into the wood under the room's upper-left key light.
-        let carveLight = SKLabelNode(text: "lull")
-        carveLight.fontName = "Georgia"
-        carveLight.fontSize = isPhone ? 22 : 27
-        carveLight.fontColor = WarmShelfPalette.paperHighlight.withAlpha(0.55)
-        carveLight.verticalAlignmentMode = .center
-        carveLight.horizontalAlignmentMode = .center
-        carveLight.position = CGPoint(x: 0.6, y: -1.2)
-        carveLight.zPosition = 0.9
-        plaque.addChild(carveLight)
-
         let wordmark = SKLabelNode(text: "lull")
         wordmark.fontName = "Georgia"
-        wordmark.fontSize = isPhone ? 22 : 27
-        wordmark.fontColor = WarmShelfPalette.clayInk.withAlpha(0.78)
+        wordmark.fontSize = isPhone ? 27 : 34
+        wordmark.fontColor = WarmShelfPalette.clayInk
         wordmark.verticalAlignmentMode = .center
         wordmark.horizontalAlignmentMode = .center
-        wordmark.position = .zero
-        wordmark.zPosition = 1
-        plaque.addChild(wordmark)
-
-        if !hasAnimatedEntrance {
-            plaque.alpha = 0
-            plaque.setScale(0.90)
-            let settle = SKAction.group([
-                .fadeAlpha(to: 1, duration: 0.34),
-                .scale(to: 1, duration: 0.42)
-            ])
-            settle.timingMode = .easeOut
-            plaque.run(.sequence([.wait(forDuration: 0.12), settle]))
-        }
-
-        addShelfDustMotes(lowestShelfY: lowestShelfY, count: isPhone ? 8 : 12)
+        wordmark.position = CGPoint(x: size.width / 2,
+                                    y: size.height - safe.top - (size.width > size.height ? 27 : 38))
+        wordmark.zPosition = 6
+        contentRoot.addChild(wordmark)
     }
 
     private func addShelfDustMotes(lowestShelfY: CGFloat, count: Int) {
@@ -723,7 +597,7 @@ final class ToyShelfScene: BaseToyScene {
         floorZone.strokeColor = .clear
         floorZone.position = CGPoint(x: size.width / 2, y: (lowestShelfY + layout.objectSize.height * 0.34) / 2)
         floorZone.zPosition = 6
-        contentRoot.addChild(floorZone)
+        if ToyArt.texture("shelfroom-v2-day") == nil { contentRoot.addChild(floorZone) }
 
         for row in 0..<rows {
             let rowStart = row * layout.columns
@@ -757,7 +631,7 @@ final class ToyShelfScene: BaseToyScene {
             let shelf = makeRoundedRect(
                 size: CGSize(width: shelfWidth, height: shelfHeight),
                 radius: shelfRadius,
-                fill: UIColor(hex: 0xCBA268).withAlpha(0.92)   // warm, present honey wood
+                fill: UIColor(hex: 0xDECAA9).withAlpha(0.96)
             )
             shelf.position = CGPoint(x: size.width / 2, y: rowShelfY)
             shelf.zPosition = 8 + CGFloat(row) * 0.02
@@ -814,7 +688,7 @@ final class ToyShelfScene: BaseToyScene {
     /// The board is anchored so its TOP face sits exactly where the procedural board's
     /// top sat — toy feet keep their seat even though the authored wood is thicker.
     private func makeArtShelfBoard(width: CGFloat, proceduralHeight: CGFloat) -> SKNode? {
-        guard let tex = ToyArt.texture("shelf-board") else { return nil }
+        guard let tex = ToyArt.texture("shelf-board-v2") else { return nil }
         let nat = tex.size()
         guard nat.width > 1, nat.height > 1 else { return nil }
         let capFrac: CGFloat = 0.10
@@ -847,38 +721,44 @@ final class ToyShelfScene: BaseToyScene {
         case ToyRegistry.dropDotsID: return "shelf-dropdots"
         case ToyRegistry.mixUpID: return "shelf-mixup"
         case ToyRegistry.humID: return "shelf-hum"
+        case ToyRegistry.meadowID: return "shelf-meadow"
         default: return nil
         }
+    }
+
+    /// Export padding varies between authored objects. Fit their visible silhouettes,
+    /// so padding cannot make one toy tiny or make its feet float above the shelf.
+    private static func shelfObjectArt(slot: String, fit: CGSize) -> SKSpriteNode? {
+        let visible: [String: (CGSize, CGRect)] = [
+            "shelf-bubbles": (CGSize(width: 1374, height: 1145), CGRect(x: 223, y: 73, width: 1060, height: 1004)),
+            "shelf-stack": (CGSize(width: 1374, height: 1145), CGRect(x: 342, y: 123, width: 693, height: 935)),
+            "shelf-sleepybox": (CGSize(width: 1254, height: 1254), CGRect(x: 146, y: 103, width: 962, height: 1056)),
+            "shelf-feed": (CGSize(width: 1293, height: 1217), CGRect(x: 184, y: 185, width: 925, height: 943)),
+            "shelf-dropdots": (CGSize(width: 1312, height: 1199), CGRect(x: 190, y: 170, width: 935, height: 899)),
+            "shelf-hum": (CGSize(width: 1536, height: 1024), CGRect(x: 13, y: 148, width: 1512, height: 781)),
+            "shelf-window": (CGSize(width: 1312, height: 1199), CGRect(x: 125, y: 118, width: 1062, height: 959)),
+            "shelf-mixup": (CGSize(width: 1312, height: 1199), CGRect(x: 83, y: 27, width: 1146, height: 1133)),
+            "shelf-meadow": (CGSize(width: 1536, height: 1024), CGRect(x: 188, y: 318, width: 1180, height: 544))
+        ]
+        if let texture = ToyArt.texture(slot + "-v2"), let (pixels, bounds) = visible[slot] {
+            let rect = CGRect(x: bounds.minX / pixels.width,
+                              y: (pixels.height - bounds.maxY) / pixels.height,
+                              width: bounds.width / pixels.width,
+                              height: bounds.height / pixels.height)
+            let sprite = SKSpriteNode(texture: SKTexture(rect: rect, in: texture))
+            let scale = min(fit.width / bounds.width, fit.height / bounds.height)
+            sprite.size = CGSize(width: bounds.width * scale, height: bounds.height * scale)
+            return sprite
+        }
+        return ToyArt.sprite(slot, fit: fit)
     }
 
     private func makeToyCard(descriptor: ToyDescriptor, size cardSize: CGSize) -> SKNode {
         let root = SKNode()
         root.name = cardName(for: descriptor.id)
 
-        // No container — each toy sits on the shelf as a real handmade object, staged by a soft,
-        // edgeless pool of warm light (gallery lighting). The toy itself carries the colour, so
-        // the shelf never reads as a grid of product capsules.
-        let stageGlow = SKShapeNode(ellipseOf: CGSize(
-            width: cardSize.width * 0.86,
-            height: cardSize.height * 0.62
-        ))
-        stageGlow.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.16)
-        stageGlow.strokeColor = .clear
-        stageGlow.position = CGPoint(x: 0, y: cardSize.height * 0.03)
-        stageGlow.zPosition = -3
-        root.addChild(stageGlow)
-        AmbientAnimator.breathe(node: stageGlow, scale: 1.02, duration: 7.0)
-
-        let stageCore = SKShapeNode(ellipseOf: CGSize(
-            width: cardSize.width * 0.5,
-            height: cardSize.height * 0.36
-        ))
-        stageCore.fillColor = WarmShelfPalette.warmCream.withAlpha(0.20)
-        stageCore.strokeColor = .clear
-        stageCore.position = CGPoint(x: -cardSize.width * 0.03, y: cardSize.height * 0.05)
-        stageCore.zPosition = -2.8
-        root.addChild(stageCore)
-
+        // The object and its contact shadow carry the invitation. No persistent
+        // halo or translucent card competes with its physical silhouette.
         let hit = makeRoundedRect(
             size: cardSize,
             radius: min(30, min(cardSize.width, cardSize.height) * 0.15),
@@ -895,7 +775,7 @@ final class ToyShelfScene: BaseToyScene {
         // Authored shelf object (Docs/NorthStar.md: the launch UI is tiny physical toys).
         // Bottom-aligned to the shadow line so every object sits on its board.
         if let slot = ToyShelfScene.shelfObjectSlot(for: descriptor.id),
-           let art = ToyArt.sprite(slot, fit: artSize) {
+           let art = ToyShelfScene.shelfObjectArt(slot: slot, fit: artSize) {
             art.position = CGPoint(x: 0, y: -cardSize.height * 0.40 + art.size.height / 2)
             art.zPosition = 0
             root.addChild(art)
@@ -903,7 +783,8 @@ final class ToyShelfScene: BaseToyScene {
                 size: CGSize(width: cardSize.width * 0.6, height: max(16, cardSize.height * 0.12))
             ))
             shadow.position = CGPoint(x: 0, y: -cardSize.height * 0.42)
-            shadow.zPosition = 2
+            shadow.zPosition = -1
+            shadow.alpha = 0.5
             root.addChild(shadow)
             return root
         }
@@ -1718,10 +1599,10 @@ final class ToyShelfScene: BaseToyScene {
 
     private func updateShelfInvitation(_ currentTime: TimeInterval) {
         guard hasAnimatedEntrance, !isOpeningToy, !AmbientAnimator.reduceMotion else { return }
-        if nextShelfInvitationAt == 0 { resetShelfInvitationClock(delay: 4.8) }
-        guard currentTime >= nextShelfInvitationAt, currentTime - lastShelfInteractionAt > 3.8 else { return }
+        if nextShelfInvitationAt == 0 { resetShelfInvitationClock(delay: 12.0) }
+        guard currentTime >= nextShelfInvitationAt, currentTime - lastShelfInteractionAt > 11.5 else { return }
         playShelfInvitation()
-        nextShelfInvitationAt = currentTime + Double.random(in: 9.5...13.0)
+        nextShelfInvitationAt = currentTime + 30.0
     }
 
     private func playShelfInvitation() {
@@ -2133,13 +2014,24 @@ final class ToyShelfScene: BaseToyScene {
         let layout = makeShelfLayout(toyCount: toyCount)
 
         return shelfToys.enumerated().map { index, descriptor in
-            return makeAccessibilityElement(
+            return makeActivatableAccessibilityElement(
                 in: view,
                 label: descriptor.parentName,
                 scenePosition: cardPosition(index: index, count: toyCount, layout: layout),
                 size: layout.objectSize,
                 traits: .button
-            )
+            ) { [weak self] in
+                guard let self, !self.isOpeningToy,
+                      ToyRegistry.childShelfToys.contains(where: { $0.id == descriptor.id }),
+                      let card = self.cardRoot(for: descriptor.id) else { return }
+                self.isOpeningToy = true
+                self.resetShelfInvitationClock(delay: 6.0)
+                TouchFeedbackAnimator.acknowledge(node: card, profile: .shelfCard)
+                self.reactToToyTap(toyID: descriptor.id, card: card)
+                AudioManager.shared.playSoftTap()
+                HapticsManager.shared.cardPress()
+                self.playWakeBloom(card: card, toyID: descriptor.id)
+            }
         }
     }
 }

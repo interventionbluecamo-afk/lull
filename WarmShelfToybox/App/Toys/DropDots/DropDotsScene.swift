@@ -752,6 +752,11 @@ final class DropDotsScene: BaseToyScene {
             }
             if dragToken == nil, let slot = traySlotNear(p) {
                 let token = trayTokens[slot]!
+                // A returning dot is touchable where it actually is. Take ownership
+                // immediately so its old pour/fly-home animation cannot fight this drag.
+                token.removeAllActions()
+                token.alpha = 1
+                token.setScale(1)
                 dragToken = token; dragTouch = touch; dragFromSlot = slot
                 dragOffset = CGPoint(x: token.position.x - p.x, y: token.position.y - p.y)
                 dragTarget = token.position
@@ -782,12 +787,30 @@ final class DropDotsScene: BaseToyScene {
         for touch in touches where touch == dragTouch { endDrag() }
     }
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for touch in touches where touch == dragTouch { endDrag() }
+        for touch in touches where touch == dragTouch { cancelDrag() }
+    }
+
+    override func suspendToyForRest() {
+        cancelDrag()
+        super.suspendToyForRest()
+    }
+
+    /// An interruption returns the owned dot without posting or consuming it.
+    private func cancelDrag() {
+        guard let token = dragToken, let slot = dragFromSlot else { return }
+        dragTouch = nil; dragToken = nil; dragFromSlot = nil
+        clearHover()
+        token.removeAllActions()
+        token.setLifted(false)
+        token.alpha = 1
+        token.setScale(1)
+        token.zPosition = 5
+        if traySlots.indices.contains(slot) { token.position = traySlots[slot] }
     }
 
     private func endDrag() {
         guard let token = dragToken, let slot = dragFromSlot else { return }
-        dragTouch = nil; dragToken = nil; clearHover()
+        dragTouch = nil; dragToken = nil; dragFromSlot = nil; clearHover()
         let overBoard = token.position.y > gridBottomY && abs(token.position.x - boardRect.midX) < boardRect.width / 2
         if overBoard {
             let col = nearestColumn(token.position.x)
@@ -818,6 +841,9 @@ final class DropDotsScene: BaseToyScene {
     // MARK: - Drop / land
 
     private func dropIntoColumn(_ token: DropDotToken, col: Int, fromSlot slot: Int) {
+        token.removeAllActions()
+        token.alpha = 1
+        token.setScale(1)
         let row = rows - 1 - filled(col)
         grid[col][row] = token
         token.setLifted(false)
@@ -949,6 +975,7 @@ final class DropDotsScene: BaseToyScene {
     // MARK: - Reset dump
 
     private func triggerReset() {
+        guard dragToken == nil else { return }
         let tokens = grid.flatMap { $0 }.compactMap { $0 }
         resetTab?.run(.sequence([.scale(to: 0.94, duration: 0.08), .moveBy(x: 0, y: -10, duration: 0.12), .moveBy(x: 0, y: 10, duration: 0.18), .scale(to: 1, duration: 0.1)]))
         tone(.single(3, .wood.with(body: 0.4, amplitude: 0.06, noiseGain: 0.3)), key: "lever")
@@ -1085,8 +1112,9 @@ final class DropDotsScene: BaseToyScene {
 
     private func traySlotNear(_ p: CGPoint) -> Int? {
         var best: Int?; var bestD = CGFloat.greatestFiniteMagnitude
-        for (i, slot) in traySlots.enumerated() where trayTokens[i] != nil {
-            let d = hypot(slot.x - p.x, slot.y - p.y)
+        for (i, token) in trayTokens.enumerated() {
+            guard let token else { continue }
+            let d = hypot(token.position.x - p.x, token.position.y - p.y)
             if d < tokenR + 40, d < bestD { best = i; bestD = d }
         }
         return best
@@ -1237,7 +1265,7 @@ final class DropDotsScene: BaseToyScene {
                 in: view, label: "\(name.isEmpty ? "Dot" : name.capitalized + " dot") — drop it into the board", scenePosition: slot,
                 size: CGSize(width: tokenR * 3, height: tokenR * 3), traits: .button
             ) { [weak self] in
-                guard let self, let token = self.trayTokens[i] else { return }
+                guard let self, self.dragToken == nil, let token = self.trayTokens[i] else { return }
                 if let col = (0..<self.cols).first(where: { self.hasSpace($0) }) {
                     self.dropIntoColumn(token, col: col, fromSlot: i)
                 }

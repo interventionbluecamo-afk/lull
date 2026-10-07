@@ -71,7 +71,13 @@ final class FoodNode: SKNode {
     let foodSize: CGSize
 
     var isDragging = false
+    private(set) var isServing = false
+    var homePosition = CGPoint.zero
     private var dragOffset = CGPoint.zero
+    private var dragStartPoint = CGPoint.zero
+    private(set) var dragTravel: CGFloat = 0
+    private var lastTrailPoint: CGPoint?
+    private var trailTravel: CGFloat = 0
 
     init(kind: FoodKind, scale: CGFloat = 1.0) {
         self.kind = kind
@@ -90,7 +96,7 @@ final class FoodNode: SKNode {
     }
 
     func containsScenePoint(_ point: CGPoint) -> Bool {
-        guard let scene else { return false }
+        guard let scene, !isServing, alpha > 0.8 else { return false }
 
         let localPoint = convert(point, from: scene)
         let hitScale: CGFloat = kind == .egg ? 1.42 : 1.20
@@ -99,12 +105,18 @@ final class FoodNode: SKNode {
     }
 
     func beginDrag(at scenePoint: CGPoint) {
-        guard let scene else { return }
+        guard let scene, !isServing else { return }
 
         let localPoint = parent?.convert(scenePoint, from: scene) ?? scenePoint
         isDragging = true
+        dragStartPoint = scenePoint
+        dragTravel = 0
+        lastTrailPoint = scenePoint
+        trailTravel = 0
         dragOffset = CGPoint(x: position.x - localPoint.x, y: position.y - localPoint.y)
         removeAllActions()
+        alpha = 1
+        setScale(1)
         zPosition = 92
         TouchFeedbackAnimator.acknowledge(node: self, profile: .softDrag)
         TouchFeedbackAnimator.tactileSpark(in: scene, at: scenePoint, color: kind.fillColor, count: 4)
@@ -113,13 +125,40 @@ final class FoodNode: SKNode {
     }
 
     func drag(to scenePoint: CGPoint, in scene: SKScene, bounds: CGRect) {
-        guard isDragging else { return }
+        guard isDragging, !isServing else { return }
+        dragTravel = max(dragTravel, hypot(scenePoint.x - dragStartPoint.x, scenePoint.y - dragStartPoint.y))
 
         let localPoint = parent?.convert(scenePoint, from: scene) ?? scenePoint
         position = CGPoint(
             x: min(max(localPoint.x + dragOffset.x, bounds.minX), bounds.maxX),
             y: min(max(localPoint.y + dragOffset.y, bounds.minY), bounds.maxY)
         )
+    }
+
+    func shouldEmitTrail(at point: CGPoint) -> Bool {
+        if let previous = lastTrailPoint {
+            trailTravel += hypot(point.x - previous.x, point.y - previous.y)
+        }
+        lastTrailPoint = point
+        guard trailTravel >= 20 else { return false }
+        trailTravel = 0
+        return true
+    }
+
+    func beginServing() {
+        isServing = true
+        isDragging = false
+        removeAllActions()
+    }
+
+    func settleAtHomeImmediately() {
+        guard !isServing else { return }
+        isDragging = false
+        removeAllActions()
+        position = homePosition
+        setScale(1)
+        alpha = 1
+        zPosition = 45
     }
 
     func endDrag() {

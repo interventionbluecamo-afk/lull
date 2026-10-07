@@ -24,6 +24,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // Jump straight into one toy for screenshot/visual review: LULL_DEBUG_TOY=glowboard|host|…
         if let toyID = ProcessInfo.processInfo.environment["LULL_DEBUG_TOY"] {
             if toyID == "host" { return HostPreviewViewController() }
+            if toyID == "shelf" { return ToyShelfViewController() }
             if toyID == "parent" { return ParentInfoViewController() }   // the grown-up room, gate skipped
             if let descriptor = ToyRegistry.toy(id: toyID) {
                 return ToyViewController(descriptor: descriptor)

@@ -373,10 +373,10 @@ final class BubbleScene: BaseToyScene {
         }
     }
 
-    /// Session magic: the longer the play, the warmer the air gets.
-    /// Bird passengers grow from 1-in-12 toward 1-in-5; mothers visit a bit sooner.
-    private var birdOdds: Int { max(5, 12 - totalPopCount / 50) }
-    private var motherFloor: TimeInterval { totalPopCount > 150 ? 20 : 28 }
+    /// Occasional surprises keep the same quiet frequency from the first touch onward.
+    /// Playing longer never increases bird odds or shortens the mother-bubble interval.
+    private let birdOdds = 12
+    private let motherFloor: TimeInterval = 28
 
     private func shouldSpawnMotherBubble(currentTime: TimeInterval) -> Bool {
         let elapsed = currentTime - lastMotherBubbleTime
@@ -520,8 +520,7 @@ final class BubbleScene: BaseToyScene {
                         // wrong). Her burst staying special is what makes it special.
                         chainPop(near: popPoint, excluding: bubble)
                     }
-                    // A passenger bird, more often the longer the session plays —
-                    // the air learns to trust this child (magic grows with patience).
+                    // A passenger bird occasionally joins a large pop, at fixed odds.
                     if wasBig, !isMother, Int.random(in: 0..<birdOdds) == 0 {
                         releaseBubbleBird(from: popPoint)
                     }

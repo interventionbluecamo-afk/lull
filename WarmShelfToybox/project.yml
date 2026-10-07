@@ -7,6 +7,8 @@ settings:
   base:
     SWIFT_VERSION: "5.9"
     IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
     TARGETED_DEVICE_FAMILY: "1,2"
     ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
 targets:
@@ -22,6 +24,9 @@ targets:
       path: App/Info.plist
       properties:
         CFBundleDisplayName: Lull
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        ITSAppUsesNonExemptEncryption: false
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
           UISceneConfigurations:
@@ -42,7 +47,7 @@ targets:
           - UIInterfaceOrientationLandscapeRight
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.lull.Lull
+        PRODUCT_BUNDLE_IDENTIFIER: com.lull.toybox.a5ct5fk3sy
         PRODUCT_NAME: Lull
         INFOPLIST_FILE: App/Info.plist
         GENERATE_INFOPLIST_FILE: NO

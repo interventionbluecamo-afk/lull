@@ -277,16 +277,14 @@ final class LullDemoState {
         defaults.set(seen, forKey: Key.seenHints)
     }
 
-    func completeOnboarding(accessTier: LullAccessTier) {
-        self.accessTier = accessTier
-        startTrialIfNeeded()   // the 7-day full-toybox trial begins at first run
+    func completeOnboarding() {
+        // Replaying the welcome never changes a purchase or renews an existing trial.
+        startTrialIfNeeded()
         hasCompletedOnboarding = true
     }
 
     func resetOnboarding() {
         hasCompletedOnboarding = false
-        accessTier = .free
-        trialStartDate = nil   // a fresh start earns a fresh trial
         NotificationCenter.default.post(name: .lullAppDidRequestRestart, object: nil)
     }
 

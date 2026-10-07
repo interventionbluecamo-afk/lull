@@ -185,11 +185,27 @@ final class CharacterNode: SKNode {
 
     var mouthScenePosition: CGPoint? {
         guard let scene else { return nil }
+        if let member = castMember, let art = artSprite {
+            return art.convert(Self.artMouthPoint(member: member, spriteSize: art.size, anchorPoint: art.anchorPoint), to: scene)
+        }
         return convert(CGPoint(x: 0, y: headRadius * 0.08), to: scene)
     }
 
     var snapRadius: CGFloat {
-        headRadius * 2.5
+        FeedServingRules.snapRadius(headRadius: headRadius)
+    }
+
+    // Neutral expression mouth centers measured in the authored source cells.
+    // SpriteKit Y runs upward; the source image fraction runs down from its top.
+    static func artMouthPoint(member: String, spriteSize: CGSize, anchorPoint: CGPoint) -> CGPoint {
+        let topFraction: CGFloat
+        switch member {
+        case "grandmother": topFraction = 0.50
+        case "knithat": topFraction = 0.46
+        default: topFraction = 0.44
+        }
+        return CGPoint(x: (0.5 - anchorPoint.x) * spriteSize.width,
+                       y: (1 - topFraction - anchorPoint.y) * spriteSize.height)
     }
 
     var snapshotBaseColor: UIColor { baseColor }
@@ -200,6 +216,7 @@ final class CharacterNode: SKNode {
     var snapshotMood: CharacterMood { mood }
     var snapshotBitesRemaining: Int { bitesRemaining }
     var needsMoreFood: Bool { bitesRemaining > 0 }
+    var visitIsComplete: Bool { wishGranted || (!hasRemainingDesires && !needsMoreFood) }
 
     func mouthDistance(to scenePoint: CGPoint) -> CGFloat {
         guard let mouthScenePosition else { return .greatestFiniteMagnitude }
@@ -207,9 +224,9 @@ final class CharacterNode: SKNode {
     }
 
     @discardableResult
-    func receivedFood() -> Bool {
+    func receivedFood(countsTowardRequest: Bool = true) -> Bool {
         guard mood != .eating else { return false }
-        bitesRemaining = max(0, bitesRemaining - 1)
+        if countsTowardRequest { bitesRemaining = max(0, bitesRemaining - 1) }
         transitionTo(.eating)
         runHappyShimmy()
         return bitesRemaining == 0
@@ -330,6 +347,10 @@ final class CharacterNode: SKNode {
         updateExpression(animated: false)
     }
 
+    func restoreWishGranted(_ restoredWishGranted: Bool) {
+        grantedWishCount = restoredWishGranted ? 1 : 0
+    }
+
     func restoreBitesRemaining(_ restoredBitesRemaining: Int) {
         bitesRemaining = max(0, min(hungerBites, restoredBitesRemaining))
     }
@@ -339,7 +360,7 @@ final class CharacterNode: SKNode {
         run(.sequence([
             .wait(forDuration: delay),
             .run { [weak self] in
-                guard let self, self.parent != nil, self.needsMoreFood else { return }
+                guard let self, self.parent != nil, self.needsMoreFood || self.hasRemainingDesires else { return }
                 self.transitionTo(.hungry)
                 self.thoughtBubble?.run(.sequence([
                     .scale(to: 1.14, duration: 0.12),

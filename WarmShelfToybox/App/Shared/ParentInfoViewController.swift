@@ -1,10 +1,6 @@
 import UIKit
 
-/// The grown-up room, session 11 redesign (June 12): premium-settings anatomy —
-/// status hero up top, the monthly-toys value made explicit, grouped cards with
-/// hairline rows and icon squircles, chevron utility rows at the foot. Clean type
-/// on linen (the founder's parked Liquid Glass seed stays parked: paper IS the brand).
-/// Everything here hides behind the adult gate; the child only ever gets the toys.
+/// Parent-only access, preferences, and a clear description of the current toybox.
 final class ParentInfoViewController: UIViewController {
     private let stack = UIStackView()
     private let supportEmail = "support@lull.app"
@@ -93,7 +89,7 @@ final class ParentInfoViewController: UIViewController {
         if let statusMessage {
             stack.addArrangedSubview(makeNoticeCard(text: statusMessage))
         }
-        stack.addArrangedSubview(makeGrowingShelfCard())
+        stack.addArrangedSubview(makePlayApproachCard())
 
         stack.setCustomSpacing(26, after: stack.arrangedSubviews.last!)
         stack.addArrangedSubview(makeCaption("QUIET HOURS"))
@@ -154,7 +150,7 @@ final class ParentInfoViewController: UIViewController {
             makeSwitchGroupRow(
                 icon: "wind", tint: WarmShelfPalette.sage,
                 title: "Calmer motion",
-                detail: "Stills the gentle idle drifting. System Reduce Motion is always respected.",
+                detail: "Softens idle movement and reduces larger effects. Also follows system Reduce Motion.",
                 isOn: LullDemoState.shared.isReducedMotion, tag: 0,
                 action: #selector(toggleReducedMotion)
             )
@@ -213,7 +209,7 @@ final class ParentInfoViewController: UIViewController {
         title.minimumScaleFactor = 0.6
 
         let sub = UILabel()
-        sub.text = "Boundaries, timers, and the shelf — behind the gate, never on it."
+        sub.text = "For ages 2–6. Shape the shelf, sound, and quiet hours for your family."
         sub.font = .systemFont(ofSize: 13.5, weight: .regular)
         sub.textColor = WarmShelfPalette.cocoa.withAlphaComponent(0.78)
         sub.numberOfLines = 0
@@ -274,13 +270,13 @@ final class ParentInfoViewController: UIViewController {
         if purchased {
             eyebrow.text = "YOURS, FOREVER"
             title.text = "The whole shelf is open."
-            body.text = "Every toy — and every toy still to come — is on this device for good. Thank you for backing calm, handmade play."
+            body.text = "Your full toybox is unlocked. Return to familiar toys whenever you like. Thank you for backing calm, handmade play."
         } else if state.isTrialActive {
             let d = state.trialDaysRemaining
             eyebrow.text = "FREE WEEK · \(d) DAY\(d == 1 ? "" : "S") LEFT"
             title.text = d <= 1 ? "Last open day." : "Everything is open."
             body.text = d <= 1
-                ? "Tomorrow the shelf settles to Bubbles, Stack, and Drop Dots — free forever. One unlock keeps it all, and your child never notices a thing."
+                ? "When the free week ends, the shelf will show Bubbles, Stack, and Drop Dots. One purchase keeps the full toybox open."
                 : "Your child has the whole toybox this week. When it ends, three toys stay free forever — or keep everything with one unlock."
         } else if state.hasTrialStarted {
             eyebrow.text = "FREE SHELF"
@@ -373,31 +369,22 @@ final class ParentInfoViewController: UIViewController {
         return row
     }
 
-    /// The clear-value card: the shelf grows, and growth is included.
-    private func makeGrowingShelfCard() -> UIView {
+    private func makePlayApproachCard() -> UIView {
         let card = makeRaisedCard(fill: WarmShelfPalette.paperHighlight.withAlphaComponent(0.62), radius: 22)
 
-        let squircle = makeIconSquircle("sparkles", tint: WarmShelfPalette.terracotta)
+        let squircle = makeIconSquircle("hand.draw.fill", tint: WarmShelfPalette.terracotta)
 
         let title = UILabel()
-        title.text = "The shelf keeps growing"
+        title.text = "Made to be revisited"
         title.font = UIFont(name: "Georgia-Bold", size: 19) ?? .systemFont(ofSize: 19, weight: .bold)
         title.textColor = WarmShelfPalette.clayInk
+        title.numberOfLines = 0
 
         let body = UILabel()
-        body.text = "A new toy joins the toybox about every month — the Meadow just moved in. Every new toy is part of the same one unlock. Nothing more to buy, ever."
+        body.text = "Stack, post, make music, and explore. Let your child choose a familiar toy and repeat an action at their own pace. You can tuck toys away below to keep the shelf simple."
         body.font = .systemFont(ofSize: 14, weight: .regular)
         body.textColor = WarmShelfPalette.cocoa
         body.numberOfLines = 0
-
-        let months = UIStackView(arrangedSubviews: [
-            makeMonthChip("JUNE", detail: "Meadow", arrived: true),
-            makeMonthChip("JULY", detail: "A new friend", arrived: false),
-            makeMonthChip("AFTER", detail: "Always more", arrived: false)
-        ])
-        months.axis = .horizontal
-        months.spacing = 8
-        months.distribution = .fillEqually
 
         let titles = UIStackView(arrangedSubviews: [title, body])
         titles.axis = .vertical
@@ -408,7 +395,7 @@ final class ParentInfoViewController: UIViewController {
         head.spacing = 12
         head.alignment = .top
 
-        let column = UIStackView(arrangedSubviews: [head, months])
+        let column = UIStackView(arrangedSubviews: [head])
         column.axis = .vertical
         column.spacing = 12
         column.translatesAutoresizingMaskIntoConstraints = false
@@ -420,44 +407,6 @@ final class ParentInfoViewController: UIViewController {
             column.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -16)
         ])
         return card
-    }
-
-    private func makeMonthChip(_ month: String, detail: String, arrived: Bool) -> UIView {
-        let chip = UIView()
-        chip.backgroundColor = arrived
-            ? WarmShelfPalette.sage.withAlphaComponent(0.18)
-            : WarmShelfPalette.warmCream.withAlphaComponent(0.5)
-        chip.layer.cornerRadius = 14
-        chip.layer.borderWidth = 1
-        chip.layer.borderColor = (arrived ? WarmShelfPalette.sage : WarmShelfPalette.softLine)
-            .withAlphaComponent(0.4).cgColor
-
-        let m = UILabel()
-        m.text = month
-        m.font = .systemFont(ofSize: 10.5, weight: .heavy)
-        m.textColor = WarmShelfPalette.cocoa.withAlphaComponent(0.6)
-        m.textAlignment = .center
-
-        let d = UILabel()
-        d.text = arrived ? "\(detail) ✓" : detail
-        d.font = .systemFont(ofSize: 12.5, weight: .semibold)
-        d.textColor = WarmShelfPalette.clayInk
-        d.textAlignment = .center
-        d.adjustsFontSizeToFitWidth = true
-        d.minimumScaleFactor = 0.8
-
-        let col = UIStackView(arrangedSubviews: [m, d])
-        col.axis = .vertical
-        col.spacing = 2
-        col.translatesAutoresizingMaskIntoConstraints = false
-        chip.addSubview(col)
-        NSLayoutConstraint.activate([
-            chip.heightAnchor.constraint(greaterThanOrEqualToConstant: 52),
-            col.centerYAnchor.constraint(equalTo: chip.centerYAnchor),
-            col.leadingAnchor.constraint(equalTo: chip.leadingAnchor, constant: 6),
-            col.trailingAnchor.constraint(equalTo: chip.trailingAnchor, constant: -6)
-        ])
-        return chip
     }
 
     // MARK: - Group cards (the settings anatomy)

@@ -46,7 +46,7 @@ class BaseToyScene: SKScene, UIGestureRecognizerDelegate {
     let audioManager = AudioManager.shared
     var onReturnToShelf: (() -> Void)?
     var showsShelfReturnHandle = false
-    var ambientMoteInterval: TimeInterval = 0.42
+    var ambientMoteInterval: TimeInterval = 3.2
 
     private var lastUpdateTime: TimeInterval = 0
     private var moteAccumulator: TimeInterval = 0
@@ -57,6 +57,8 @@ class BaseToyScene: SKScene, UIGestureRecognizerDelegate {
     private var homeReturnArmed = false
     private var homeReturnStart = CGPoint.zero
     private var lastPaperBackgroundSize = CGSize.zero
+    private var lastShelfReturnLayoutSize = CGSize.zero
+    private var lastShelfReturnSafeInsets = UIEdgeInsets.zero
     private var isObservingAppLifecycle = false
 
     // Ambient sleep system
@@ -122,6 +124,25 @@ class BaseToyScene: SKScene, UIGestureRecognizerDelegate {
         }
     }
 
+    /// A parent timer covers this scene without removing it. Release shared navigation
+    /// state and toy-owned audio explicitly; the host cancels touches and pauses rendering.
+    func suspendToyForRest() {
+        homeReturnArmed = false
+        deEmphasizeHomeHandle(false)
+        teardownToyAudio()
+    }
+
+    /// Resume an existing scene after a grown-up wakes the room. Toys with their own
+    /// recorded beds can restore them here without rebuilding or losing play state.
+    func resumeToyAfterRest() {
+        resetAmbientTiming()
+        if toyVoice != .none {
+            AudioManager.shared.currentToyVoice = toyVoice
+            AudioManager.shared.startToyAmbient(toyVoice)
+        }
+        ambientSleepManager.notifyTouch(at: CACurrentMediaTime())
+    }
+
     private func showFirstSessionHintIfNeeded() {
         guard let key = firstSessionHintKey, !LullDemoState.shared.hasSeenHint(key) else { return }
         LullDemoState.shared.markHintSeen(key)
@@ -171,11 +192,14 @@ class BaseToyScene: SKScene, UIGestureRecognizerDelegate {
 
         let delta = lastUpdateTime == 0 ? 0 : currentTime - lastUpdateTime
         lastUpdateTime = currentTime
-        moteAccumulator += delta
-
-        if moteAccumulator > ambientMoteInterval {
+        if AmbientAnimator.reduceMotion {
             moteAccumulator = 0
-            ParticleManager.ambientMote(in: self, bounds: frame)
+        } else {
+            moteAccumulator += delta
+            if moteAccumulator > ambientMoteInterval {
+                moteAccumulator = 0
+                ParticleManager.ambientMote(in: self, bounds: frame)
+            }
         }
 
         ambientSleepManager.tick(currentTime: currentTime)
@@ -201,74 +225,15 @@ class BaseToyScene: SKScene, UIGestureRecognizerDelegate {
         base.position = CGPoint(x: size.width / 2, y: size.height / 2)
         background.addChild(base)
 
-        let lowerWarmth = SKShapeNode(
-            rectOf: CGSize(width: size.width, height: size.height * 0.46)
-        )
-        lowerWarmth.fillColor = WarmShelfPalette.warmCream.withAlpha(0.16)
-        lowerWarmth.strokeColor = .clear
-        lowerWarmth.position = CGPoint(x: size.width / 2, y: size.height * 0.23)
-        lowerWarmth.zPosition = 0.4
-        background.addChild(lowerWarmth)
-
-        let upperPaper = SKShapeNode(
-            rectOf: CGSize(width: size.width, height: size.height * 0.34)
-        )
-        upperPaper.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.075)
-        upperPaper.strokeColor = .clear
-        upperPaper.position = CGPoint(x: size.width / 2, y: size.height * 0.83)
-        upperPaper.zPosition = 0.45
-        background.addChild(upperPaper)
-
-        let clusterCount = Int(max(10, min(28, (size.width * size.height) / 62_000)))
-        for _ in 0..<clusterCount {
-            let origin = CGPoint(x: .random(in: 0...size.width), y: .random(in: 0...size.height))
-            let speckles = Int.random(in: 2...5)
-            for _ in 0..<speckles {
-                let speckle = SKShapeNode(circleOfRadius: CGFloat.random(in: 0.7...2.4))
-                speckle.fillColor = WarmShelfPalette.sand.withAlpha(.random(in: 0.055...0.13))
-                speckle.strokeColor = .clear
-                speckle.position = CGPoint(
-                    x: (origin.x + CGFloat.random(in: -22...22)).clamped(to: 0...size.width),
-                    y: (origin.y + CGFloat.random(in: -18...18)).clamped(to: 0...size.height)
-                )
-                background.addChild(speckle)
-            }
-        }
-
-        let bottomGlow = SKShapeNode(
-            rectOf: CGSize(width: size.width, height: size.height * 0.36)
-        )
-        bottomGlow.fillColor = WarmShelfPalette.warmCream.withAlpha(0.14)
-        bottomGlow.strokeColor = .clear
-        bottomGlow.position = CGPoint(x: size.width / 2, y: size.height * 0.18)
-        bottomGlow.zPosition = 1
-        background.addChild(bottomGlow)
-
-        let topVeil = SKShapeNode(
-            rectOf: CGSize(width: size.width, height: size.height * 0.20)
-        )
-        topVeil.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.07)
-        topVeil.strokeColor = .clear
-        topVeil.position = CGPoint(x: size.width / 2, y: size.height * 0.90)
-        topVeil.zPosition = 1
-        background.addChild(topVeil)
-
-        let quietEdge = SKShapeNode(
-            rectOf: CGSize(width: size.width, height: size.height * 0.12)
-        )
-        quietEdge.fillColor = WarmShelfPalette.cocoa.withAlpha(0.018)
-        quietEdge.strokeColor = .clear
-        quietEdge.position = CGPoint(x: size.width / 2, y: size.height * 0.06)
-        quietEdge.zPosition = 1.2
-        background.addChild(quietEdge)
-
+        // The shared surface stays quiet. Each toy supplies its own room, material,
+        // and light; stacked color bands and random speckles compete with that art.
         addTimeOfDayWarmth(to: background)
 
         addChild(background)
     }
 
     // MARK: - One paper, every room (approved delight ⭐)
-    // A single generated linen-grain texture laid over every scene at ~4% alpha —
+    // A single generated linen-grain texture laid over every scene at ~2% alpha —
     // the shelf and all nine toys feel printed on the same sheet of paper.
 
     private static let linenGrainTexture: SKTexture = {
@@ -310,7 +275,7 @@ class BaseToyScene: SKScene, UIGestureRecognizerDelegate {
         } else {
             overlay = SKSpriteNode(texture: BaseToyScene.linenGrainTexture)
             overlay.name = "linenGrainOverlay"
-            overlay.alpha = 0.04
+            overlay.alpha = 0.018
             // Over everything in every toy (Wren tops out ~z260, chrome at z110).
             // It appears in nodes(at:) arrays — current call sites all filter by
             // name/type; never use bare atPoint(_:) in a toy or this sprite wins.
@@ -338,25 +303,15 @@ class BaseToyScene: SKScene, UIGestureRecognizerDelegate {
         veil.position = CGPoint(x: size.width / 2, y: size.height / 2)
         veil.zPosition = 2
         background.addChild(veil)
-
-        // A gentle lower glow, like a warm lamp, grows after dark.
-        if warmth.glow > 0 {
-            let glow = SKShapeNode(rectOf: CGSize(width: size.width, height: size.height * 0.5))
-            glow.fillColor = WarmShelfPalette.butter.withAlpha(warmth.glow)
-            glow.strokeColor = .clear
-            glow.position = CGPoint(x: size.width / 2, y: size.height * 0.16)
-            glow.zPosition = 2.1
-            background.addChild(glow)
-        }
     }
 
-    private func currentTimeOfDayWarmth() -> (color: UIColor, alpha: CGFloat, glow: CGFloat) {
+    private func currentTimeOfDayWarmth() -> (color: UIColor, alpha: CGFloat) {
         // Shared phase so the whole app (shelf + every toy) visibly shifts with the day.
         switch TimeOfDay.phase {
-        case .dawn:   return (WarmShelfPalette.petal, 0.06, 0.03)
-        case .midday: return (.clear, 0, 0)
-        case .dusk:   return (WarmShelfPalette.terracotta, 0.10, 0.06)
-        case .night:  return (WarmShelfPalette.cocoa, 0.14, 0.05)
+        case .dawn:   return (WarmShelfPalette.petal, 0.025)
+        case .midday: return (.clear, 0)
+        case .dusk:   return (WarmShelfPalette.terracotta, 0.04)
+        case .night:  return (WarmShelfPalette.cocoa, 0.06)
         }
     }
 
@@ -474,10 +429,10 @@ class BaseToyScene: SKScene, UIGestureRecognizerDelegate {
         guard let handle = childNode(withName: shelfReturnHandleName) else { return }
         if dim {
             handle.removeAction(forKey: "shelfReturnHandlePulse")
-            handle.run(.fadeAlpha(to: 0.4, duration: 0.22), withKey: "homeDim")
+            handle.run(.fadeAlpha(to: 0.88, duration: 0.18), withKey: "homeDim")
         } else {
             handle.removeAction(forKey: "homeDim")
-            startShelfReturnHandlePulse(on: handle)
+            restoreShelfReturnHandleAppearance(on: handle)
         }
     }
 
@@ -520,8 +475,8 @@ class BaseToyScene: SKScene, UIGestureRecognizerDelegate {
             makeActivatableAccessibilityElement(
                 in: view,
                 label: "Return to toy shelf",
-                scenePosition: CGPoint(x: handle.position.x - 10, y: handle.position.y + 8),
-                size: CGSize(width: 104, height: 84),
+                scenePosition: handle.position,
+                size: CGSize(width: 52, height: 52),
                 traits: .button
             ) { [weak self] in self?.performShelfReturn() }
         ]
@@ -574,6 +529,7 @@ class BaseToyScene: SKScene, UIGestureRecognizerDelegate {
         activationHandler: (() -> Void)?
     ) -> ActivatableAccessibilityElement {
         let element = ActivatableAccessibilityElement(accessibilityContainer: view)
+        element.isAccessibilityElement = true
         element.accessibilityLabel = label
         element.accessibilityTraits = traits
         element.accessibilityFrameInContainerSpace = CGRect(
@@ -586,104 +542,98 @@ class BaseToyScene: SKScene, UIGestureRecognizerDelegate {
         return element
     }
 
-    private func layoutShelfReturnHandleIfNeeded() {
-        childNode(withName: shelfReturnHandleName)?.removeFromParent()
-        guard showsShelfReturnHandle, size.width > 120, size.height > 120 else { return }
+    /// UIKit can update the safe area without changing the SpriteKit scene size.
+    /// Keep the shared home control aligned with those final insets.
+    func refreshSharedNavigationLayout() {
+        layoutShelfReturnHandleIfNeeded()
+    }
 
-        // A little clay home pebble, tucked into the top-left corner so it stays out of the
-        // central play column — toddlers stack, grow, and build up the middle of the screen,
-        // and a centered control was landing right in that path. It still reads as the one
-        // way back to the shelf, and stays generously reachable for small hands and parents.
+    private func layoutShelfReturnHandleIfNeeded() {
+        guard showsShelfReturnHandle, size.width > 120, size.height > 120 else {
+            childNode(withName: shelfReturnHandleName)?.removeFromParent()
+            return
+        }
+        let safe = safeInsets
+        if childNode(withName: shelfReturnHandleName) != nil,
+           lastShelfReturnLayoutSize == size,
+           lastShelfReturnSafeInsets == safe {
+            return
+        }
+        childNode(withName: shelfReturnHandleName)?.removeFromParent()
+        lastShelfReturnLayoutSize = size
+        lastShelfReturnSafeInsets = safe
+
+        // One calm, consistent home control in every toy. Its 52-point target is
+        // contained inside the actual safe area, away from the central play column.
         let root = SKNode()
         root.name = shelfReturnHandleName
-        let safe = view?.safeAreaInsets ?? .zero
-        let landscape = size.width > size.height
-        let tabWidth: CGFloat = 60
-        let leftPadding = max(safe.left + 18 + tabWidth / 2, landscape ? 52 : 42)
-        let topPadding = max(landscape ? 40 : 56, safe.top + (landscape ? 26 : 40))
-        root.position = CGPoint(x: leftPadding, y: size.height - topPadding)
+        let targetSide: CGFloat = 52
+        let surfaceSide: CGFloat = 50
+        let inset: CGFloat = 12
+        root.position = CGPoint(
+            x: safe.left + inset + targetSide / 2,
+            y: size.height - safe.top - inset - targetSide / 2
+        )
         root.zPosition = 110
 
-        // Generous, forgiving hit target that reaches into the very corner.
         let hit = SKShapeNode(
-            rectOf: CGSize(width: 104, height: 84),
-            cornerRadius: 30
+            rectOf: CGSize(width: targetSide, height: targetSide),
+            cornerRadius: 17
         )
         hit.name = shelfReturnHitName
         hit.fillColor = .clear
         hit.strokeColor = .clear
-        hit.position = CGPoint(x: -10, y: 8)
         hit.zPosition = 0
         root.addChild(hit)
 
         let shadow = makeRoundedRect(
-            size: CGSize(width: tabWidth, height: 46),
-            radius: 22,
-            fill: WarmShelfPalette.contactShadow.withAlpha(0.10)
+            size: CGSize(width: surfaceSide, height: surfaceSide),
+            radius: 16,
+            fill: WarmShelfPalette.contactShadow.withAlpha(0.08)
         )
-        shadow.position = CGPoint(x: 0, y: -3)
+        shadow.position = CGPoint(x: 0, y: -1.5)
         shadow.zPosition = 0.5
         root.addChild(shadow)
 
         let tab = makeRoundedRect(
-            size: CGSize(width: tabWidth, height: 46),
-            radius: 22,
-            fill: WarmShelfPalette.warmCream.withAlpha(0.96),
-            stroke: WarmShelfPalette.cardBorder.withAlpha(0.6)
+            size: CGSize(width: surfaceSide, height: surfaceSide),
+            radius: 16,
+            fill: WarmShelfPalette.cardSurface,
+            stroke: WarmShelfPalette.cocoa.withAlpha(0.18)
         )
-        tab.lineWidth = 2
+        tab.lineWidth = 1
         tab.zPosition = 1
         root.addChild(tab)
 
-        // Soft cream highlight along the top — a hand-shaped clay button, not a flat chip.
-        let highlight = makeRoundedRect(
-            size: CGSize(width: tabWidth - 18, height: 9),
-            radius: 4.5,
-            fill: WarmShelfPalette.paperHighlight.withAlpha(0.34)
-        )
-        highlight.position = CGPoint(x: 0, y: 13)
-        highlight.zPosition = 2
-        root.addChild(highlight)
-
         let homePath = CGMutablePath()
-        homePath.move(to: CGPoint(x: -16, y: -3))
-        homePath.addLine(to: CGPoint(x: 0, y: 11))
-        homePath.addLine(to: CGPoint(x: 16, y: -3))
-        homePath.move(to: CGPoint(x: -11, y: -2))
-        homePath.addLine(to: CGPoint(x: -11, y: -13))
-        homePath.addLine(to: CGPoint(x: 11, y: -13))
-        homePath.addLine(to: CGPoint(x: 11, y: -2))
+        homePath.move(to: CGPoint(x: -12, y: -1))
+        homePath.addLine(to: CGPoint(x: 0, y: 10))
+        homePath.addLine(to: CGPoint(x: 12, y: -1))
+        homePath.move(to: CGPoint(x: -8, y: 0))
+        homePath.addLine(to: CGPoint(x: -8, y: -10))
+        homePath.addLine(to: CGPoint(x: -2.5, y: -10))
+        homePath.addLine(to: CGPoint(x: -2.5, y: -4))
+        homePath.addLine(to: CGPoint(x: 2.5, y: -4))
+        homePath.addLine(to: CGPoint(x: 2.5, y: -10))
+        homePath.addLine(to: CGPoint(x: 8, y: -10))
+        homePath.addLine(to: CGPoint(x: 8, y: 0))
         let home = SKShapeNode(path: homePath)
-        home.strokeColor = WarmShelfPalette.labelInk.withAlpha(0.82)
+        home.strokeColor = WarmShelfPalette.labelInk
         home.fillColor = .clear
-        home.lineWidth = 2.8
+        home.lineWidth = 2.5
         home.lineCap = .round
         home.lineJoin = .round
         home.zPosition = 4
         root.addChild(home)
 
         addChild(root)
-        startShelfReturnHandlePulse(on: root)
+        restoreShelfReturnHandleAppearance(on: root)
     }
 
-    private func startShelfReturnHandlePulse(on node: SKNode) {
+    private func restoreShelfReturnHandleAppearance(on node: SKNode) {
         node.removeAction(forKey: "shelfReturnHandlePulse")
-        // A quiet breath every few seconds — present, never demanding. No directional nudge
-        // now that it lives in the corner rather than reading as a centered drawer pull.
-        let settle = SKAction.scale(to: 1.0, duration: 0.1)
-        let wait = SKAction.wait(forDuration: 3.6)
-        let up = SKAction.scale(to: 1.05, duration: 0.34)
-        let down = SKAction.scale(to: 1.0, duration: 0.58)
-        let glow = SKAction.fadeAlpha(to: 1.0, duration: 0.34)
-        let calm = SKAction.fadeAlpha(to: 0.92, duration: 0.58)
-        [up, down, glow, calm].forEach { $0.timingMode = .easeInEaseOut }
-        node.alpha = 0.92
-        node.run(.repeatForever(.sequence([
-            settle,
-            wait,
-            .group([up, glow]),
-            .group([down, calm])
-        ])), withKey: "shelfReturnHandlePulse")
+        node.alpha = 1
+        node.setScale(1)
     }
 }
 
@@ -697,11 +647,5 @@ final class ActivatableAccessibilityElement: UIAccessibilityElement {
         guard let handler = activationHandler else { return false }
         handler()
         return true
-    }
-}
-
-private extension Comparable {
-    func clamped(to limits: ClosedRange<Self>) -> Self {
-        min(max(self, limits.lowerBound), limits.upperBound)
     }
 }

@@ -10,7 +10,7 @@ final class ToyShelfViewController: UIViewController {
     private var builtToyIDs: [String] = []
 
     override func loadView() {
-        let skView = SKView()
+        let skView = ToyPlayView()
         skView.ignoresSiblingOrder = true
         skView.shouldCullNonVisibleNodes = true
         skView.preferredFramesPerSecond = 120  // ProMotion; auto-caps to 60 elsewhere

@@ -1,0 +1,146 @@
+[
+  {
+    "key": "shelf-bubbles-v2",
+    "path": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-cb2e9357-2bfb-4e3e-8eb6-5e842bdfc8f3.png",
+    "prompt": "Use case: stylized-concept. Asset type: one production thumbnail sprite for the Lull children's toy shelf, genuine transparent background. Fixed straight-on orthographic camera, contemporary handcrafted miniature, satin pale birch wood and matte painted clay, subtle low-detail material texture, broad soft light from upper left, clean silhouette, beautiful restrained construction, generous transparent padding, no floor, no baked cast shadow, no text, no UI, no vignette, no excessive fuzz, no glitter, no unrelated objects. Colors are muted but clearly distinct terracotta, ochre, sage, cornflower blue. The toy must read clearly at 80pt wide. Primary subject: a low cream ceramic bowl holding soap water, one simple pale wooden bubble wand resting inside, and three luminous translucent soap bubbles floating just above the bowl; a coherent compact toy silhouette.",
+    "pixelSize": [
+      1374,
+      1145
+    ],
+    "visibleBounds": [
+      223,
+      73,
+      1283,
+      1077
+    ],
+    "filename": "shelf-bubbles-v2.png"
+  },
+  {
+    "key": "shelf-stack-v2",
+    "path": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-4770cdfc-af90-436c-b47b-e3dfc58768a3.png",
+    "prompt": "Use case: stylized-concept. Asset type: one production thumbnail sprite for the Lull children's toy shelf, genuine transparent background. Fixed straight-on orthographic camera, contemporary handcrafted miniature, satin pale birch wood and matte painted clay, subtle low-detail material texture, broad soft light from upper left, clean silhouette, beautiful restrained construction, generous transparent padding, no floor, no baked cast shadow, no text, no UI, no vignette, no excessive fuzz, no glitter, no unrelated objects. Colors are muted but clearly distinct terracotta, ochre, sage, cornflower blue. The toy must read clearly at 80pt wide. Primary subject: three large smooth slightly irregular matte clay pebbles stacked into a small stable tower, bottom cornflower blue, middle sage, top terracotta; extremely subtle calm closed eyes and tiny smile on terracotta top pebble only; soft rounded organic geometry, no hats.",
+    "pixelSize": [
+      1374,
+      1145
+    ],
+    "visibleBounds": [
+      342,
+      123,
+      1035,
+      1058
+    ],
+    "filename": "shelf-stack-v2.png"
+  },
+  {
+    "key": "shelf-sleepybox-v2",
+    "path": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-c5777dda-217a-426c-8bf7-2191a2806a4b.png",
+    "prompt": "Use case: stylized-concept. Asset type: one production thumbnail sprite for the Lull children's toy shelf, genuine transparent background. Fixed straight-on orthographic camera, contemporary handcrafted miniature, satin pale birch wood and matte painted clay, subtle low-detail material texture, broad soft light from upper left, clean silhouette, beautiful restrained construction, generous transparent padding, no floor, no baked cast shadow, no text, no UI, no vignette, no excessive fuzz, no glitter, no unrelated objects. Colors are muted but clearly distinct terracotta, ochre, sage, cornflower blue. The toy must read clearly at 80pt wide. Primary subject: one small chunky pale birch shape-sorter box with four unmistakable recessed openings in a two-by-two arrangement: circle, upright triangle, rounded square, upright five-point star. One integrated pale wooden drawer front at bottom with a small finger scoop. No colored slot rims. Very small closed sleepy eyes between holes and drawer. Near-square front panel, single coherent object.",
+    "pixelSize": [
+      1254,
+      1254
+    ],
+    "visibleBounds": [
+      146,
+      103,
+      1108,
+      1159
+    ],
+    "filename": "shelf-sleepybox-v2.png"
+  },
+  {
+    "key": "shelf-feed-v2",
+    "path": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-e45293a4-64ce-46d4-9b39-ab03e78416c7.png",
+    "prompt": "Use case: stylized-concept. Asset type: SINGLE production toy-shelf sprite for the Lull app ages 2\u20136. Genuine transparent background. Fixed straight-on orthographic camera, contemporary handmade miniature, satin pale birch and matte painted clay, low-detail material grain, broad soft light from upper left, clean readable silhouette at 80pt wide. Generous clear padding, no floor, no baked cast shadow, no text, no UI, no extra props, no vignette, no glow, no excessive fuzz. Warm-neutral construction, restrained terracotta, ochre, sage and cornflower-blue accents only on playable pieces. Primary subject: a tiny pale birch farm-stand counter with a very simple canopy, one kind round terracotta clay person peeking from BEHIND the counter, and three clearly visible pieces of food on the counter: red apple, orange carrot, yellow banana. Character torso stays behind counter. Compact inviting toy stand, minimal detail.",
+    "pixelSize": [
+      1293,
+      1217
+    ],
+    "visibleBounds": [
+      184,
+      185,
+      1109,
+      1128
+    ],
+    "filename": "shelf-feed-v2.png"
+  },
+  {
+    "key": "shelf-dropdots-v2",
+    "path": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-f4cf4812-26b2-4b7b-abef-a7683428e697.png",
+    "prompt": "Use case: stylized-concept. Asset type: SINGLE production toy-shelf sprite for the Lull app ages 2\u20136. Genuine transparent background. Fixed straight-on orthographic camera, contemporary handmade miniature, satin pale birch and matte painted clay, low-detail material grain, broad soft light from upper left, clean readable silhouette at 80pt wide. Generous clear padding, no floor, no baked cast shadow, no text, no UI, no extra props, no vignette, no glow, no excessive fuzz. Warm-neutral construction, restrained terracotta, ochre, sage and cornflower-blue accents only on playable pieces. Primary subject: one small upright pale birch gravity pegboard toy: rounded rectangular wooden board, exactly five narrow vertical channels, staggered chunky round wooden pegs in upper portion, five little shallow collection wells at bottom. Three small painted clay round tokens sit in wells, coral, sage, ochre. A simple small lower wooden pull tab centered below the board. The top has visible drop entrances. Not a counting abacus and not stacking rods.",
+    "pixelSize": [
+      1312,
+      1199
+    ],
+    "visibleBounds": [
+      190,
+      170,
+      1125,
+      1069
+    ],
+    "filename": "shelf-dropdots-v2.png"
+  },
+  {
+    "key": "shelf-hum-v2",
+    "path": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-64881cc5-8302-422c-897b-e93df635d071.png",
+    "prompt": "Use case: background-extraction. Edit target: the attached generated xylophone sprite. Remove EVERY bit of background, colored ambient glow and baked cast shadow, leaving ONLY the six bars, wooden rails, wooden side supports and mallet. Preserve their exact shape, arrangement, material, colors and proportions. Clean edges. No opaque or translucent backdrop around or between parts. Genuine transparent alpha background across all empty areas. No new objects.",
+    "pixelSize": [
+      1536,
+      1024
+    ],
+    "visibleBounds": [
+      13,
+      148,
+      1525,
+      929
+    ],
+    "filename": "shelf-hum-v2.png"
+  },
+  {
+    "key": "shelf-window-v2",
+    "path": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-e9111a36-c37d-4ea2-992e-da74da2cbb31.png",
+    "prompt": "Use case: stylized-concept. Asset type: SINGLE production toy-shelf sprite for the Lull app ages 2\u20136. Genuine transparent alpha background. Fixed straight-on orthographic camera, contemporary handmade miniature, satin pale birch and matte painted clay, very restrained soft material grain, broad soft upper-left daylight, clean readable silhouette at 80pt wide. Generous clear padding, NO floor or backdrop, NO cast shadow, NO glow behind object, NO text, NO UI, NO vignette, no excessive fuzz. Warm-neutral wood with restrained terracotta, ochre, sage and cornflower-blue manipulables. Primary subject: one small arched birch day/night window toy, single rounded arch frame, left half quiet pale blue sky with a simple golden sun, right half quiet slate-blue sky with a cream crescent moon and three tiny stars; one chunky small round birch turning knob centered at bottom. Minimal beautiful coherent toy, no shutters, no plants, no cat, no curtain, no shelves.",
+    "pixelSize": [
+      1312,
+      1199
+    ],
+    "visibleBounds": [
+      125,
+      118,
+      1187,
+      1077
+    ],
+    "filename": "shelf-window-v2.png"
+  },
+  {
+    "key": "shelf-mixup-v2",
+    "path": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-75de74af-b233-4d79-9a27-c83527090ad9.png",
+    "prompt": "Use case: stylized-concept. Asset type: SINGLE production toy-shelf sprite for the Lull app ages 2\u20136. Genuine transparent alpha background. Fixed straight-on orthographic camera, contemporary handmade miniature, satin pale birch and matte painted clay, very restrained soft material grain, broad soft upper-left daylight, clean readable silhouette at 80pt wide. Generous clear padding, NO floor or backdrop, NO cast shadow, NO glow behind object, NO text, NO UI, NO vignette, no excessive fuzz. Warm-neutral wood with restrained terracotta, ochre, sage and cornflower-blue manipulables. Primary subject: one tiny birch tabletop dress-up theater, two muted terracotta curtains held open, a single charming simple clay puppet-like character standing in the center wearing a sage top, ochre crown-like hat and blue bottoms. Separate head/torso/legs recognizable but aligned. Simple rounded stage base. No extra cast, no buttons, no strings.",
+    "pixelSize": [
+      1312,
+      1199
+    ],
+    "visibleBounds": [
+      83,
+      27,
+      1229,
+      1160
+    ],
+    "filename": "shelf-mixup-v2.png"
+  },
+  {
+    "key": "shelf-meadow-v2",
+    "path": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-87b37ee2-36cc-4fce-87e2-e4444c2db0eb.png",
+    "prompt": "Use case: stylized-concept. Asset type: SINGLE production toy-shelf sprite for the Lull app ages 2\u20136. Genuine transparent alpha background. Fixed straight-on orthographic camera, contemporary handmade miniature, satin pale birch and matte painted clay, very restrained soft material grain, broad soft upper-left daylight, clean readable silhouette at 80pt wide. Generous clear padding, NO floor or backdrop, NO cast shadow, NO glow behind object, NO text, NO UI, NO vignette, no excessive fuzz. Warm-neutral wood with restrained terracotta, ochre, sage and cornflower-blue manipulables. Primary subject: one tiny oval pale-birch miniature meadow tray with low felt-sage grass, a SINGLE unmistakable little red-and-black ladybug as the focus, and two very simple small wildflowers (ochre and cream) growing beside it. Compact physical toy that reads as lead-the-ladybug discovery, restrained grass detail, no large foliage, no trees, no sky.",
+    "pixelSize": [
+      1536,
+      1024
+    ],
+    "visibleBounds": [
+      188,
+      318,
+      1368,
+      862
+    ],
+    "filename": "shelf-meadow-v2.png"
+  }
+]

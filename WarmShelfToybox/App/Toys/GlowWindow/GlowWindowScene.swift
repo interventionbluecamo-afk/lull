@@ -1,11 +1,8 @@
 import SpriteKit
 import QuartzCore
 
-/// Glow Window — a cozy room with a giant window. A toddler turns one big chunky sun/moon dial and
-/// the WHOLE room transforms, continuously, from morning to day to golden sunset to dusk to night:
-/// the sky gradient shifts, the sun arcs over and sets, the moon and stars rise, the walls cool, a
-/// warm light-spill rakes across the floor. Two big curtains pull open and closed; a cozy lamp taps
-/// on to bloom amber light. No goal, no menu, no mascot — the room itself is the toy.
+/// Window — a day/night dial changes the sky, room light, and the sill cat's hours.
+/// Curtains open and close; glass taps invite a bird by day or a comet by night.
 ///
 /// One value drives everything: `dayPhase` 0…1. The dial sets it; `applyPhase` paints the room from
 /// it. All motion is authored and respects Reduce Motion.
@@ -125,8 +122,12 @@ final class GlowWindowScene: BaseToyScene {
     private var treesNight: SKNode!
     private weak var catSprite: SKSpriteNode?       // asleep base
     private weak var catAwakeSprite: SKSpriteNode?  // awake overlay — cross-faded, never snapped
-    private var beamNode: SKShapeNode!
-    private weak var beamEffect: SKEffectNode?   // blurs the beam so its edges dissipate, not a hard line
+    private var beamNode: SKSpriteNode!
+    private static let beamTextureCache: NSCache<NSString, SKTexture> = {
+        let cache = NSCache<NSString, SKTexture>()
+        cache.totalCostLimit = 8 * 1024 * 1024
+        return cache
+    }()
     private var lampGlow: SKSpriteNode!
     private var lampShade: SKShapeNode?     // nil when the authored floor lamp is present
     private var dialNode: SKNode!
@@ -141,9 +142,14 @@ final class GlowWindowScene: BaseToyScene {
     // MARK: - Touch
     private enum Grab { case dial, curtainL, curtainR, room, can, cat, plant, ball, block }
     private var grabs: [UITouch: Grab] = [:]
-    private var dialLastAngle: CGFloat = 0
+    private var dialLastAngle: CGFloat?
     private var dialVelocity: CGFloat = 0
+    private var dialTouchStart = CGPoint.zero
+    private var dialTouchMoved = false
     private var curtainGrabDX: CGFloat = 0
+    private let skyTapGlow = SKShapeNode(circleOfRadius: 14)
+    private var lastSkyFeedbackTime: TimeInterval = 0
+    private var lastCometTime: TimeInterval = 0
 
     // MARK: - Particles / sound bookkeeping
     private var moteAccum: TimeInterval = 0
@@ -211,8 +217,41 @@ final class GlowWindowScene: BaseToyScene {
 
     override func teardownToyAudio() {
         isLeaving = true
+        grabs.removeAll()
+        dialLastAngle = nil
+        dialVelocity = 0
+        dialTouchMoved = false
+        dialKnob?.removeAction(forKey: "dialPress")
+        dialKnob?.setScale(1)
+        skyTapGlow.removeAllActions()
+        skyTapGlow.alpha = 0
+        carriedNode = nil
+        carryTarget = nil
         AudioManager.shared.stopWindowAmbience(fadeOut: 0.4)
         super.teardownToyAudio()
+    }
+
+    override func resumeToyAfterRest() {
+        super.resumeToyAfterRest()
+        isLeaving = false
+        lastUpdateTime = 0
+        guard glassBase != nil else { return }
+        applyPhase(animated: false)
+    }
+
+    override func refreshSharedNavigationLayout() {
+        super.refreshSharedNavigationLayout()
+        guard dialNode != nil, dialRadius > 1 else { return }
+        let center = resolvedDialCenter()
+        guard center != dialCenter else { return }
+        // A safe-area change can arrive after SpriteKit's size change. Cancel an
+        // owned dial gesture rather than measure it against a newly moved pivot.
+        grabs = grabs.filter { $0.value != .dial }
+        dialLastAngle = nil
+        dialVelocity = 0
+        dialTouchMoved = false
+        dialCenter = center
+        dialNode.position = center
     }
 
     override func didChangeSize(_ oldSize: CGSize) {
@@ -225,9 +264,25 @@ final class GlowWindowScene: BaseToyScene {
 
     private func rebuild() {
         guard size.width > 120, size.height > 120 else { return }
+        // A rotation replaces the controls. No old finger may keep operating their
+        // former geometry or carry angular momentum into the rebuilt room.
+        grabs.removeAll()
+        dialLastAngle = nil
+        dialVelocity = 0
+        dialTouchMoved = false
+        curtainGrabDX = 0
+        carriedNode = nil
+        carryTarget = nil
         [roomLayer, glassLayer, beamLayer, frameLayer, lampLayer, curtainLayer, particleLayer, controlLayer].forEach { $0.removeAllChildren() }
         windowContent.removeAllChildren()
         stars.removeAll()
+        skyTapGlow.removeAllActions()
+        skyTapGlow.alpha = 0
+        lampGlow = nil
+        lampSprite = nil
+        lampShade = nil
+        lampOn = false
+        lampAutoOn = nil
 
         let landscape = size.width > size.height
 
@@ -248,8 +303,7 @@ final class GlowWindowScene: BaseToyScene {
         // The dial lives on the SILL now — a chunky disc in the foreground where a small
         // hand falls, while the world fills the glass above (founder + panel, June 15).
         dialRadius = min(size.width, size.height) * (landscape ? 0.10 : 0.115)
-        let sillDialX = size.width * (landscape ? 0.80 : 0.26)
-        dialCenter = CGPoint(x: sillDialX, y: windowRect.minY - dialRadius * 0.12)
+        dialCenter = resolvedDialCenter()
 
         buildRoom()
         buildWindowContents()
@@ -271,17 +325,24 @@ final class GlowWindowScene: BaseToyScene {
         schedulePeekArm(initial: true)
         roomPanX = 0   // a fresh build re-centers the lean
         applyRoomPeek()
-        #if DEBUG
-        // QA: LULL_DEBUG_ROOM_PAN=240 stages a leaned room so the peek can be screenshot
-        // (the sim can't inject a drag).
-        if let s = ProcessInfo.processInfo.environment["LULL_DEBUG_ROOM_PAN"], let v = Double(s) {
-            roomPanX = CGFloat(v); applyRoomPeek()
-        }
-        #endif
+        // The active scene stays centered so every control stays reachable. The
+        // older room-peek builders remain below for a future considered redesign.
         // (The gen'd side-slices read wrong — founder. The expanded wallpaper plus
         // three-depth furniture parallax carries the peek now.)
         // buildLivingRoom() retired June 15 — the pot/can/guest/toy box/floor toys/plant
         // are gone in the stripped-down scene. The room (rug + nook library) + cat remain.
+    }
+
+    private func resolvedDialCenter() -> CGPoint {
+        let landscape = size.width > size.height
+        let edge = dialRadius * 1.35 + 12
+        let safe = safeInsets
+        return CGPoint(
+            x: clamp(size.width * (landscape ? 0.80 : 0.26),
+                     safe.left + edge, size.width - safe.right - edge),
+            y: clamp(windowRect.minY - dialRadius * 0.12,
+                     safe.bottom + edge, size.height - safe.top - edge)
+        )
     }
 
     // MARK: - The living room (Phase A)
@@ -1664,30 +1725,68 @@ final class GlowWindowScene: BaseToyScene {
     }
 
     private func buildBeam() {
-        // Light raking from the window across the floor. Real sunlight/moonlight has no
-        // hard edge (founder: the line was too harsh) — so the trapezoid is wrapped in a
-        // big Gaussian blur that feathers its sides and dissipates its far end. It also
-        // spreads wider as it falls. Phase recolours the fill; the blur does the softness.
-        let path = CGMutablePath()
-        let topL = CGPoint(x: windowInner.minX + windowInner.width * 0.12, y: windowRect.minY)
-        let topR = CGPoint(x: windowInner.maxX - windowInner.width * 0.12, y: windowRect.minY)
-        let botL = CGPoint(x: windowInner.minX - windowInner.width * 0.46, y: 0)
-        let botR = CGPoint(x: windowInner.maxX + windowInner.width * 0.46, y: 0)
-        path.move(to: topL); path.addLine(to: topR); path.addLine(to: botR); path.addLine(to: botL); path.closeSubpath()
-        beamNode = SKShapeNode(path: path)
-        beamNode.fillColor = UIColor(hex: 0xFFE6A8)
-        beamNode.strokeColor = .clear
+        // Bake the same widening floor light once for this layout. A regular sprite
+        // avoids the live Core Image pass that blanks Window on this simulator.
+        let topHalf = windowInner.width * 0.38
+        let bottomHalf = windowInner.width * 0.96
+        let height = max(1, windowRect.minY)
+        let feather = max(6, min(windowInner.width, windowInner.height) * 0.085 * 1.6)
+        let bounds = CGRect(x: windowCenter.x - bottomHalf - feather, y: -feather,
+                            width: (bottomHalf + feather) * 2, height: height + feather * 2)
+        beamNode = SKSpriteNode(texture: Self.bakedBeamTexture(topHalf: topHalf, bottomHalf: bottomHalf,
+                                                             height: height, feather: feather, bounds: bounds.size))
+        beamNode.size = bounds.size
+        beamNode.position = CGPoint(x: bounds.midX, y: bounds.midY)
+        beamNode.color = UIColor(hex: 0xFFE6A8)
+        beamNode.colorBlendFactor = 1
+        beamNode.blendMode = .add
         beamNode.zPosition = 0
+        beamLayer.addChild(beamNode)
+    }
 
-        let soft = SKEffectNode()
-        soft.shouldRasterize = false   // re-blurs as the phase recolours the fill
-        soft.filter = CIFilter(name: "CIGaussianBlur",
-                               parameters: ["inputRadius": min(windowInner.width, windowInner.height) * 0.085])
-        soft.blendMode = .add
-        soft.zPosition = 0
-        soft.addChild(beamNode)
-        beamLayer.addChild(soft)
-        beamEffect = soft
+    private static func bakedBeamTexture(topHalf: CGFloat, bottomHalf: CGFloat, height: CGFloat,
+                                         feather: CGFloat, bounds: CGSize) -> SKTexture {
+        let key = NSString(string: String(format: "beam-%.2f-%.2f-%.2f-%.2f", topHalf, bottomHalf, height, feather))
+        if let cached = beamTextureCache.object(forKey: key) { return cached }
+        let scale = min(2, 1024 / max(bounds.width, bounds.height))
+        let width = max(1, Int(ceil(bounds.width * scale)))
+        let rows = max(1, Int(ceil(bounds.height * scale)))
+        let dx = bounds.width / CGFloat(width)
+        let dy = bounds.height / CGFloat(rows)
+        var pixels = Data(count: width * rows * 4)
+        let smooth: (CGFloat) -> CGFloat = { value in
+            let t = min(max(value, 0), 1)
+            return t * t * (3 - 2 * t)
+        }
+        pixels.withUnsafeMutableBytes { (buffer: UnsafeMutableRawBufferPointer) in
+            guard let bytes = buffer.baseAddress?.assumingMemoryBound(to: UInt8.self) else { return }
+            for row in 0..<rows {
+                let y = height + feather - (CGFloat(row) + 0.5) * dy
+                let fraction = min(max(y / height, 0), 1)
+                let halfWidth = bottomHalf + (topHalf - bottomHalf) * fraction
+                let bottomFade = smooth(y / max(feather * 2, height * 0.4))
+                let topFade = 1 - smooth((y - height + feather) / (feather * 2))
+                for column in 0..<width {
+                    let x = (CGFloat(column) + 0.5) * dx - bounds.width / 2
+                    let edgeFade = smooth((halfWidth - abs(x) + feather) / (feather * 2))
+                    let alpha = UInt8((edgeFade * bottomFade * topFade * 255).rounded())
+                    let index = (row * width + column) * 4
+                    // Premultiplied white leaves the phase color entirely to SpriteKit.
+                    bytes[index] = alpha; bytes[index + 1] = alpha
+                    bytes[index + 2] = alpha; bytes[index + 3] = alpha
+                }
+            }
+        }
+        guard let provider = CGDataProvider(data: pixels as CFData),
+              let image = CGImage(width: width, height: rows, bitsPerComponent: 8, bitsPerPixel: 32,
+                                  bytesPerRow: width * 4, space: CGColorSpaceCreateDeviceRGB(),
+                                  bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
+                                  provider: provider, decode: nil, shouldInterpolate: true, intent: .defaultIntent)
+        else { return ProceduralTexture.softRadialGlow }
+        let texture = SKTexture(cgImage: image)
+        texture.filteringMode = .linear
+        beamTextureCache.setObject(texture, forKey: key, cost: pixels.count)
+        return texture
     }
 
     private func buildLamp() {
@@ -2129,7 +2228,7 @@ final class GlowWindowScene: BaseToyScene {
 
         // The room is alive: the lamp lights itself at dusk and rests again by day.
         // A child's tap still wins until the dial next crosses the boundary.
-        let wantsLamp = p > 0.68
+        let wantsLamp = lampGlow != nil && p > 0.68
         if lampAutoOn != wantsLamp {
             lampAutoOn = wantsLamp
             if lampOn != wantsLamp {
@@ -2163,7 +2262,7 @@ final class GlowWindowScene: BaseToyScene {
             coolVeil.alpha = cool
             for s in stars { s.alpha = night }
         }
-        beamNode.fillColor = beamColor.withAlpha(1)
+        beamNode.color = beamColor
 
         // The dial reflects the phase; the cat keeps the room's hours (awake by day, asleep by night).
         applyDialRotation()
@@ -2290,20 +2389,30 @@ final class GlowWindowScene: BaseToyScene {
             // The room may be leaned over (persistent peek): frame-anchored furniture
             // lives at its built coords PLUS the pan, so hit tests subtract it.
             let pr = CGPoint(x: p.x - roomPanX, y: p.y)
-            let pg = CGPoint(x: p.x - roomPanX * 0.45, y: p.y)
+            let pg = pr
 
             // Dial — the day/night clock on the wall (the one verb that stays).
             if hypot(pr.x - dialCenter.x, pr.y - dialCenter.y) < dialRadius * 1.35 {
+                guard !grabs.values.contains(.dial) else { continue }
                 grabs[touch] = .dial
-                dialLastAngle = atan2(pr.y - dialCenter.y, pr.x - dialCenter.x)
+                dialTouchStart = p
+                dialTouchMoved = false
+                let distance = hypot(pr.x - dialCenter.x, pr.y - dialCenter.y)
+                dialLastAngle = distance >= dialRadius * 0.3
+                    ? atan2(pr.y - dialCenter.y, pr.x - dialCenter.x) : nil
                 dialVelocity = 0
                 dialNode.removeAction(forKey: "inviteDial")
-                dialKnob.run(.sequence([.scale(to: 0.92, duration: 0.07), .scale(to: 1, duration: 0.16)]))   // a firm chunky press
+                if !AmbientAnimator.reduceMotion {
+                    dialKnob.run(.sequence([.scale(to: 0.92, duration: 0.07), .scale(to: 1, duration: 0.16)]), withKey: "dialPress")
+                }
                 HapticsManager.shared.impact(style: .soft, intensity: 0.22)
                 continue
             }
             // Curtains.
             if let which = curtainHit(pr) {
+                // Both panels share one openness value and drag offset. Only the
+                // first curtain finger owns that gesture until it lifts or cancels.
+                guard !grabs.values.contains(.curtainL), !grabs.values.contains(.curtainR) else { continue }
                 grabs[touch] = which
                 let node = which == .curtainL ? curtainL! : curtainR!
                 curtainGrabDX = pr.x - node.position.x
@@ -2319,18 +2428,15 @@ final class GlowWindowScene: BaseToyScene {
             // between day and night — the sky always answers.
             let glassRect = windowInner.insetBy(dx: -24, dy: -24)
             if dayPhase <= 0.65, glassRect.contains(pg) {
+                acknowledgeSkyTap(at: p)
                 flyBird(toward: p); continue
             }
             if dayPhase > 0.65, glassRect.contains(pg) {
+                acknowledgeSkyTap(at: p)
                 shootingStar(toward: p); continue
             }
-            // Anywhere else — the walls themselves: grab the room and lean it.
-            if !grabs.values.contains(.room) {
-                grabs[touch] = .room
-                roomGrabStartX = p.x
-                roomGrabBaseline = roomPanX
-                continue
-            }
+            // A wall tap acknowledges the finger without moving the dial or window
+            // off screen. Legacy room gestures are inactive in this smaller scene.
             TouchFeedbackAnimator.emptyTap(in: self, at: p)
         }
     }
@@ -2341,11 +2447,24 @@ final class GlowWindowScene: BaseToyScene {
             let pr = CGPoint(x: p.x - roomPanX, y: p.y)   // pan-corrected (persistent peek)
             switch grabs[touch] {
             case .dial:
+                if hypot(p.x - dialTouchStart.x, p.y - dialTouchStart.y) > 10 {
+                    dialTouchMoved = true
+                }
+                guard hypot(pr.x - dialCenter.x, pr.y - dialCenter.y) >= dialRadius * 0.3 else {
+                    dialLastAngle = nil
+                    dialVelocity = 0
+                    continue
+                }
                 let a = atan2(pr.y - dialCenter.y, pr.x - dialCenter.x)
-                let d = angleDelta(a, dialLastAngle)
+                guard let previousAngle = dialLastAngle else {
+                    dialLastAngle = a
+                    continue
+                }
+                let d = clamp(angleDelta(a, previousAngle), -0.18, 0.18)
                 dialLastAngle = a
-                let dp = -d / dialAngleRange
-                dialVelocity = dp
+                guard dialTouchMoved else { continue }
+                let dp = clamp(-d / dialAngleRange, -0.02, 0.02)
+                dialVelocity = clamp(dp, -0.004, 0.004)
                 setPhase(dayPhase + dp)
                 dialTick()
             case .curtainL:
@@ -2523,14 +2642,33 @@ final class GlowWindowScene: BaseToyScene {
     // No wipe-back (founder, Pok Pok law): where the child leans the room, the room
     // stays — exploring is the point. A fresh build re-centers naturally.
 
-    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) { endTouches(touches) }
-    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) { endTouches(touches) }
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) { endTouches(touches, cancelled: false) }
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        endTouches(touches, cancelled: true)
+    }
 
-    private func endTouches(_ touches: Set<UITouch>) {
+    private func endTouches(_ touches: Set<UITouch>, cancelled: Bool) {
         for touch in touches {
             switch grabs[touch] {
             case .dial:
-                dialKnob.run(.sequence([.scale(to: 1.04, duration: 0.1), .scale(to: 1, duration: 0.16)]))
+                let releasedAt = touch.location(in: self)
+                if hypot(releasedAt.x - dialTouchStart.x, releasedAt.y - dialTouchStart.y) > 10 {
+                    dialTouchMoved = true
+                }
+                if cancelled {
+                    dialVelocity = 0
+                } else if !dialTouchMoved {
+                    advanceDayPhase()
+                    dialTick()
+                }
+                dialLastAngle = nil
+                dialTouchMoved = false
+                if !AmbientAnimator.reduceMotion, !cancelled {
+                    dialKnob.run(.sequence([.scale(to: 1.04, duration: 0.1), .scale(to: 1, duration: 0.16)]), withKey: "dialPress")
+                } else {
+                    dialKnob.removeAction(forKey: "dialPress")
+                    dialKnob.setScale(1)
+                }
             case .curtainL, .curtainR:
                 applyCurtain(animated: true)
                 tone(.single(6, .breath.with(body: 0.4, amplitude: 0.04, noiseGain: 0.7)), key: "curtain.settle")
@@ -2629,6 +2767,11 @@ final class GlowWindowScene: BaseToyScene {
     private func setPhase(_ v: CGFloat) {
         dayPhase = clamp(v, 0, 1)
         applyPhase(animated: false)
+    }
+
+    private func advanceDayPhase() {
+        dialVelocity = 0
+        setPhase(dayPhase >= 0.95 ? 0 : dayPhase + 0.2)
     }
 
     private func setCurtain(open: CGFloat, animated: Bool) {
@@ -2869,25 +3012,37 @@ final class GlowWindowScene: BaseToyScene {
 
     // MARK: - Special moments
 
-    /// A wish on demand: tap the glass and a comet streaks TOWARD the tap. Comets vary in colour,
-    /// sometimes arrive as a little trio, and the whole window brightens as they pass.
+    /// The finger always gets one immediate local answer. Reusing this node keeps
+    /// rapid tapping from layering flashes; opacity alone also works in Reduce Motion.
+    private func acknowledgeSkyTap(at point: CGPoint) {
+        if skyTapGlow.parent == nil {
+            skyTapGlow.zPosition = 10
+            skyTapGlow.lineWidth = 1.5
+            particleLayer.addChild(skyTapGlow)
+        }
+        skyTapGlow.removeAllActions()
+        skyTapGlow.position = point
+        skyTapGlow.fillColor = WarmShelfPalette.paperHighlight
+        skyTapGlow.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.28)
+        skyTapGlow.alpha = TouchFeedbackAnimator.eyesCarryFeedback ? 0.82 : 0.65
+        skyTapGlow.run(.fadeOut(withDuration: 0.4), withKey: "skyTap")
+
+        let now = CACurrentMediaTime()
+        guard now - lastSkyFeedbackTime >= 0.18 else { return }
+        lastSkyFeedbackTime = now
+        tone(.single(dayPhase <= 0.65 ? 15 : 19,
+                     .felt.with(body: 0.13, amplitude: 0.024)), key: "sky.touch", minInterval: 0.18)
+        HapticsManager.shared.impact(style: .light, intensity: 0.08)
+    }
+
+    /// A single wish follows the tap. Excursions stay spaced while the local answer
+    /// above responds immediately, including during the cooldown and Reduce Motion.
     private func shootingStar(toward target: CGPoint? = nil) {
         guard !AmbientAnimator.reduceMotion else { return }
-        // The window glass itself catches the light for a breath.
-        let glassFlash = SKSpriteNode(color: UIColor(hex: 0xFFF4D8), size: windowInner.size)
-        glassFlash.position = windowCenter
-        glassFlash.blendMode = .add
-        glassFlash.alpha = 0
-        glassFlash.zPosition = 0.42
-        windowContent.addChild(glassFlash)
-        glassFlash.run(.sequence([.fadeAlpha(to: 0.16, duration: 0.3), .fadeOut(withDuration: 0.9), .removeFromParent()]))
-
-        let count = Int.random(in: 1...100) <= 30 ? Int.random(in: 2...3) : 1
-        for i in 0..<count {
-            run(.sequence([.wait(forDuration: Double(i) * 0.22), .run { [weak self] in
-                self?.launchComet(toward: target, offset: CGFloat(i))
-            }]))
-        }
+        let now = CACurrentMediaTime()
+        guard now - lastCometTime >= 1.6 else { return }
+        lastCometTime = now
+        launchComet(toward: target, offset: 0)
     }
 
     private func launchComet(toward target: CGPoint?, offset: CGFloat) {
@@ -2947,8 +3102,7 @@ final class GlowWindowScene: BaseToyScene {
             },
             .removeFromParent()
         ]))
-        tone(.arp([12, 16, 19, 24], step: 0.09, .glass.with(body: 0.85, amplitude: 0.055)), key: "shoot")
-        HapticsManager.shared.impact(style: .light, intensity: 0.12)
+        tone(.arp([12, 19], step: 0.13, .glass.with(body: 0.32, amplitude: 0.026)), key: "shoot", minInterval: 1.6)
     }
 
     private var lastBirdTime: TimeInterval = 0
@@ -2968,12 +3122,11 @@ final class GlowWindowScene: BaseToyScene {
     /// Day's answer to the night comet: one little felt bird flutters across the glass,
     /// dipping past the child's finger. Never a flock, never loud.
     private func flyBird(toward target: CGPoint) {
+        guard !AmbientAnimator.reduceMotion else { return }
         let now = CACurrentMediaTime()
         guard now - lastBirdTime > 7 else { return }
         lastBirdTime = now
         AudioManager.shared.playBird()
-        HapticsManager.shared.impact(style: .light, intensity: 0.08)
-        guard !AmbientAnimator.reduceMotion else { return }
 
         let fromLeft = Bool.random()
         let startX = fromLeft ? windowInner.minX - 30 : windowInner.maxX + 30
@@ -3194,7 +3347,7 @@ final class GlowWindowScene: BaseToyScene {
         drift.timingMode = .easeOut
         mote.run(.sequence([.group([drift, .sequence([.fadeAlpha(to: mote.fillColor.cgColor.alpha, duration: 0.6), .wait(forDuration: 1.4), .fadeOut(withDuration: 1.6)])]), .removeFromParent()]))
 
-        if lampOn {
+        if lampOn, lampGlow != nil {
             let amber = SKShapeNode(circleOfRadius: CGFloat.random(in: 1...2))
             amber.fillColor = UIColor(hex: 0xFFD27A).withAlpha(0.6); amber.strokeColor = .clear; amber.blendMode = .add
             amber.position = CGPoint(x: lampShadeCenter.x + .random(in: -lampShadeSize.width * 0.5...lampShadeSize.width * 0.5),
@@ -3334,30 +3487,52 @@ final class GlowWindowScene: BaseToyScene {
 
     // MARK: - Accessibility
 
+    private var accessibilityDayPhaseValue: String {
+        switch phaseZone(dayPhase) {
+        case .morning: return "Morning"
+        case .day: return "Daytime"
+        case .sunset: return "Sunset"
+        case .dusk: return "Dusk"
+        case .night: return "Night"
+        }
+    }
+
     override func accessibilityElements(in view: SKView) -> [UIAccessibilityElement] {
         var elements = super.accessibilityElements(in: view)
         guard dialRadius > 1 else { return elements }
-        elements.append(makeActivatableAccessibilityElement(
-            in: view, label: "Sun and moon dial — turn to move the day from morning to night",
-            scenePosition: dialCenter, size: CGSize(width: dialRadius * 2.4, height: dialRadius * 2.4), traits: .adjustable
-        ) { [weak self] in
+        let dial = makeActivatableAccessibilityElement(
+            in: view, label: "Sun and moon dial",
+            scenePosition: CGPoint(x: dialCenter.x + roomPanX, y: dialCenter.y),
+            size: CGSize(width: dialRadius * 2.4, height: dialRadius * 2.4),
+            traits: .button, activationHandler: nil
+        )
+        dial.accessibilityValue = accessibilityDayPhaseValue
+        dial.accessibilityHint = "Double-tap to move the day forward. After night comes morning."
+        dial.activationHandler = { [weak self, weak dial] in
             guard let self else { return }
-            self.setPhase(self.dayPhase >= 0.95 ? 0 : self.dayPhase + 0.2)
-        })
-        elements.append(makeActivatableAccessibilityElement(
-            in: view, label: curtainOpen > 0.5 ? "Curtains — close" : "Curtains — open",
-            scenePosition: CGPoint(x: windowCenter.x, y: windowCenter.y), size: CGSize(width: windowRect.width, height: windowRect.height), traits: .button
-        ) { [weak self] in
+            self.advanceDayPhase()
+            dial?.accessibilityValue = self.accessibilityDayPhaseValue
+            if UIAccessibility.isVoiceOverRunning {
+                UIAccessibility.post(notification: .announcement, argument: self.accessibilityDayPhaseValue)
+            }
+        }
+        elements.append(dial)
+
+        let curtains = makeActivatableAccessibilityElement(
+            in: view, label: "Curtains",
+            scenePosition: CGPoint(x: windowCenter.x + roomPanX, y: windowCenter.y),
+            size: CGSize(width: windowRect.width, height: windowRect.height),
+            traits: .button, activationHandler: nil
+        )
+        curtains.accessibilityValue = curtainOpen > 0.5 ? "Open" : "Closed"
+        curtains.accessibilityHint = "Double-tap to open or close the curtains."
+        curtains.activationHandler = { [weak self, weak curtains] in
             guard let self else { return }
             self.setCurtain(open: self.curtainOpen > 0.5 ? 0 : 1, animated: true)
             self.applyCurtain(animated: true)
-        })
-        elements.append(makeActivatableAccessibilityElement(
-            in: view, label: lampOn ? "Lamp — turn off" : "Lamp — turn on",
-            scenePosition: lampShadeCenter, size: lampShadeSize, traits: .button
-        ) { [weak self] in
-            self?.toggleLamp()
-        })
+            curtains?.accessibilityValue = self.curtainOpen > 0.5 ? "Open" : "Closed"
+        }
+        elements.append(curtains)
         return elements
     }
 }

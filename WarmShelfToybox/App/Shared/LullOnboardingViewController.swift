@@ -4,7 +4,7 @@ import UIKit
 // MARK: - LullOnboardingViewController
 //
 // A warm, paged parent setup — handed over to the child at the end. Three calm moments:
-//   1. Welcome: Wren says hello; the quiet promise (no ads, no timers, no pressure).
+//   1. Welcome: Wren says hello; the quiet promise (no ads, no scores, no pressure).
 //   2. Wind-down: the grown-up picks bedtime; Lull's rooms warm and dim toward it.
 //   3. Hand-off: the 7-day free toybox, what stays free, and the grown-up gate.
 // Built from warm handmade cards on warm paper, to match the toys themselves.
@@ -133,7 +133,7 @@ final class LullOnboardingViewController: UIViewController {
 
         let eyebrow = makeEyebrow("WELCOME TO LULL")
         let title = makeTitle("A quiet shelf of\nhandmade toys.")
-        let body = makeBody("For little hands, ages 2–4. Touch a toy and it comes alive — no scores, no timers, nothing to win. Just calm, repeatable play.")
+        let body = makeBody("For ages 2–6. A shelf made for little hands: touch, move, and discover at your own pace. No scores or races — just room to explore.")
 
         let chips = UIStackView(arrangedSubviews: [
             makePromiseChip("No ads", icon: "rectangle.slash", WarmShelfPalette.waterBlue),
@@ -161,7 +161,7 @@ final class LullOnboardingViewController: UIViewController {
     private func windDownPage() -> UIView {
         let eyebrow = makeEyebrow("BEDTIME, GENTLY")
         let title = makeTitle("When does the\nday wind down?")
-        let body = makeBody("As bedtime nears, Lull's rooms quietly warm and dim — so play naturally settles instead of stopping with a jolt.")
+        let body = makeBody("At your chosen hour, Lull's rooms become warmer and dimmer. It's a quiet cue you can pair with your family's evening routine.")
 
         let card = makeWarmCard()
         let squircle = makeIconSquircle("moon.zzz.fill", tint: WarmShelfPalette.lavender)
@@ -208,21 +208,57 @@ final class LullOnboardingViewController: UIViewController {
 
     private func handoffPage() -> UIView {
         let eyebrow = makeEyebrow("ONE LAST THING")
-        let title = makeTitle("One week,\nthe whole toybox.")
+        let state = LullDemoState.shared
+        let titleText: String
+        let timelineRows: [UIView]
+        if state.hasPurchasedFullToybox {
+            titleText = "Your toybox,\nready for play."
+            timelineRows = [
+                makeTimelineRow(dot: WarmShelfPalette.butter, label: "Open",
+                                text: "Your full toybox is unlocked. All nine toys are ready."),
+                makeTimelineRow(dot: WarmShelfPalette.sage, label: "Your shelf",
+                                text: "Keep favorite toys in reach and tuck others away in the grown-up area."),
+                makeTimelineRow(dot: WarmShelfPalette.waterBlue, label: "Whenever you like",
+                                text: "Return to familiar toys. Your purchase stays active when you replay this welcome.", isLast: true)
+            ]
+        } else if state.isTrialActive {
+            titleText = "Your free week,\nstill open."
+            let days = state.trialDaysRemaining
+            timelineRows = [
+                makeTimelineRow(dot: WarmShelfPalette.butter, label: "Today",
+                                text: "The full toybox is open for \(days) more day\(days == 1 ? "" : "s")."),
+                makeTimelineRow(dot: WarmShelfPalette.waterBlue, label: "When the week ends",
+                                text: "The shelf will show Bubbles, Stack, and Drop Dots. These three stay free."),
+                makeTimelineRow(dot: WarmShelfPalette.terracotta, label: "Whenever you like",
+                                text: "One optional purchase keeps the full toybox open. See the price in the grown-up area.", isLast: true)
+            ]
+        } else if state.hasTrialStarted {
+            titleText = "Three toys,\nyours to revisit."
+            timelineRows = [
+                makeTimelineRow(dot: WarmShelfPalette.waterBlue, label: "Your free shelf",
+                                text: "Bubbles, Stack, and Drop Dots are ready to play. They stay free."),
+                makeTimelineRow(dot: WarmShelfPalette.sage, label: "At your own pace",
+                                text: "Choose a familiar toy, explore, and come back whenever you like."),
+                makeTimelineRow(dot: WarmShelfPalette.terracotta, label: "The full toybox",
+                                text: "One optional purchase opens all nine toys. See the price in the grown-up area.", isLast: true)
+            ]
+        } else {
+            titleText = "One week,\nthe whole toybox."
+            timelineRows = [
+                makeTimelineRow(dot: WarmShelfPalette.butter, label: "Today",
+                                text: "The whole toybox opens for seven days — all nine toys."),
+                makeTimelineRow(dot: WarmShelfPalette.sage, label: "All week",
+                                text: "Explore together. No payment information is needed to begin."),
+                makeTimelineRow(dot: WarmShelfPalette.waterBlue, label: "After seven days",
+                                text: "The shelf will show Bubbles, Stack, and Drop Dots. These three stay free."),
+                makeTimelineRow(dot: WarmShelfPalette.terracotta, label: "Whenever you like",
+                                text: "One optional purchase keeps the full toybox open. See the price in the grown-up area.", isLast: true)
+            ]
+        }
+        let title = makeTitle(titleText)
 
-        // The trial as a legible timeline (Docs/OnboardingBrief.md) — anxiety dies when
-        // time is visible. Ours ends better than any subscription: nothing to cancel.
         let timeline = makeWarmCard()
-        let rows = UIStackView(arrangedSubviews: [
-            makeTimelineRow(dot: WarmShelfPalette.butter, label: "Today",
-                            text: "The whole toybox opens — all nine toys, nothing held back."),
-            makeTimelineRow(dot: WarmShelfPalette.sage, label: "All week",
-                            text: "Play together. The grown-up area quietly shows the days."),
-            makeTimelineRow(dot: WarmShelfPalette.waterBlue, label: "Day 7",
-                            text: "Bubbles, Stack and Drop Dots stay free forever. Nothing is ever taken from little hands mid-play."),
-            makeTimelineRow(dot: WarmShelfPalette.terracotta, label: "Whenever you like",
-                            text: "$9.99 once — everything, forever, on every family device. No subscription, ever.", isLast: true)
-        ])
+        let rows = UIStackView(arrangedSubviews: timelineRows)
         rows.axis = .vertical
         rows.spacing = 0
         rows.translatesAutoresizingMaskIntoConstraints = false
@@ -234,17 +270,14 @@ final class LullOnboardingViewController: UIViewController {
             rows.bottomAnchor.constraint(equalTo: timeline.bottomAnchor, constant: -18)
         ])
 
-        // The loudest value in the app, said early: the shelf is alive and growing,
-        // and growth is already paid for. No other children's app ends this sentence
-        // without the word "subscription".
-        let growing = makeWarmCard()
-        let gSquircle = makeIconSquircle("sparkles", tint: WarmShelfPalette.terracotta)
+        let exploration = makeWarmCard()
+        let gSquircle = makeIconSquircle("hand.draw.fill", tint: WarmShelfPalette.terracotta)
         let gTitle = UILabel()
-        gTitle.text = "And the shelf keeps growing"
+        gTitle.text = "Room to explore"
         gTitle.font = UIFont(name: "Georgia-Bold", size: 17) ?? .systemFont(ofSize: 17, weight: .bold)
         gTitle.textColor = WarmShelfPalette.clayInk
         gTitle.numberOfLines = 0
-        let gBody = makeBody("A new toy joins about every month — and every one of them is part of the same single unlock. Nothing more to buy, ever.")
+        let gBody = makeBody("Let your child choose, repeat, and discover. A familiar toy can invite a different idea each time.")
         gBody.font = .systemFont(ofSize: 14, weight: .regular)
         let gTitles = UIStackView(arrangedSubviews: [gTitle, gBody])
         gTitles.axis = .vertical
@@ -253,33 +286,25 @@ final class LullOnboardingViewController: UIViewController {
         gHead.axis = .horizontal
         gHead.spacing = 12
         gHead.alignment = .top
-        let gMonths = UIStackView(arrangedSubviews: [
-            makeMonthChip("JUNE", detail: "Meadow", arrived: true),
-            makeMonthChip("JULY", detail: "A new friend", arrived: false),
-            makeMonthChip("AFTER", detail: "Always more", arrived: false)
-        ])
-        gMonths.axis = .horizontal
-        gMonths.spacing = 8
-        gMonths.distribution = .fillEqually
-        let gColumn = UIStackView(arrangedSubviews: [gHead, gMonths])
+        let gColumn = UIStackView(arrangedSubviews: [gHead])
         gColumn.axis = .vertical
         gColumn.spacing = 12
         gColumn.translatesAutoresizingMaskIntoConstraints = false
-        growing.addSubview(gColumn)
+        exploration.addSubview(gColumn)
         NSLayoutConstraint.activate([
-            gColumn.topAnchor.constraint(equalTo: growing.topAnchor, constant: 16),
-            gColumn.leadingAnchor.constraint(equalTo: growing.leadingAnchor, constant: 16),
-            gColumn.trailingAnchor.constraint(equalTo: growing.trailingAnchor, constant: -16),
-            gColumn.bottomAnchor.constraint(equalTo: growing.bottomAnchor, constant: -16)
+            gColumn.topAnchor.constraint(equalTo: exploration.topAnchor, constant: 16),
+            gColumn.leadingAnchor.constraint(equalTo: exploration.leadingAnchor, constant: 16),
+            gColumn.trailingAnchor.constraint(equalTo: exploration.trailingAnchor, constant: -16),
+            gColumn.bottomAnchor.constraint(equalTo: exploration.bottomAnchor, constant: -16)
         ])
 
-        let reassure = makeBody("No payment information needed today.")
+        let reassure = makeBody("One optional purchase. No subscription or automatic renewal.")
         reassure.font = .systemFont(ofSize: 14, weight: .semibold)
         reassure.textColor = WarmShelfPalette.cocoa.withAlphaComponent(0.75)
         reassure.textAlignment = .center
 
         let gate = makeWarmCard()
-        let gateLabel = makeBody("Prices, settings and the unlock live behind a gentle gate your child can't open. The shelf they see stays clean.")
+        let gateLabel = makeBody("Prices, settings, and purchases live in the grown-up area behind an adult check. The child's shelf is for play.")
         gateLabel.font = .systemFont(ofSize: 14, weight: .medium)
         gateLabel.translatesAutoresizingMaskIntoConstraints = false
         let seal = LullHostMarkView(side: 46)
@@ -297,14 +322,14 @@ final class LullOnboardingViewController: UIViewController {
             gateLabel.bottomAnchor.constraint(equalTo: gate.bottomAnchor, constant: -16)
         ])
 
-        let stack = UIStackView(arrangedSubviews: [eyebrow, title, timeline, growing, reassure, gate])
+        let stack = UIStackView(arrangedSubviews: [eyebrow, title, timeline, exploration, reassure, gate])
         stack.axis = .vertical
         stack.spacing = 14
         stack.alignment = .fill
         stack.setCustomSpacing(6, after: eyebrow)
         stack.setCustomSpacing(18, after: title)
         stack.setCustomSpacing(12, after: timeline)
-        stack.setCustomSpacing(10, after: growing)
+        stack.setCustomSpacing(10, after: exploration)
         return wrapInPage(stack)
     }
 
@@ -386,7 +411,7 @@ final class LullOnboardingViewController: UIViewController {
 
     private func finish() {
         LullDemoState.shared.windDownHour = windDownHour
-        LullDemoState.shared.completeOnboarding(accessTier: .free)
+        LullDemoState.shared.completeOnboarding()
         onComplete?()
     }
 
@@ -510,41 +535,6 @@ final class LullOnboardingViewController: UIViewController {
             icon.centerYAnchor.constraint(equalTo: box.centerYAnchor)
         ])
         return box
-    }
-
-    private func makeMonthChip(_ month: String, detail: String, arrived: Bool) -> UIView {
-        let chip = UIView()
-        chip.backgroundColor = arrived
-            ? WarmShelfPalette.sage.withAlphaComponent(0.18)
-            : WarmShelfPalette.warmCream.withAlphaComponent(0.5)
-        chip.layer.cornerRadius = 14
-        chip.layer.borderWidth = 1
-        chip.layer.borderColor = (arrived ? WarmShelfPalette.sage : WarmShelfPalette.softLine)
-            .withAlphaComponent(0.4).cgColor
-        let m = UILabel()
-        m.text = month
-        m.font = .systemFont(ofSize: 10.5, weight: .heavy)
-        m.textColor = WarmShelfPalette.cocoa.withAlphaComponent(0.6)
-        m.textAlignment = .center
-        let d = UILabel()
-        d.text = arrived ? "\(detail) ✓" : detail
-        d.font = .systemFont(ofSize: 12.5, weight: .semibold)
-        d.textColor = WarmShelfPalette.clayInk
-        d.textAlignment = .center
-        d.adjustsFontSizeToFitWidth = true
-        d.minimumScaleFactor = 0.8
-        let col = UIStackView(arrangedSubviews: [m, d])
-        col.axis = .vertical
-        col.spacing = 2
-        col.translatesAutoresizingMaskIntoConstraints = false
-        chip.addSubview(col)
-        NSLayoutConstraint.activate([
-            chip.heightAnchor.constraint(greaterThanOrEqualToConstant: 50),
-            col.centerYAnchor.constraint(equalTo: chip.centerYAnchor),
-            col.leadingAnchor.constraint(equalTo: chip.leadingAnchor, constant: 6),
-            col.trailingAnchor.constraint(equalTo: chip.trailingAnchor, constant: -6)
-        ])
-        return chip
     }
 
     private func makeEyebrow(_ text: String) -> UILabel {

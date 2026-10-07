@@ -215,9 +215,18 @@ final class LullPlayTimer {
         let minutes = LullDemoState.shared.playTimerMinutes
         guard minutes > 0, !restPresented, LullDemoState.shared.hasCompletedOnboarding else { return }
         guard elapsed >= TimeInterval(minutes * 60) else { return }
-        guard let top = LullPlayTimer.topmostViewController(), !(top is LullRestViewController) else { return }
+        // Parent setup, the grown-up check, and purchases stay usable when the deadline
+        // arrives. Recheck on the next tick once a child play screen is visible again.
+        guard UIApplication.shared.applicationState == .active,
+              let top = LullPlayTimer.topmostViewController(),
+              top is ToyViewController || top is ToyShelfViewController,
+              !top.isBeingPresented, !top.isBeingDismissed,
+              top.transitionCoordinator == nil,
+              top.viewIfLoaded?.window != nil,
+              let suspension = LullRestPlaybackSuspension(presenter: top) else { return }
         restPresented = true
         let rest = LullRestViewController()
+        rest.onWake = { suspension.resume() }
         rest.modalPresentationStyle = .overFullScreen
         rest.modalTransitionStyle = .crossDissolve
         top.present(rest, animated: true)
@@ -237,6 +246,8 @@ final class LullPlayTimer {
 /// The rest veil: a deep, calm night with a big soft moon. "Lull is resting." Tapping anywhere
 /// asks the grown-up question; a right answer wakes the toybox with a fresh timer.
 final class LullRestViewController: UIViewController {
+    var onWake: (() -> Void)?
+
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = UIColor(red: 0.10, green: 0.11, blue: 0.21, alpha: 1)
@@ -303,8 +314,11 @@ final class LullRestViewController: UIViewController {
     @objc private func askGrownUp() {
         guard presentedViewController == nil else { return }
         AdultGate.present(from: self) { [weak self] in
+            guard let self else { return }
+            let onWake = self.onWake
+            self.onWake = nil
             LullPlayTimer.shared.parentWoke()
-            self?.dismiss(animated: true)
+            self.dismiss(animated: true, completion: onWake)
         }
     }
 

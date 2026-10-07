@@ -63,6 +63,7 @@ final class HumScene: BaseToyScene {
     private var lastTouchPositions: [UITouch: CGPoint] = [:]
     private var trailAccumulators: [UITouch: CGFloat] = [:]
     private var activeToneIDs: [ObjectIdentifier: String] = [:]
+    private var inactiveObserver: NSObjectProtocol?
     private var sustainStartTimes: [ObjectIdentifier: TimeInterval] = [:]
     private let maxSustainSeconds: TimeInterval = 9   // a held note can never outlive this, even if a touch-up is lost
     private var noTouchSince: TimeInterval = 0
@@ -152,8 +153,17 @@ final class HumScene: BaseToyScene {
 
     // MARK: - Lifecycle
 
+    deinit {
+        if let inactiveObserver { NotificationCenter.default.removeObserver(inactiveObserver) }
+    }
+
     override func didMove(to view: SKView) {
         super.didMove(to: view)
+        if inactiveObserver == nil {
+            inactiveObserver = NotificationCenter.default.addObserver(
+                forName: UIApplication.willResignActiveNotification, object: nil, queue: .main
+            ) { [weak self] _ in self?.teardownToyAudio() }
+        }
         ambientMoteInterval = 1.2
         buildSereneBackdrop()
         glowLayer.name = "humGlowLayer"
@@ -591,10 +601,8 @@ final class HumScene: BaseToyScene {
         for touch in touches {
             guard let current = touchToObject[touch] else { continue }
             guard let bar = barUnderFinger(touch.location(in: self)), bar !== current else { continue }
-            // Finger slid onto a new bar — glissando: let the last one settle, strike this one.
-            stopSustainedTone(for: current)
-            stopHeldSparkle(for: current)
-            current.settleHome()
+            // A glissando releases this finger's ownership; another finger may still hold the bar.
+            releaseObject(for: touch)
             strikeBar(bar, for: touch)
         }
     }
@@ -615,13 +623,16 @@ final class HumScene: BaseToyScene {
     /// Strike one bar: it wakes, bounces, and rings out. No sustained drone, no dragging —
     /// a xylophone, not a held object.
     private func strikeBar(_ bar: HumObjectNode, for touch: UITouch) {
+        let alreadyHeld = touchToObject.values.contains { $0 === bar }
         touchToObject[touch] = bar
         bar.noticeAndHold()
         bar.playSoundPulse(intensity: 1.1)
         spawnSoundRing(at: bar.position, color: bar.objectColor, radius: primaryRingRadius)
         playHumOnset(for: bar)
-        startSustainedTone(for: bar)   // hold a bar and it keeps singing — lean on a note
-        startHeldSparkle(for: bar)     // …and glows + keeps lifting note-motes while held
+        if !alreadyHeld {
+            startSustainedTone(for: bar)
+            startHeldSparkle(for: bar)
+        }
         HapticsManager.shared.softTap()
 
         // Subtle pizazz: soft note-motes lift off, neighbours gently resonate, and once in a
@@ -704,6 +715,7 @@ final class HumScene: BaseToyScene {
         guard let obj = touchToObject.removeValue(forKey: touch) else { return }
         lastTouchPositions.removeValue(forKey: touch)
         trailAccumulators.removeValue(forKey: touch)
+        guard !touchToObject.values.contains(where: { $0 === obj }) else { return }
 
         stopSustainedTone(for: obj)
         stopHeldSparkle(for: obj)
@@ -775,15 +787,27 @@ final class HumScene: BaseToyScene {
         }
     }
 
-    override func willMove(from view: SKView) {
-        super.willMove(from: view)
+    override func teardownToyAudio() {
+        super.teardownToyAudio()
         LullToneEngine.shared.stopAmbient(id: roomPadID, fadeOut: 0.4)
-        // Stop every sustained note when leaving — nothing keeps singing off-screen.
+        // Called before the hosting view pauses, on scene removal, and when the app becomes inactive.
         activeToneIDs.values.forEach { LullToneEngine.shared.stopAmbient(id: $0, fadeOut: 0.2) }
         activeToneIDs.removeAll()
         sustainStartTimes.removeAll()
         humHoldTimers.values.forEach { $0.invalidate() }
         humHoldTimers.removeAll()
+        touchToObject.removeAll()
+        lastTouchPositions.removeAll()
+        trailAccumulators.removeAll()
+        strumTouches.removeAll()
+        lastStrumCheck.removeAll()
+        activePairs.removeAll()
+        for obj in objects {
+            stopHeldSparkle(for: obj)
+            if obj.isHeld { obj.settleHome() }
+        }
+        harmonyGlow.alpha = 0
+        noTouchSince = 0
         padActive = false
     }
 
@@ -1334,6 +1358,7 @@ final class HumScene: BaseToyScene {
     }
 
     private func objectReleased(_ obj: HumObjectNode) {
+        guard !touchToObject.values.contains(where: { $0 === obj }) else { return }
         stopHumHoldPulse(for: obj)
         stopSustainedTone(for: obj)
         stopHeldSparkle(for: obj)

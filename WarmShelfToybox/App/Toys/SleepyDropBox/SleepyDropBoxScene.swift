@@ -2,9 +2,9 @@ import SpriteKit
 import QuartzCore
 
 /// Sleepy Drop Box — a beloved wooden posting box that likes being fed little treasures. Drop a
-/// piece into one of three felt-lined holes and it disappears inside with a muffled thunk; pull
-/// the drawer and the treasures tumble softly back out. Montessori posting / object-permanence,
-/// taught entirely through physical response — never a shape-match, a score, or a wrong answer.
+/// piece into its matching felt-lined opening and it disappears inside with a muffled thunk;
+/// pull the drawer and the same four treasures tumble softly back out. Shape fit is visible
+/// through the toy's physical response, with no scores or spoken error messages.
 ///
 /// There is no SpriteKit physics here: every motion is authored, so a treasure can never get
 /// stuck, fly offscreen, or rattle out of control.
@@ -35,7 +35,6 @@ final class SleepyDropBoxScene: BaseToyScene {
         let felt: UIColor
         let shape: HoleShape
         let accepts: DropTreasureNode.Kind   // physical plausibility — which treasure fits here
-        var captureRadius: CGFloat { max(size.width, size.height) * 0.85 + 44 }
         var rim: SKShapeNode?
     }
     private var openings: [Opening] = []
@@ -43,8 +42,8 @@ final class SleepyDropBoxScene: BaseToyScene {
     // Treasures
     private var treasures: [DropTreasureNode] = []
     private var insideKinds: [DropTreasureNode.Kind] = []
-    private var returnCycle = 0   // each drawer-pull brings the shapes back in fresh tints
     private var playSpots: [CGPoint] = []
+    private let pieceKinds: [DropTreasureNode.Kind] = [.berry, .triangle, .cube, .star]
 
     // Touch
     private var dragTouch: UITouch?
@@ -59,12 +58,14 @@ final class SleepyDropBoxScene: BaseToyScene {
     private var drawerTargetY: CGFloat = 0
     private var drawerKnobLocalY: CGFloat = 0
     private var didTumbleThisPull = false
+    private var drawerTouchStartY: CGFloat = 0
+    private var drawerDragStartY: CGFloat = 0
 
     private var lastTone: [String: TimeInterval] = [:]
     private var lastRattle: TimeInterval = 0
-    private let woodWarm = UIColor(hex: 0xD2A04A)   // the box's honey-wood bulk — warm, not orange
-    private let woodTop = UIColor(hex: 0xE9BE74)    // lit top plate + drawer face, catching the light
-    private let woodDark = UIColor(hex: 0x8B5A26)   // shadowed sides, feet, carved bevels — deep warm brown
+    private let woodWarm = UIColor(hex: 0xCFB18A)   // quiet birch bulk
+    private let woodTop = UIColor(hex: 0xE5CFAC)    // softly lit front and tray
+    private let woodDark = UIColor(hex: 0x866648)   // warm recessed grain
 
     private var boxCenter = CGPoint.zero
     private var panelCenter = CGPoint.zero
@@ -73,6 +74,8 @@ final class SleepyDropBoxScene: BaseToyScene {
     private weak var boxFaceRef: SKNode?   // the front mass (or art body), scaled for body wobble
     private var pieceRadius: CGFloat = 30
     private var faceScale: CGFloat = 1   // the art body's front panel wears a tighter face
+    private var faceHeight: CGFloat = 0
+    private var usesPlainShell = false
 
     // MARK: - Lifecycle
 
@@ -89,10 +92,16 @@ final class SleepyDropBoxScene: BaseToyScene {
     override func didChangeSize(_ oldSize: CGSize) {
         super.didChangeSize(oldSize)
         guard size.width > 160, size.height > 160, boxW > 0 else { return }
-        // Preserve which treasures are posted inside across a rotation — don't dump them back out.
+        // A rotation keeps posted shapes inside and preserves the child's loose arrangement.
+        // Rebuilding the full set also completes a partly animated drawer return safely.
         let savedInside = insideKinds
+        let savedOutside = treasures.map { piece in
+            (kind: piece.kind,
+             position: CGPoint(x: piece.position.x / max(1, oldSize.width),
+                               y: piece.position.y / max(1, oldSize.height)))
+        }
+        let drawerWasOpen = drawer.position.y < drawerClosedY - (drawerClosedY - drawerOpenY) * 0.65
         rebuild()
-        guard !savedInside.isEmpty else { return }
         insideKinds = savedInside
         for kind in savedInside {
             if let idx = treasures.firstIndex(where: { $0.kind == kind }) {
@@ -100,14 +109,31 @@ final class SleepyDropBoxScene: BaseToyScene {
                 treasures.remove(at: idx)
             }
         }
+        for saved in savedOutside {
+            guard let piece = treasures.first(where: { $0.kind == saved.kind }) else { continue }
+            let inset = pieceRadius * 1.25
+            piece.position = CGPoint(
+                x: (saved.position.x * size.width).clamped(to: inset...(size.width - inset)),
+                y: (saved.position.y * size.height).clamped(to: inset...(size.height - inset))
+            )
+        }
+        if drawerWasOpen {
+            drawer.position.y = drawerOpenY
+            drawerTargetY = drawerOpenY
+            didTumbleThisPull = true
+        }
     }
 
     // MARK: - Build
 
     private func rebuild() {
         guard size.width > 160, size.height > 160 else { return }
+        removeAction(forKey: "lullaby")
+        removeAction(forKey: "box.sleep")
+        removeAction(forKey: "drawer.close")
+        for kind in pieceKinds { removeAction(forKey: "drawer.return.\(kind)") }
         boxLayer.removeAllChildren(); frontLayer.removeAllChildren(); panelLayer.removeAllChildren(); pieceLayer.removeAllChildren()
-        drawer.removeFromParent(); drawer.removeAllChildren()
+        drawer.removeFromParent(); drawer.removeAllActions(); drawer.removeAllChildren()
         treasures.removeAll(); insideKinds.removeAll(); openings.removeAll()
         dragTouch = nil; dragPiece = nil; drawerTouch = nil; hoverOpening = nil
 
@@ -115,18 +141,36 @@ final class SleepyDropBoxScene: BaseToyScene {
         // The toy dominates the scene: a big chunky posting box sitting close to the child, with
         // very little empty space above it. Pieces and openings are sized from one shared radius
         // so a treasure always visibly belongs to its hole.
-        boxW = min(size.width * (landscape ? 0.62 : 0.93), 680)
-        boxH = min(size.height * (landscape ? 0.66 : 0.56), 560)
-        boxCenter = CGPoint(x: size.width / 2, y: size.height * (landscape ? 0.58 : 0.605))
-        pieceRadius = min(boxW * 0.12, 50)
+        boxW = min(size.width * (landscape ? 0.62 : 0.90), 680)
+        boxH = min(size.height * (landscape ? 0.64 : 0.54), 560)
+        boxCenter = CGPoint(x: size.width / 2, y: size.height * (landscape ? 0.60 : 0.605))
+        // Remove the generated PNG's transparent margins before any layout calculation.
+        let shellTex = ToyArt.texture("sleepybox-v2-shell").map {
+            SKTexture(rect: CGRect(x: 128.0 / 1315.0, y: 116.0 / 1196.0,
+                                   width: 1065.0 / 1315.0, height: 946.0 / 1196.0), in: $0)
+        }
+        let bodyTex = ToyArt.texture("sleepybox-body")
+        usesPlainShell = shellTex != nil
+        if let tex = shellTex ?? bodyTex {
+            let artSize = tex.size()
+            let scale = min(boxW / max(1, artSize.width), boxH / max(1, artSize.height))
+            boxW = artSize.width * scale
+            boxH = artSize.height * scale
+        }
+        pieceRadius = min(min(boxW * 0.105, size.width * 0.10), 50)
 
         buildContactShadow()
-        if let bodyTex = ToyArt.texture("sleepybox-body") {
+        if let shellTex {
+            usesPlainShell = true
+            buildPlainShell(shellTex)
+        } else if let bodyTex {
+            usesPlainShell = false
             // Warm Clay box (Docs/SleepyBoxSlice.md): one authored body carries the holes
             // and drawer slot; the living face and all interactions stay procedural.
             faceScale = 0.78
             buildArtBox(bodyTex)
         } else {
+            usesPlainShell = false
             faceScale = 1
             buildBackBody()
             buildFrontFace()
@@ -143,6 +187,35 @@ final class SleepyDropBoxScene: BaseToyScene {
         #endif
     }
 
+    /// The new material plate contains only the wooden shell. All sockets, the living
+    /// face and the single drawer share one measured coordinate system in code.
+    private func buildPlainShell(_ tex: SKTexture) {
+        let ts = tex.size()
+        let scale = min(boxW / max(1, ts.width), boxH / max(1, ts.height))
+        let shell = SKSpriteNode(texture: tex)
+        shell.size = CGSize(width: ts.width * scale, height: ts.height * scale)
+        shell.position = boxCenter
+        shell.zPosition = 0
+        frontLayer.addChild(shell)
+        boxFaceRef = shell
+
+        // Height can constrain the plate in landscape. Use its rendered dimensions
+        // rather than the requested bounding box to size every physical part.
+        boxW = shell.size.width
+        boxH = shell.size.height
+        pieceRadius = min(pieceRadius, boxW * 0.105)
+        faceScale = 0.78
+        panelCenter = CGPoint(x: boxCenter.x, y: boxCenter.y + boxH * 0.16)
+        buildOpenings()
+
+        let faceAnchor = SKNode()
+        faceAnchor.position = CGPoint(x: boxCenter.x, y: boxCenter.y - boxH * 0.21)
+        faceAnchor.zPosition = 0.5
+        frontLayer.addChild(faceAnchor)
+        buildFace(on: faceAnchor, faceH: boxH * 0.20)
+        buildDrawer()
+    }
+
     /// The authored box: openings, face zone and drawer slot are measured fractions of
     /// the art (y measured from the art's top edge — see the keyed `sleepybox-body.png`).
     private func buildArtBox(_ tex: SKTexture) {
@@ -156,6 +229,9 @@ final class SleepyDropBoxScene: BaseToyScene {
         boxFaceRef = sprite
 
         let f = sprite.frame
+        // The old portrait plate becomes much narrower when height-limited. Treasures
+        // still visibly fit its openings in either orientation.
+        pieceRadius = min(pieceRadius, f.width * 0.11)
         // Fractions measured from the v2 body art (2026-06-11 Codex regen: upright
         // honey-gold star, frontal square, no blue anywhere).
         let specs: [(fx: CGFloat, fy: CGFloat, felt: UIColor, shape: HoleShape, accepts: DropTreasureNode.Kind)] = [
@@ -229,13 +305,18 @@ final class SleepyDropBoxScene: BaseToyScene {
     }
 
     private func buildContactShadow() {
-        if let floorTex = ToyArt.texture("sleepybox-floor") {
+        let roomTex = ToyArt.texture("shelfroom-v2-day").map {
+            // The lower portion puts the wall/floor seam behind the work area; the
+            // uncropped square plate would make the box appear halfway up a wall.
+            SKTexture(rect: CGRect(x: 0, y: 0, width: 1, height: 0.46), in: $0)
+        }
+        if let floorTex = roomTex ?? ToyArt.texture("sleepybox-floor") {
             // The authored playroom floor — over-zoomed so the baked corner furniture
             // crops away, plus a warm hush wash: the floor stays a floor, the box is
             // the show (playtest: background was competing).
             let plate = SKSpriteNode(texture: floorTex)
             let ts = floorTex.size()
-            let plateScale = max(size.width / max(1, ts.width), size.height / max(1, ts.height)) * 1.18
+            let plateScale = max(size.width / max(1, ts.width), size.height / max(1, ts.height)) * (roomTex == nil ? 1.18 : 1)
             plate.size = CGSize(width: ts.width * plateScale, height: ts.height * plateScale)
             plate.position = CGPoint(x: size.width / 2, y: size.height / 2)
             plate.zPosition = -0.95
@@ -243,7 +324,7 @@ final class SleepyDropBoxScene: BaseToyScene {
             let hush = SKShapeNode(rect: CGRect(x: 0, y: 0, width: size.width, height: size.height))
             // Founder rounds 2+3 (June 12): still competing — the wash goes nearly
             // opaque so the floor is only a breath of warmth. The box is the show.
-            hush.fillColor = WarmShelfPalette.warmCream.withAlpha(0.74)
+            hush.fillColor = WarmShelfPalette.warmCream.withAlpha(roomTex == nil ? 0.84 : 0.10)
             hush.strokeColor = .clear
             hush.zPosition = -0.9
             boxLayer.addChild(hush)
@@ -268,7 +349,7 @@ final class SleepyDropBoxScene: BaseToyScene {
         let shadow = SKSpriteNode(texture: ProceduralTexture.softClayShadow(size: CGSize(width: boxW * 1.18, height: boxH * 0.52)))
         shadow.position = CGPoint(x: boxCenter.x, y: boxCenter.y - boxH * 0.5)
         shadow.zPosition = -0.5
-        shadow.alpha = 0.95
+        shadow.alpha = usesPlainShell ? 0.48 : 0.95
         boxLayer.addChild(shadow)
     }
 
@@ -330,20 +411,22 @@ final class SleepyDropBoxScene: BaseToyScene {
 
     private func buildOpenings() {
         let r = pieceRadius
-        let dx = boxW * 0.2, dy = boxH * 0.135
+        let dx = boxW * 0.22, dy = boxH * 0.16
         let c = panelCenter
         // The hero: four big carved sockets in a 2×2 grid. Each hole's silhouette and rim colour
         // match its treasure, so "this one goes here" reads instantly. Fit is by shape, never colour.
         // The triangle/star bounding boxes run larger so their pointier silhouettes read as boldly
         // as the round and square — the four holes feel evenly weighted.
         let specs: [(pos: CGPoint, size: CGSize, felt: UIColor, shape: HoleShape, accepts: DropTreasureNode.Kind)] = [
-            (CGPoint(x: c.x - dx, y: c.y + dy), CGSize(width: r * 1.84, height: r * 1.84), WarmShelfPalette.rhubarb,   .round,    .berry),
-            (CGPoint(x: c.x + dx, y: c.y + dy), CGSize(width: r * 2.18, height: r * 2.0),  UIColor(hex: 0xE3A93E),     .triangle, .triangle),
-            (CGPoint(x: c.x - dx, y: c.y - dy), CGSize(width: r * 1.78, height: r * 1.78), WarmShelfPalette.sage,      .square,   .cube),
-            (CGPoint(x: c.x + dx, y: c.y - dy), CGSize(width: r * 2.0,  height: r * 2.0),  WarmShelfPalette.waterBlue, .star,     .star)
+            (CGPoint(x: c.x - dx, y: c.y + dy), CGSize(width: r * 2.24, height: r * 2.24), WarmShelfPalette.rhubarb,   .round,    .berry),
+            (CGPoint(x: c.x + dx, y: c.y + dy), CGSize(width: r * 2.40, height: r * 2.20), UIColor(hex: 0xE3A93E),     .triangle, .triangle),
+            (CGPoint(x: c.x - dx, y: c.y - dy), CGSize(width: r * 2.12, height: r * 2.12), WarmShelfPalette.sage,      .square,   .cube),
+            (CGPoint(x: c.x + dx, y: c.y - dy), CGSize(width: r * 2.30, height: r * 2.30), WarmShelfPalette.waterBlue, .star,     .star)
         ]
         for spec in specs {
-            var opening = Opening(center: spec.pos, size: spec.size, felt: spec.felt, shape: spec.shape, accepts: spec.accepts, rim: nil)
+            var opening = Opening(center: spec.pos, size: spec.size,
+                                  felt: usesPlainShell ? woodDark : spec.felt,
+                                  shape: spec.shape, accepts: spec.accepts, rim: nil)
             buildCarvedOpening(&opening)
             openings.append(opening)
         }
@@ -356,29 +439,31 @@ final class SleepyDropBoxScene: BaseToyScene {
         let s = opening.size, c = opening.center, felt = opening.felt, shape = opening.shape
 
         // Outer bevel shadow under the rim — seats the socket into the panel.
-        let bevel = openingShape(shape, size: CGSize(width: s.width * 1.5, height: s.height * 1.5))
-        bevel.fillColor = woodDark.withAlpha(0.55)
+        let bevelScale: CGFloat = usesPlainShell ? 1.16 : 1.5
+        let bevel = openingShape(shape, size: CGSize(width: s.width * bevelScale, height: s.height * bevelScale))
+        bevel.fillColor = woodDark.withAlpha(usesPlainShell ? 0.28 : 0.55)
         bevel.strokeColor = .clear
         bevel.position = CGPoint(x: c.x, y: c.y - s.height * 0.06)
         bevel.zPosition = 0.16
         panelLayer.addChild(bevel)
 
         // Thick colour rim.
-        let rimSize = CGSize(width: s.width * 1.32, height: s.height * 1.32)
+        let rimScale: CGFloat = usesPlainShell ? 1.10 : 1.32
+        let rimSize = CGSize(width: s.width * rimScale, height: s.height * rimScale)
         let rim = openingShape(shape, size: rimSize)
-        rim.fillColor = felt
+        rim.fillColor = usesPlainShell ? woodTop : felt
         rim.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.2)
         rim.lineWidth = 1.5
         rim.position = c
         rim.zPosition = 0.2
         panelLayer.addChild(rim)
-        ProceduralTexture.applyClayFill(to: rim, base: felt, size: rimSize)
+        ProceduralTexture.applyClayFill(to: rim, base: usesPlainShell ? woodTop : felt, size: rimSize)
 
         // Lit upper edge of the rim (a soft carved bevel highlight).
         let rimHi = openingShape(shape, size: rimSize)
         rimHi.fillColor = .clear
-        rimHi.strokeColor = WarmShelfPalette.paperHighlight.withAlpha(0.5)
-        rimHi.lineWidth = max(2, s.height * 0.06)
+        rimHi.strokeColor = WarmShelfPalette.paperHighlight.withAlpha(usesPlainShell ? 0.28 : 0.5)
+        rimHi.lineWidth = max(2, s.height * (usesPlainShell ? 0.025 : 0.06))
         rimHi.position = CGPoint(x: c.x, y: c.y + s.height * 0.05)
         rimHi.zPosition = 0.22
         panelLayer.addChild(rimHi)
@@ -400,7 +485,7 @@ final class SleepyDropBoxScene: BaseToyScene {
         inner.strokeColor = .clear
         inner.position = CGPoint(x: c.x, y: c.y + s.height * 0.05)
         inner.zPosition = 0.31
-        panelLayer.addChild(inner)
+        if !usesPlainShell { panelLayer.addChild(inner) }
         // A soft top-inner lip of light, the same silhouette, so the upper edge catches the room.
         let lip = openingShape(shape, size: s)
         lip.fillColor = .clear
@@ -477,6 +562,7 @@ final class SleepyDropBoxScene: BaseToyScene {
     }
 
     private func buildFace(on face: SKNode, faceH: CGFloat) {
+        faceHeight = faceH
         let eyeY = faceH * 0.1
         let eyeDX = boxW * 0.145 * faceScale
         let ink = WarmShelfPalette.cocoa.withAlpha(0.6)
@@ -511,10 +597,10 @@ final class SleepyDropBoxScene: BaseToyScene {
     private func buildDrawer() {
         let faceCenter = CGPoint(x: boxCenter.x, y: boxCenter.y - boxH * 0.18)
         let faceH = boxH * 0.66
-        let drawerW = boxW * 0.56
-        let drawerH = boxH * 0.24
-        drawerClosedY = faceCenter.y - faceH * 0.30
-        drawerOpenY = drawerClosedY - boxH * 0.32   // opens a sensible amount — never slides past the tray
+        let drawerW = boxW * (usesPlainShell ? 0.926 : 0.56)
+        let drawerH = boxH * (usesPlainShell ? 0.205 : 0.24)
+        drawerClosedY = usesPlainShell ? boxCenter.y - boxH * 0.365 : faceCenter.y - faceH * 0.30
+        drawerOpenY = drawerClosedY - boxH * (usesPlainShell ? 0.22 : 0.32)
         drawerTargetY = drawerClosedY
 
         // A soft shadow along the slot the drawer sits in — it reads as set into the body.
@@ -522,16 +608,18 @@ final class SleepyDropBoxScene: BaseToyScene {
         lipShadow.fillColor = woodDark.withAlpha(0.34)
         lipShadow.strokeColor = .clear
         lipShadow.position = CGPoint(x: faceCenter.x, y: drawerClosedY + drawerH * 0.52)
-        lipShadow.zPosition = -0.2
-        frontLayer.addChild(lipShadow)
+        lipShadow.zPosition = 0.04
+        if !usesPlainShell { frontLayer.addChild(lipShadow) }
 
         // Cavity behind the drawer (revealed as it slides down).
         let cavity = SKShapeNode(rect: CGRect(x: -drawerW / 2, y: -drawerH / 2, width: drawerW, height: drawerH), cornerRadius: drawerH * 0.22)
         cavity.fillColor = UIColor(hex: 0x241509).withAlpha(0.92)
         cavity.strokeColor = .clear
         cavity.position = CGPoint(x: faceCenter.x, y: drawerClosedY)
-        cavity.zPosition = -0.3
-        frontLayer.addChild(cavity)
+        cavity.zPosition = 0.05
+        // The new shell already contains the real cavity. Cover it with one moving
+        // drawer front, and reveal that authored recess when the child pulls.
+        if !usesPlainShell { frontLayer.addChild(cavity) }
 
         // The drawer itself — a chunky pullable front.
         let body = SKShapeNode(rect: CGRect(x: -drawerW / 2, y: -drawerH / 2, width: drawerW, height: drawerH), cornerRadius: drawerH * 0.26)
@@ -549,13 +637,13 @@ final class SleepyDropBoxScene: BaseToyScene {
         let wellRect = CGRect(x: -drawerW * 0.4, y: -drawerH * 0.32, width: drawerW * 0.8, height: drawerH * 0.64)
         let well = SKShapeNode(rect: wellRect, cornerRadius: drawerH * 0.2)
         well.fillColor = UIColor(hex: 0x4A2E1C).withAlpha(0.5); well.strokeColor = woodDark.withAlpha(0.4); well.lineWidth = 1.5; well.zPosition = 0.15
-        body.addChild(well)
+        if !usesPlainShell { body.addChild(well) }
         let wellBottom = SKShapeNode(rect: CGRect(x: wellRect.minX, y: wellRect.minY, width: wellRect.width, height: wellRect.height * 0.34), cornerRadius: drawerH * 0.16)
         wellBottom.fillColor = .black.withAlpha(0.16); wellBottom.strokeColor = .clear; wellBottom.zPosition = 0.16
-        body.addChild(wellBottom)
+        if !usesPlainShell { body.addChild(wellBottom) }
         let wellLip = SKShapeNode(rect: CGRect(x: wellRect.minX + 6, y: wellRect.maxY - 4, width: wellRect.width - 12, height: 3), cornerRadius: 1.5)
         wellLip.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.3); wellLip.strokeColor = .clear; wellLip.zPosition = 0.17
-        body.addChild(wellLip)
+        if !usesPlainShell { body.addChild(wellLip) }
 
         // A big round pull-knob with a soft shadow directly beneath it — an easy, inviting target
         // for small fingers, with no offset blob.
@@ -590,11 +678,13 @@ final class SleepyDropBoxScene: BaseToyScene {
         let boardBottom = boxCenter.y - boxH * 0.5
         let trayY = max(size.height * (landscape ? 0.12 : 0.115), boardBottom - r * 1.7)
         let n = 4
-        let spread = min(boxW * 1.04, size.width * 0.86)
+        // Equal, generous footprints keep all four silhouettes fully on-screen, including
+        // the moment a shape grows slightly on pickup. Their homes do not move each round.
+        let spread = min(boxW * 0.82, size.width - r * 2.6)
 
         // A real shallow wooden dish the treasures live in — visible back wall, floor, and a lit
         // front lip, so it reads as a thing that HOLDS the shapes (not a floating shadow).
-        let dishW = min(spread * 1.26, size.width * 0.96)
+        let dishW = min(spread + r * 2.3, size.width * 0.96)
         let dishH = r * 2.5
         let dishY = trayY - r * 0.15
         let dishBack = SKShapeNode(rect: CGRect(x: -dishW / 2, y: -dishH * 0.5, width: dishW, height: dishH), cornerRadius: dishH * 0.4)
@@ -624,8 +714,15 @@ final class SleepyDropBoxScene: BaseToyScene {
         playSpots = (0..<n).map { i in
             CGPoint(x: size.width / 2 - spread / 2 + spread * CGFloat(i) / CGFloat(n - 1), y: trayY)
         }
-        let kinds: [DropTreasureNode.Kind] = [.berry, .triangle, .cube, .star]
-        for (i, kind) in kinds.enumerated() {
+        for (i, kind) in pieceKinds.enumerated() {
+            // Quiet recesses communicate "these shapes live here" without adding controls.
+            let home = SKShapeNode(ellipseOf: CGSize(width: r * 2.05, height: r * 1.30))
+            home.fillColor = woodDark.withAlpha(0.10)
+            home.strokeColor = woodDark.withAlpha(0.16)
+            home.lineWidth = 1
+            home.position = CGPoint(x: playSpots[i].x, y: trayY - r * 0.25)
+            home.zPosition = 0.44
+            boxLayer.addChild(home)
             let piece = DropTreasureNode(kind: kind, radius: r)
             piece.position = playSpots[i]
             piece.zPosition = 12
@@ -638,7 +735,7 @@ final class SleepyDropBoxScene: BaseToyScene {
 
     private func setBoxMood(_ newMood: BoxMood, animated: Bool = true) {
         mood = newMood
-        let faceH = boxH * 0.66
+        let faceH = faceHeight > 0 ? faceHeight : boxH * 0.66
         let w = boxW * 0.125 * faceScale
         let dur = animated ? 0.18 : 0.0
 
@@ -698,6 +795,7 @@ final class SleepyDropBoxScene: BaseToyScene {
         // Only nudge when there are treasures waiting inside — a quiet "pull me".
         let check = SKAction.run { [weak self] in
             guard let self, self.drawerTouch == nil, !self.insideKinds.isEmpty,
+                  self.insideKinds.count < self.pieceKinds.count,
                   abs(self.drawer.position.y - self.drawerClosedY) < 1 else { return }
             self.drawer.run(.sequence([.moveBy(x: 0, y: -4, duration: 0.5), .moveBy(x: 0, y: 4, duration: 0.6)]))
         }
@@ -729,8 +827,12 @@ final class SleepyDropBoxScene: BaseToyScene {
 
             // The drawer knob — a tighter, knob-sized target so it never swallows a shape or a piece.
             if drawerTouch == nil, hypot(p.x - drawer.position.x, p.y - (drawer.position.y + drawerKnobLocalY)) < boxH * 0.16 {
+                removeAction(forKey: "drawer.close")
+                drawer.removeAction(forKey: "tremble")
                 drawerTouch = touch
                 didTumbleThisPull = false
+                drawerTouchStartY = p.y
+                drawerDragStartY = drawer.position.y
                 continue
             }
 
@@ -742,11 +844,12 @@ final class SleepyDropBoxScene: BaseToyScene {
         for touch in touches {
             let p = touch.location(in: self)
             if touch == drawerTouch {
-                drawerTargetY = (p.y - boxH * 0.1).clamped(to: drawerOpenY...drawerClosedY)
+                drawerTargetY = (drawerDragStartY + p.y - drawerTouchStartY).clamped(to: drawerOpenY...drawerClosedY)
             } else if touch == dragTouch {
+                let inset = pieceRadius * 1.25
                 dragTarget = CGPoint(
-                    x: (p.x + dragOffset.x).clamped(to: 30...size.width - 30),
-                    y: (p.y + dragOffset.y + 6).clamped(to: 40...size.height - 40)
+                    x: (p.x + dragOffset.x).clamped(to: inset...size.width - inset),
+                    y: (p.y + dragOffset.y + 6).clamped(to: inset...size.height - inset)
                 )
             }
         }
@@ -756,22 +859,52 @@ final class SleepyDropBoxScene: BaseToyScene {
         for touch in touches { endTouch(touch) }
     }
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for touch in touches { endTouch(touch) }
+        for touch in touches {
+            if touch == drawerTouch {
+                drawerTouch = nil
+                drawerTargetY = drawerClosedY
+            }
+            if touch == dragTouch {
+                dragPiece?.setLifted(false)
+                dragPiece?.zPosition = 12
+                dragTouch = nil
+                dragPiece = nil
+                clearHover()
+                setBoxMood(.sleepy)
+            }
+        }
     }
 
     private func endTouch(_ touch: UITouch) {
         if touch == drawerTouch {
             drawerTouch = nil
-            drawerTargetY = drawerClosedY      // eases back closed
+            // A quick deliberate pull counts even if the visual drawer was still easing
+            // toward the finger. Hold it open briefly so the return has a visible source.
+            let pulledFarEnough = drawerTargetY < drawerClosedY - (drawerClosedY - drawerOpenY) * 0.5
+            if !didTumbleThisPull, pulledFarEnough {
+                didTumbleThisPull = true
+                tumbleOut()
+            }
+            if pulledFarEnough {
+                drawerTargetY = drawerOpenY
+                run(.sequence([.wait(forDuration: 0.55), .run { [weak self] in
+                    guard let self, self.drawerTouch == nil else { return }
+                    self.drawerTargetY = self.drawerClosedY
+                }]), withKey: "drawer.close")
+            } else {
+                drawerTargetY = drawerClosedY
+            }
             if mood == .surprised { setBoxMood(.sleepy) }
             return
         }
         guard touch == dragTouch, let piece = dragPiece else { return }
         dragTouch = nil; dragPiece = nil
         clearHover()
-        if let index = openingForDrop(near: piece.position, kind: piece.kind) {
+        // Commit using the last intended center, so a fast drag does not miss merely
+        // because the material's authored follow-through trails the finger slightly.
+        if let index = openingForDrop(near: dragTarget, kind: piece.kind) {
             dropPiece(piece, into: index)
-        } else if let near = nearestOpening(near: piece.position) {
+        } else if let near = nearestOpening(near: dragTarget) {
             bumpAway(piece, from: openings[near].center)   // this piece doesn't go there — softly
         } else {
             piece.setLifted(false)
@@ -801,24 +934,20 @@ final class SleepyDropBoxScene: BaseToyScene {
             .min { hypot($0.position.x - p.x, $0.position.y - p.y) < hypot($1.position.x - p.x, $1.position.y - p.y) }
     }
 
-    /// The nearest opening within capture range that physically accepts this treasure.
+    /// Pick the opening the child actually approached, then check the shape. Searching
+    /// matching shapes first can make a nearby wrong socket silently succeed.
     private func openingForDrop(near p: CGPoint, kind: DropTreasureNode.Kind) -> Int? {
-        var best: Int?; var bestD = CGFloat.greatestFiniteMagnitude
-        for (i, o) in openings.enumerated() where o.accepts == kind {
-            let d = hypot(o.center.x - p.x, o.center.y - p.y)
-            if d < o.captureRadius, d < bestD { best = i; bestD = d }
-        }
-        return best
+        guard let index = nearestOpening(near: p), openings[index].accepts == kind else { return nil }
+        return index
     }
 
     /// The nearest opening of any shape — used to detect a piece nudging a hole that doesn't fit.
     private func nearestOpening(near p: CGPoint) -> Int? {
-        var best: Int?; var bestD = CGFloat.greatestFiniteMagnitude
-        for (i, o) in openings.enumerated() {
-            let d = hypot(o.center.x - p.x, o.center.y - p.y)
-            if d < o.captureRadius, d < bestD { best = i; bestD = d }
-        }
-        return best
+        SleepyBoxFitGeometry.nearestOpening(at: p, centers: openings.map(\.center), sizes: openings.map(\.size))
+    }
+
+    private func captureRadius(at index: Int) -> CGFloat {
+        SleepyBoxFitGeometry.captureRadius(at: index, centers: openings.map(\.center), sizes: openings.map(\.size))
     }
 
     private func nearestFreePlaySpot(to p: CGPoint, excluding piece: DropTreasureNode) -> CGPoint {
@@ -830,6 +959,8 @@ final class SleepyDropBoxScene: BaseToyScene {
     // MARK: - Drop in
 
     private func dropPiece(_ piece: DropTreasureNode, into index: Int) {
+        guard treasures.contains(where: { $0 === piece }),
+              !insideKinds.contains(piece.kind), openings.indices.contains(index) else { return }
         let opening = openings[index]
         insideKinds.append(piece.kind)
         treasures.removeAll { $0 === piece }
@@ -888,7 +1019,7 @@ final class SleepyDropBoxScene: BaseToyScene {
         run(.sequence([.wait(forDuration: 0.9), .run { [weak self] in
             guard let self, self.dragPiece == nil else { return }
             self.setBoxMood(.sleepy)
-        }]))
+        }]), withKey: "box.sleep")
     }
 
     private func drawerTremble() {
@@ -951,10 +1082,17 @@ final class SleepyDropBoxScene: BaseToyScene {
             }
             if fan > 14 { break }   // a full ledge is a full ledge — overlap beats an infinite loop
         }
-        returnCycle += 1
         for (i, kind) in kinds.enumerated() {
-            let dest = available.indices.contains(i) ? available[i] : playSpots[i % playSpots.count]
-            let piece = DropTreasureNode(kind: kind, radius: r, variant: returnCycle)
+            let homeIndex = pieceKinds.firstIndex(of: kind) ?? i
+            let home = playSpots[homeIndex % playSpots.count]
+            // Return each silhouette to its familiar home whenever that place is clear.
+            // If another loose piece occupies it, choose the nearest clear place instead.
+            let destinationIndex = available.indices.min { a, b in
+                hypot(available[a].x - home.x, available[a].y - home.y)
+                    < hypot(available[b].x - home.x, available[b].y - home.y)
+            }
+            let dest = destinationIndex.map { available.remove(at: $0) } ?? home
+            let piece = DropTreasureNode(kind: kind, radius: r)
             // Each treasure emerges already-readable from the dark drawer cavity — spread
             // across the drawer's mouth by index, so returns never pile at one point.
             let spread = (CGFloat(i) - CGFloat(max(1, kinds.count - 1)) / 2) * r * 1.3
@@ -965,7 +1103,7 @@ final class SleepyDropBoxScene: BaseToyScene {
             pieceLayer.addChild(piece)
             run(.sequence([.wait(forDuration: Double(i) * 0.09), .run { [weak self] in
                 self?.tumblePiece(piece, to: dest)
-            }]))
+            }]), withKey: "drawer.return.\(kind)")
         }
     }
 
@@ -1018,10 +1156,10 @@ final class SleepyDropBoxScene: BaseToyScene {
         // Dragged treasure follows the finger with a soft lag; magnet-aligns near a hole.
         if let piece = dragPiece {
             var target = dragTarget
-            if let index = openingForDrop(near: piece.position, kind: piece.kind) {
+            if let index = openingForDrop(near: dragTarget, kind: piece.kind) {
                 let o = openings[index]
-                let d = hypot(o.center.x - piece.position.x, o.center.y - piece.position.y)
-                let pull = max(0, 1 - d / o.captureRadius) * 0.42   // gentle, never a hard snap
+                let d = hypot(o.center.x - dragTarget.x, o.center.y - dragTarget.y)
+                let pull = max(0, 1 - d / captureRadius(at: index)) * 0.24
                 target = CGPoint(x: target.x + (o.center.x - target.x) * pull, y: target.y + (o.center.y - target.y) * pull)
                 if hoverOpening != index {
                     hoverOpening.map { flashRim($0, hot: false) }
@@ -1052,7 +1190,8 @@ final class SleepyDropBoxScene: BaseToyScene {
                 if !insideKinds.isEmpty { rattle() }
             }
             // Tumble once when pulled far enough.
-            if !didTumbleThisPull, drawer.position.y < drawerOpenY + boxH * 0.16 {
+            if !didTumbleThisPull, drawerTouch != nil,
+               drawer.position.y < drawerClosedY - (drawerClosedY - drawerOpenY) * 0.5 {
                 didTumbleThisPull = true
                 tumbleOut()
             }
@@ -1148,7 +1287,7 @@ final class SleepyDropBoxScene: BaseToyScene {
         run(.sequence([.wait(forDuration: step * 3 + 1.0), .run { [weak self] in
             guard let self, self.dragPiece == nil else { return }
             self.setBoxMood(.sleepy)                    // hum done — back to sleep
-        }]))
+        }]), withKey: "box.sleep")
     }
 
     // MARK: - Accessibility
@@ -1172,6 +1311,31 @@ final class SleepyDropBoxScene: BaseToyScene {
             self?.tumbleOut()
         })
         return elements
+    }
+}
+
+/// Fit geometry is independent of artwork and touch pickup halos. Release regions never
+/// overlap, so the socket under a shape remains the source of the toy's feedback.
+enum SleepyBoxFitGeometry {
+    static func captureRadius(at index: Int, centers: [CGPoint], sizes: [CGSize]) -> CGFloat {
+        guard centers.indices.contains(index), sizes.indices.contains(index) else { return 0 }
+        let center = centers[index]
+        let neighborDistance = centers.enumerated()
+            .filter { $0.offset != index }
+            .map { hypot($0.element.x - center.x, $0.element.y - center.y) }
+            .min() ?? .greatestFiniteMagnitude
+        let visualRadius = max(sizes[index].width, sizes[index].height) * 0.55 + 8
+        return min(visualRadius, neighborDistance * 0.44)
+    }
+
+    static func nearestOpening(at point: CGPoint, centers: [CGPoint], sizes: [CGSize]) -> Int? {
+        guard centers.count == sizes.count,
+              let nearest = centers.indices.min(by: { a, b in
+                  hypot(centers[a].x - point.x, centers[a].y - point.y)
+                    < hypot(centers[b].x - point.x, centers[b].y - point.y)
+              }) else { return nil }
+        let distance = hypot(centers[nearest].x - point.x, centers[nearest].y - point.y)
+        return distance <= captureRadius(at: nearest, centers: centers, sizes: sizes) ? nearest : nil
     }
 }
 

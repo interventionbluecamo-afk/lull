@@ -1,0 +1,89 @@
+{
+  "revision": "01d7b164be3e7f1be4c286f8a4453d049aa819d9",
+  "branch": "claude/modest-bell-cjarqm",
+  "started_utc": "2026-10-07T20:24:24.476305+00:00",
+  "finished_utc": "2026-10-07T20:25:15.424095+00:00",
+  "scripts": [
+    {
+      "script": "verify_adult_gate.py",
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_seconds": 7.02,
+      "log": "verify_adult_gate.log",
+      "output": "PASS: adult gate challenge, 12 checks\n"
+    },
+    {
+      "script": "verify_audio_lifecycle.py",
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_seconds": 10.03,
+      "log": "verify_audio_lifecycle.log",
+      "output": "PASS: 25 production audio preference, retry, lifecycle and cancellation checks; physical audibility still requires device testing\n"
+    },
+    {
+      "script": "verify_feed.py",
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_seconds": 7.13,
+      "log": "verify_feed.log",
+      "output": "PASS: 152 request-state, mouth-landmark, serving-bound, recovery-timing and rotation-layout checks using extracted production methods\n"
+    },
+    {
+      "script": "verify_mixup_layout.py",
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_seconds": 5.93,
+      "log": "verify_mixup_layout.log",
+      "output": "320\u00d7568: scale 0.77, 3 cards\n568\u00d7320: scale 0.68, 2 cards\n375\u00d7667: scale 1.03, 4 cards\n667\u00d7375: scale 0.76, 2 cards\n393\u00d7852: scale 1.41, 4 cards\n852\u00d7393: scale 0.81, 2 cards\n440\u00d7956: scale 1.69, 4 cards\n956\u00d7440: scale 0.95, 3 cards\n768\u00d71024: scale 1.89, 6 cards\n1024\u00d7768: scale 1.92, 4 cards\n744\u00d71133: scale 2.20, 6 cards\n1133\u00d7744: scale 1.85, 4 cards\n1024\u00d71366: scale 2.60, 6 cards\n1366\u00d71024: scale 2.60, 6 cards\nMix-Up room/layout: 280 checks passed.\n"
+    },
+    {
+      "script": "verify_mixup_stack.py",
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_seconds": 5.0,
+      "log": "verify_mixup_stack.log",
+      "output": "Mix-Up/Stack: 145 checks passed; device interaction testing still required.\n",
+      "initial_attempt": {
+        "script": "verify_mixup_stack.py",
+        "status": "FAIL",
+        "exit_code": 1,
+        "duration_seconds": 0.06,
+        "log": "verify_mixup_stack.initial.log",
+        "output": "Traceback (most recent call last):\n  File \"/Users/User2/Desktop/lull v.2/WarmShelfToybox/Tools/verify_mixup_stack.py\", line 8, in <module>\n    from PIL import Image\nModuleNotFoundError: No module named 'PIL'\n"
+      },
+      "interpreter": "/Users/User2/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3"
+    },
+    {
+      "script": "verify_onboarding_state.py",
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_seconds": 4.24,
+      "log": "verify_onboarding_state.log",
+      "output": "PASS: first welcome starts one seven-day trial\nPASS: replay preserves an active trial deadline\nPASS: replay cannot renew an expired trial\nPASS: replay preserves purchase access and family preferences\n"
+    },
+    {
+      "script": "verify_rest_suspension.py",
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_seconds": 3.58,
+      "log": "verify_rest_suspension.log",
+      "output": "PASS: cancels before pause, restores interaction/gesture states, resumes once\nPASS: preserves a previously paused or disabled view\nPASS: scene replacement restores its host without resuming stale scene audio\nPASS: missing and non-playable views cannot be suspended\n"
+    },
+    {
+      "script": "verify_window.py",
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_seconds": 4.56,
+      "log": "verify_window.log",
+      "output": "PASS active paths: pan inactive; sky acknowledgment precedes cooldown and works in Reduce Motion; one guarded comet; real lamp required for motes\nPASS 176 native checks: safe control bounds, tap/jitter/cancel, hub exit, angular cap, drag ownership, night wrap\n"
+    },
+    {
+      "script": "verify_world_interactions.py",
+      "status": "PASS",
+      "exit_code": 0,
+      "duration_seconds": 4.05,
+      "log": "verify_world_interactions.log",
+      "output": "PASS: 268 handle-departure, reachable-puff, unique-round and socket-fit checks using production helpers\n"
+    }
+  ]
+}

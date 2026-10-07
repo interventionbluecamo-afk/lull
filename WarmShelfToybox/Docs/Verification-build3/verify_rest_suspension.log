@@ -1,0 +1,12 @@
+Script: WarmShelfToybox/Tools/verify_rest_suspension.py
+Revision: 01d7b164be3e7f1be4c286f8a4453d049aa819d9
+Branch: claude/modest-bell-cjarqm
+Started (UTC): 2026-10-07T20:24:40.439244+00:00
+Interpreter: /Applications/Xcode.app/Contents/Developer/usr/bin/python3
+Exit code: 0
+Duration: 3.58s
+
+PASS: cancels before pause, restores interaction/gesture states, resumes once
+PASS: preserves a previously paused or disabled view
+PASS: scene replacement restores its host without resuming stale scene audio
+PASS: missing and non-playable views cannot be suspended

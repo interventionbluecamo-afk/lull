@@ -1,0 +1,9 @@
+Script: WarmShelfToybox/Tools/verify_audio_lifecycle.py
+Revision: 01d7b164be3e7f1be4c286f8a4453d049aa819d9
+Branch: claude/modest-bell-cjarqm
+Started (UTC): 2026-10-07T20:24:24.477321+00:00
+Interpreter: /Applications/Xcode.app/Contents/Developer/usr/bin/python3
+Exit code: 0
+Duration: 10.03s
+
+PASS: 25 production audio preference, retry, lifecycle and cancellation checks; physical audibility still requires device testing

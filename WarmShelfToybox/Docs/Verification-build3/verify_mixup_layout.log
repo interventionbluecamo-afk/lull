@@ -1,0 +1,23 @@
+Script: WarmShelfToybox/Tools/verify_mixup_layout.py
+Revision: 01d7b164be3e7f1be4c286f8a4453d049aa819d9
+Branch: claude/modest-bell-cjarqm
+Started (UTC): 2026-10-07T20:24:34.507796+00:00
+Interpreter: /Applications/Xcode.app/Contents/Developer/usr/bin/python3
+Exit code: 0
+Duration: 5.93s
+
+320×568: scale 0.77, 3 cards
+568×320: scale 0.68, 2 cards
+375×667: scale 1.03, 4 cards
+667×375: scale 0.76, 2 cards
+393×852: scale 1.41, 4 cards
+852×393: scale 0.81, 2 cards
+440×956: scale 1.69, 4 cards
+956×440: scale 0.95, 3 cards
+768×1024: scale 1.89, 6 cards
+1024×768: scale 1.92, 4 cards
+744×1133: scale 2.20, 6 cards
+1133×744: scale 1.85, 4 cards
+1024×1366: scale 2.60, 6 cards
+1366×1024: scale 2.60, 6 cards
+Mix-Up room/layout: 280 checks passed.

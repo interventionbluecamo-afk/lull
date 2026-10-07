@@ -8,7 +8,7 @@ October 7, 2026.
 - Final simulator Debug and signed physical iPhone Release builds passed. Eight verification scripts passed; 1,046 numbered checks plus onboarding/rest and Window scenario assertions.
 - Final Release app installed on paired iPhone 17 Pro, iOS 26.6.1. Founder confirmed device checks pass and sound works, then took ownership of all further play-testing. Upload gate satisfied by this explicit device report; unperformed agent tests are not marked passed.
 - Final archive: `/private/tmp/lull-testflight-20261007/Lull-build2-final.xcarchive`.
-- Upload / Apple processing / Founder Testing: **uploaded; Apple processing in progress; Founder Testing assignment pending**.
+- Upload / Apple processing / Founder Testing: **uploaded and processed; assigned to Founder Testing (one internal tester); What to Test saved**.
 - TestFlight: https://appstoreconnect.apple.com/teams/c88f15d6-fd7f-46d6-8a5d-a0f2337031df/apps/6819919245/testflight
 
 ## What to Test
@@ -26,5 +26,11 @@ Non-consumable `com.lull.full.lifetime`, reference Lull Full Toybox — Lifetime
 - Source, original art, eight verification logs, design review and cloud handoff pushed to GitHub as **6f13733**.
 - Final archive completed successfully; its app plist confirms 1.0 (2) and the expected bundle ID.
 - First final-archive upload failed before transmission: Xcode could not find an account with App Store Connect access for team A5CT5FK3SY (`Failed to Use Accounts`). This is separate from the signed-in website session. Founder refreshed Xcode → Settings → Accounts. Retry succeeded at 14:44:46 America/Chicago (`Uploaded Lull`, `EXPORT SUCCEEDED`).
-- Build 2 is uploaded and Apple acknowledged package processing; processed availability and Founder Testing assignment are still pending.
+- Apple processing completed. Build 2 appeared in Version 1.0 and was assigned to the existing Founder Testing internal group. The build detail verified Group (1), Founder Testing, Internal, 1 tester. What to Test was saved (Saved confirmation). The build-list status Ready to Submit concerns broader beta submission; no external beta review or public App Store submission was performed.
 - No further agent play-testing performed after the founder requested ownership.
+
+## Final handoff checkpoint
+
+Build detail: https://appstoreconnect.apple.com/teams/c88f15d6-fd7f-46d6-8a5d-a0f2337031df/apps/6819919245/testflight/ios/cfac7602-0a4f-4655-af84-6e2beba116ce
+
+All nine toys retained. Final app source is commit 6f13733; subsequent commits update documentation only. Founder owns all further play-testing, including sandbox purchase/restore. The actual TestFlight install has not been independently confirmed after distribution. No more agent tests are required by this handoff unless the founder requests them.

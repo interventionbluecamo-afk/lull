@@ -4,7 +4,7 @@ October 7, 2026. Continue on `claude/modest-bell-cjarqm` in `interventionbluecam
 
 ## Release status
 
-Version **1.0 (2)**, bundle `com.lull.toybox.a5ct5fk3sy`, team `A5CT5FK3SY`, App Store Connect app `6819919245` (Lull Quiet Toybox). App/source/assets/docs are pushed as **6f13733**. Final archive and upload succeeded after the founder refreshed Xcode accounts; Apple processing and Founder Testing assignment are being completed. The final result is recorded in `Docs/TestFlight-Release-2026-10-07.md`. Do not treat an archive as an uploaded/processed build.
+Version **1.0 (2)**, bundle `com.lull.toybox.a5ct5fk3sy`, team `A5CT5FK3SY`, App Store Connect app `6819919245` (Lull Quiet Toybox). App/source/assets/docs are pushed as **6f13733**. Final archive and upload succeeded after the founder refreshed Xcode accounts. Apple processing completed; build 2 is assigned to Founder Testing (one internal tester), and What to Test was saved. No external beta review or public App Store submission was performed. The final result is recorded in `Docs/TestFlight-Release-2026-10-07.md`. Do not treat an archive as an uploaded/processed build.
 
 Founder explicitly confirmed: **“Device checks pass; sound works.”** This followed installation of the final Release app and a request to close/reopen it and check Sound On/Silent Mode, Sound Off, Hum/Bubbles/Feed, new Mix-Up parts/save, Stack refill, completed-round Sleepy Box shuffle and all nine toys opening. Founder then requested **all further testing be left to them to save tokens**. Honour that preference; do not claim agent-only physical coverage or repeat broad play-testing without a new request.
 
@@ -44,3 +44,11 @@ Before a real App Store submission: confirm paid-app agreements/tax/banking thro
 Read `Docs/Awards-Jury-Review-2026-10-07.md`. The current strength is tactile delight and interaction. This is a design critique, not Apple's judging process or an award prediction. Parent welcome can still be shorter; primitive premium-toy preview art needs the same care as the child shelf. Educator review, families across ages/abilities, VoiceOver/Dynamic Type/motor accessibility and real conversion evidence remain important. Keep learning claims modest.
 
 Other follow-ups: calmer wrong-food feedback in Feed; observed expression texture flicker if founder sees it; layered Icon Composer dark/tinted icon; Drop Dots rainbow payoff only after usability; first-action discovery from actual children. Preserve the nine-toy scope and budget for handoff rather than starting another large art batch.
+
+## Start here in Claude cloud
+
+1. Fetch and pull `claude/modest-bell-cjarqm`. This handoff, release record, art masters/prompts, production code and verification logs are in GitHub. Do not rely on access to Mac-local temporary archives or credentials.
+2. Read this file, `Docs/TestFlight-Release-2026-10-07.md` and `Docs/Awards-Jury-Review-2026-10-07.md`. Leave further play-testing and purchase/restore testing to the founder.
+3. Begin with the public-release gaps: concise parent onboarding/offer and matching preview art, support/privacy destinations and store metadata, IAP review screenshot and first-IAP submission requirements. Account agreements/tax/banking belong to the account owner. Do not invent missing contact information or promise educational gains.
+4. Keep all nine toys, preserve the new Mix-Up cast and save migration, retain the real StoreKit price/no-automatic-charge trial behavior, and avoid another broad art generation pass unless needed for a specific approved change.
+5. Keep work and a new handoff in GitHub. Do not claim App Store submission, purchase success, accessibility coverage or award readiness without the corresponding evidence.

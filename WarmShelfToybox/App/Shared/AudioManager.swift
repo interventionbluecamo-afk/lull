@@ -275,6 +275,19 @@ final class AudioManager {
         if !play(.mixSettle) { play(.toySettle) }
     }
 
+    /// A Mix-Up friend's own voice. `name` is the friend's cast name (bunny, bear, songbird,
+    /// fox, mouse, frog, robot, officer, firefighter). `.arrive` plays when that friend's head
+    /// lands; `.wholeFriend` when head, body and legs all belong to the same friend.
+    /// (Placeholder until the sound rebuild gives each friend its own voice.)
+    enum MixFriendMoment { case arrive, wholeFriend }
+
+    func playMixFriend(_ name: String, moment: MixFriendMoment) {
+        switch moment {
+        case .arrive: play(.mixSettle)
+        case .wholeFriend: play(.mixCelebrate)
+        }
+    }
+
     func playBird() {
         if !play(.bird) {
             play(.bubbleNotice)

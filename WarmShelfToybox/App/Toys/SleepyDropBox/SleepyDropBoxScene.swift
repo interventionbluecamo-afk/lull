@@ -1001,13 +1001,40 @@ final class SleepyDropBoxScene: BaseToyScene {
                                             .rotate(toAngle: starHoleTilt, duration: 0.06)])
             pre = .group([align, wiggle])
         }
-        let sink = SKAction.group([
-            .move(to: CGPoint(x: opening.center.x, y: opening.center.y - opening.size.height * 0.42), duration: 0.32),
-            .scale(to: 0.06, duration: 0.32),
-            .fadeAlpha(to: 0.0, duration: 0.32)
+        // Into the hole, not away: once the piece sits snug over its socket it is handed to
+        // a crop node cut to the socket's own outline, so it can only ever be seen INSIDE
+        // the hole. It then slips back and down into the dark while the cavity's shade
+        // closes over it — the rim and its lit lip stay in front, so the eye reads
+        // "it went in" (object permanence: the drawer gives it back).
+        let socket = SKCropNode()
+        let mask = openingShape(opening.shape, size: opening.size)
+        mask.fillColor = .white
+        mask.strokeColor = .clear
+        socket.maskNode = mask
+        socket.position = opening.center
+        socket.zPosition = 0.32          // above cavity + inner shade, below the lit lip and hover ring
+        let shade = openingShape(opening.shape, size: opening.size)
+        shade.fillColor = UIColor(hex: 0x2A1710)
+        shade.strokeColor = .clear
+        shade.alpha = 0
+        shade.zPosition = 2
+        socket.addChild(shade)
+        let tuckIn = SKAction.run { [weak self, weak piece] in
+            guard let self, let piece, piece.parent != nil else { return }
+            self.panelLayer.addChild(socket)
+            piece.move(toParent: socket)
+            piece.zPosition = 1
+        }
+        let slip = SKAction.group([
+            .moveBy(x: 0, y: -opening.size.height * 0.34, duration: 0.36),
+            .scale(to: 0.72, duration: 0.36),
+            .sequence([.wait(forDuration: 0.16), .fadeAlpha(to: 0.0, duration: 0.2)])
         ])
-        sink.timingMode = .easeIn
-        piece.run(.sequence([pre, .run { [weak self] in self?.playDropSound(kind: kind) }, sink, .removeFromParent()]))
+        slip.timingMode = .easeIn
+        shade.run(.sequence([.wait(forDuration: 0.14), .fadeAlpha(to: 0.85, duration: 0.22)]))
+        piece.run(.sequence([pre, .run { [weak self] in self?.playDropSound(kind: kind) }, tuckIn, slip,
+                             .run { socket.run(.sequence([.fadeOut(withDuration: 0.12), .removeFromParent()])) },
+                             .removeFromParent()]))
 
         flashRim(index, hot: false)
         setBoxMood(.happy)

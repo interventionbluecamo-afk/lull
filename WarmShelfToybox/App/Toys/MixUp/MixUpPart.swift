@@ -52,43 +52,81 @@ enum MixUpLibrary {
     /// The authored cast (Docs/MixUpSlice.md). Every character whose split sheet has
     /// landed joins all three flip pools — their pieces mix with everyone else's,
     /// which is the whole joke. Order here is pool order; newest additions last.
+    // One cohesive, clean-alpha felt cast. Six friends make 216 combinations;
+    // retired art remains in the project as source material, outside the live pools.
     private static let artCharacterNames = [
-        // "wren" sits out: her split bands are a back-view (faceless red blob on
-        // stage — founder QA June 12). She returns when a faced sheet lands.
-        "bunny", "bear", "king", "queen", "mouse", "songbird", "zebra", "cat",
-        "dog", "owl", "duck", "robot", "robot2", "lion", "frog", "mouse2", "bear2",
-        "bunny2", "fox",
-        // June 11 citizens — the town gets bigger and looks more like the world.
-        // (king2 removed June 14 — a second crown read as a duplicate king, founder.)
+        "bunny", "bear", "songbird", "fox", "mouse", "frog"
+    ]
+    private static let legacyArtCharacterNames = [
+        "bunny", "bear", "king", "queen", "mouse", "songbird", "zebra", "cat", "dog", "owl", "duck",
+        "robot", "robot2", "lion", "frog", "mouse2", "bear2", "bunny2", "fox",
         "dancer", "firefighter", "officer", "alien", "astronaut"
+    ]
+    private static let versionTwoArtCharacterNames = [
+        "bunny", "bear", "king", "mouse", "songbird", "zebra", "cat", "dog", "owl", "duck",
+        "robot", "lion", "frog", "fox", "dancer", "firefighter", "officer", "alien", "astronaut"
+    ]
+
+    /// Keep every saved recipe while updating retired identities to their closest
+    /// new felt friend. Trial, favourites count and storage are never reset.
+    static func migratedIndex(_ rawIndex: Int, fromVersion version: Int) -> Int {
+        let oldNames = version == 2 ? versionTwoArtCharacterNames : legacyArtCharacterNames
+        let oldIndex = ((rawIndex % oldNames.count) + oldNames.count) % oldNames.count
+        let aliases = ["queen": "bear", "king": "bear", "robot2": "frog", "robot": "frog",
+                       "mouse2": "mouse", "bear2": "bear", "bunny2": "bunny", "zebra": "bunny",
+                       "cat": "fox", "dog": "bear", "owl": "songbird", "duck": "songbird",
+                       "lion": "bear", "dancer": "bunny", "firefighter": "bear", "officer": "bear",
+                       "alien": "frog", "astronaut": "mouse"]
+        let name = oldNames[oldIndex]
+        return artCharacterNames.firstIndex(of: aliases[name] ?? name) ?? 0
+    }
+
+    private static let atlasForCharacter = [
+        "bunny": "mixup-friends-a", "bear": "mixup-friends-a", "songbird": "mixup-friends-a",
+        "fox": "mixup-friends-b", "mouse": "mixup-friends-b", "frog": "mixup-friends-b"
+    ]
+    // Pixel rectangles measured from the native transparent atlases. No color
+    // keying/despill or bitmap surgery: these are runtime texture coordinates.
+    private static let paintedBounds: [String: [MixUpZone: CGRect]] = [
+        "bunny": [.head: CGRect(x: 144, y: 12, width: 334, height: 427), .body: CGRect(x: 87, y: 443, width: 449, height: 253), .legs: CGRect(x: 137, y: 709, width: 351, height: 289)],
+        "bear": [.head: CGRect(x: 590, y: 108, width: 363, height: 324), .body: CGRect(x: 547, y: 442, width: 450, height: 255), .legs: CGRect(x: 591, y: 709, width: 364, height: 289)],
+        "songbird": [.head: CGRect(x: 1085, y: 115, width: 310, height: 324), .body: CGRect(x: 1019, y: 448, width: 438, height: 249), .legs: CGRect(x: 1090, y: 709, width: 300, height: 289)],
+        "fox": [.head: CGRect(x: 70, y: 4, width: 450, height: 376), .body: CGRect(x: 27, y: 392, width: 522, height: 263), .legs: CGRect(x: 105, y: 667, width: 371, height: 323)],
+        "mouse": [.head: CGRect(x: 520, y: 50, width: 503, height: 330), .body: CGRect(x: 551, y: 394, width: 447, height: 262), .legs: CGRect(x: 593, y: 668, width: 364, height: 322)],
+        "frog": [.head: CGRect(x: 1063, y: 49, width: 393, height: 331), .body: CGRect(x: 1004, y: 392, width: 507, height: 264), .legs: CGRect(x: 1066, y: 668, width: 389, height: 320)],
     ]
 
     private static func artCharacterParts(for zone: MixUpZone) -> [MixUpPart] {
-        artCharacterNames.compactMap { artPart(name: $0, zone: zone) }
+        // Require the complete cast, so a missing atlas cannot shift saved indices.
+        guard ["mixup-friends-a", "mixup-friends-b"].allSatisfy({ ToyArt.texture($0) != nil }) else { return [] }
+        return artCharacterNames.compactMap { artPart(name: $0, zone: zone) }
     }
 
-    /// Sheet bands are cropped tight, so parts are seam-anchored rather than centred:
-    /// the head's chin, the body's shoulders and the legs' top each land on a fixed
-    /// line (slot-local), giving every character a few points of overlap at the joins
-    /// while feet stay planted on the stage line — any band proportions assemble clean.
     private static func artPart(name: String, zone: MixUpZone) -> MixUpPart? {
-        let slot = "\(name)-\(zone == .head ? "head" : zone == .body ? "body" : "legs")"
-        guard ToyArt.texture(slot) != nil else { return nil }
+        guard let atlas = atlasForCharacter[name], let texture = ToyArt.texture(atlas),
+              let bounds = paintedBounds[name]?[zone] else { return nil }
+        let source = CGSize(width: 1536, height: 1024)
+        let crop = CGRect(x: bounds.minX / source.width, y: 1 - bounds.maxY / source.height,
+                          width: bounds.width / source.width, height: bounds.height / source.height)
+        let paintedTexture = SKTexture(rect: crop, in: texture)
+        paintedTexture.filteringMode = .linear
         return MixUpPart(name: name) { s in
             let n = SKNode()
-            let sprite: SKSpriteNode?
+            let sprite = SKSpriteNode(texture: paintedTexture)
             switch zone {
             case .head:
-                sprite = ToyArt.sprite(slot, fit: CGSize(width: 104 * s, height: 170 * s))
-                sprite?.position = CGPoint(x: 0, y: -71 * s + (sprite?.size.height ?? 0) / 2)
+                sprite.size = CGSize(width: 90 * s, height: 90 * bounds.height / bounds.width * s)
+                sprite.position = CGPoint(x: 0, y: -66 * s + sprite.size.height / 2)
             case .body:
-                sprite = ToyArt.sprite(slot, fit: CGSize(width: 130 * s, height: 100 * s))
-                sprite?.position = CGPoint(x: 0, y: 30 * s - (sprite?.size.height ?? 0) / 2)
+                // Shared collar at +30, waist at -44; adjoining pieces overlap.
+                sprite.size = CGSize(width: 120 * s, height: 74 * s)
+                sprite.position = CGPoint(x: 0, y: -7 * s)
             case .legs:
-                sprite = ToyArt.sprite(slot, fit: CGSize(width: 80 * s, height: 48 * s))
-                sprite?.position = CGPoint(x: 0, y: 46 * s - (sprite?.size.height ?? 0) / 2)   // feet kiss the body (QA: cat hover)
+                // At the scene's -88 offset: waist -42, every sole -98.
+                sprite.size = CGSize(width: 86 * s, height: 56 * s)
+                sprite.position = CGPoint(x: 0, y: 18 * s)
             }
-            if let sprite { n.addChild(sprite) }
+            n.addChild(sprite)
             return n
         }
     }

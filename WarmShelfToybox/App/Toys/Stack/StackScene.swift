@@ -1,7 +1,8 @@
 import SpriteKit
 
 final class StackScene: BaseToyScene {
-    override var firstSessionHintKey: String? { "hint.stack" }
+    // A drag has a different meaning from the shared tapping pulse.
+    override var firstSessionHintKey: String? { nil }
     override var toyVoice: AudioManager.LullSoundVoice { .stack }
     override func firstSessionHintPoint() -> CGPoint { CGPoint(x: size.width / 2, y: groundLineY + 30) }
     private var worldLayer = SKNode()
@@ -54,12 +55,14 @@ final class StackScene: BaseToyScene {
     private var lastUpdate: TimeInterval = 0
     private var lastSpawnTime: TimeInterval = -10
     private var nextSupplySlot = 0
-    private var hasSpawnedFirstTrayBlock = false
-
+    private weak var supplyTray: SKShapeNode?
+    private var dragInvitation: SKNode?
+    private var hasTouchedStone = false
+    private let dragHintKey = "hint.stack.drag.v2"
 
     private let maxPieces = 12
-    private let pileTarget = 3
-    private let supplySlotOffsets: [CGFloat] = [0, -0.30, 0.30]
+    private let pileTarget = 1
+    private let supplySlotOffsets: [CGFloat] = [0]
 
     private let warmColors: [UIColor] = [
         WarmShelfPalette.sand,
@@ -78,8 +81,9 @@ final class StackScene: BaseToyScene {
     }
 
     private var trayRect: CGRect {
-        let w = min(size.width * 0.62, 340)
-        return CGRect(x: size.width / 2 - w / 2, y: groundLineY, width: w, height: 60)
+        let w = min(size.width * 0.36, 220)
+        let centerX = size.width * 0.76
+        return CGRect(x: centerX - w / 2, y: groundLineY, width: w, height: 60 * pieceScale)
     }
 
     private var wakeThresholdY: CGFloat {
@@ -142,9 +146,12 @@ final class StackScene: BaseToyScene {
         settledTimer = 0
         if snapshots.isEmpty {
             lastWakeCelebration = -10
-            hasSpawnedFirstTrayBlock = false
+            hasTouchedStone = false
         }
         pieces.removeAll()
+        removeAction(forKey: "stackDragHint")
+        dragInvitation?.removeFromParent()
+        dragInvitation = nil
         worldLayer.removeFromParent()
 
         worldLayer = SKNode()
@@ -223,7 +230,7 @@ final class StackScene: BaseToyScene {
         )
         towerLight.color = WarmShelfPalette.paperHighlight
         towerLight.colorBlendFactor = 1
-        towerLight.position = CGPoint(x: size.width * 0.48, y: groundLineY + (size.height - groundLineY) * 0.42)
+        towerLight.position = CGPoint(x: size.width * 0.34, y: groundLineY + (size.height - groundLineY) * 0.42)
         towerLight.zPosition = -1.96
         towerLight.alpha = 0.55
         worldLayer.addChild(towerLight)
@@ -394,15 +401,28 @@ final class StackScene: BaseToyScene {
         lip.zPosition = 1
         worldLayer.addChild(lip)
 
-        // A soft basket dip where fresh stones appear — makes the supply legible.
+        // One distinct tray on the right supplies one loose stone at a time.
+        // The left-hand base is the clear place to build; nothing falls from nowhere.
         let trayWidth = trayRect.width
-        let tray = SKShapeNode(ellipseOf: CGSize(width: trayWidth, height: 46 * pieceScale))
-        tray.fillColor = WarmShelfPalette.sand.withAlpha(0.22)
-        tray.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.06)
-        tray.lineWidth = 1
-        tray.position = CGPoint(x: trayRect.midX, y: groundLineY + 6)
+        let tray = SKShapeNode(rectOf: CGSize(width: trayWidth, height: 34 * pieceScale),
+                               cornerRadius: 12 * pieceScale)
+        tray.fillColor = WarmShelfPalette.sand.withAlpha(0.92)
+        tray.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.26)
+        tray.lineWidth = 2 * pieceScale
+        tray.position = CGPoint(x: trayRect.midX, y: groundLineY + 5 * pieceScale)
         tray.zPosition = 1.5
+        tray.alpha = 0.78
         worldLayer.addChild(tray)
+        supplyTray = tray
+        let lipPath = CGMutablePath()
+        lipPath.move(to: CGPoint(x: -trayWidth * 0.46, y: -3 * pieceScale))
+        lipPath.addQuadCurve(to: CGPoint(x: trayWidth * 0.46, y: -3 * pieceScale),
+                             control: CGPoint(x: 0, y: -16 * pieceScale))
+        let trayLip = SKShapeNode(path: lipPath)
+        trayLip.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.22)
+        trayLip.lineWidth = 2 * pieceScale
+        trayLip.fillColor = .clear
+        tray.addChild(trayLip)
 
         let floor = SKNode()
         floor.position = CGPoint(x: size.width / 2, y: groundLineY - 30)
@@ -428,94 +448,98 @@ final class StackScene: BaseToyScene {
 
     // MARK: - Opening sequence
 
-    /// Spawns 3 blocks as a casual pre-settled pile on the ground.
-    /// block1 at center, block2 slightly left touching block1, block3 balanced on top tilted ~0.1 rad.
-    /// Each appears with a scale 0→1.06→1.0 pop animation staggered 0.15s apart.
+    /// A wide base on the left and one loose stone in the supply tray. Starting
+    /// with the move still to make lets the child discover stacking immediately.
     private func spawnOpeningPile() {
-        let kinds: [StackPieceKind] = [.pebble, .bean, .loaf]
-        let colors: [UIColor] = [WarmShelfPalette.terracotta, WarmShelfPalette.sage, WarmShelfPalette.butter]
-        let cx = size.width / 2
-
+        let kinds: [StackPieceKind] = [.pebble, .bean]
+        let colors: [UIColor] = [WarmShelfPalette.terracotta, WarmShelfPalette.sage]
         for (i, (kind, color)) in zip(kinds, colors).enumerated() {
-            let piece = StackPieceNode(
-                kind: kind,
-                color: color.withAlpha(0.96),
-                scale: pieceScale,
-                isSignatureHero: i == 0
-            )
+            let piece = StackPieceNode(kind: kind, color: color.withAlpha(0.96),
+                                       scale: pieceScale, isSignatureHero: i == 0)
             if i == 0 { hasSignatureHero = true }
-
-            // Positioning: block1 center, block2 left, block3 on top of block1 tilted
-            let restY = groundLineY + piece.bodySize.height * 0.5 + 4
-            switch i {
-            case 0:
-                piece.position = CGPoint(x: cx, y: restY)
-            case 1:
-                piece.position = CGPoint(x: cx - piece.bodySize.width * 0.72, y: restY)
-            default:
-                // On top of block1, slightly offset, tilted
-                let belowH = StackPieceKind.pebble.bodySize(scale: pieceScale).height
-                piece.position = CGPoint(x: cx + piece.bodySize.width * 0.08, y: groundLineY + belowH + piece.bodySize.height * 0.5 + 4)
-                piece.zRotation = 0.1
-            }
-
+            piece.position = CGPoint(x: i == 0 ? size.width * 0.34 : trayRect.midX,
+                                     y: groundLineY + piece.bodySize.height * 0.5 + 4)
             piece.physicsBody?.isDynamic = false
-            piece.alpha = 0
-            piece.setScale(0)
             pieceLayer.addChild(piece)
             pieces.append(piece)
             addShadow(for: piece)
             piece.breatheSleepily(delay: Double(i) * 0.15 + 0.3)
-
-            let delay = Double(i) * 0.15
-            let perk = SKAction.scale(to: 1.06, duration: 0.14); perk.timingMode = .easeOut
-            let exhale = SKAction.scale(to: 1.0, duration: 0.14); exhale.timingMode = .easeInEaseOut
-            let pop = SKAction.group([
-                .fadeAlpha(to: 1, duration: 0.18),
-                .sequence([perk, exhale])
-            ])
-            piece.run(.sequence([.wait(forDuration: delay), pop]))
-
-            // Enable physics after 0.2s so pieces don't fall before being positioned
-            run(.sequence([
-                .wait(forDuration: delay + 0.2),
-                .run { [weak piece] in piece?.physicsBody?.isDynamic = true }
-            ]))
+            if AmbientAnimator.reduceMotion {
+                piece.physicsBody?.isDynamic = true
+            } else {
+                piece.alpha = 0
+                piece.setScale(0)
+                let perk = SKAction.scale(to: 1.06, duration: 0.14)
+                perk.timingMode = .easeOut
+                let exhale = SKAction.scale(to: 1.0, duration: 0.14)
+                exhale.timingMode = .easeInEaseOut
+                piece.run(.sequence([
+                    .wait(forDuration: Double(i) * 0.15),
+                    .group([.fadeIn(withDuration: 0.18), .sequence([perk, exhale])]),
+                    .run { [weak piece] in piece?.physicsBody?.isDynamic = true }
+                ]), withKey: "appearance")
+            }
         }
-
-        // A visible early invitation keeps the stage from feeling like an empty waiting room.
-        run(.sequence([
-            .wait(forDuration: 0.9),
-            .run { [weak self] in self?.spawnInvitationDrop() }
-        ]))
+        run(.sequence([.wait(forDuration: 1.4), .run { [weak self] in
+            self?.showDragInvitationIfNeeded()
+        }]), withKey: "stackDragHint")
     }
 
-    /// A 4th block appears in the upper play field and falls with physics.
-    private func spawnInvitationDrop() {
-        guard pieces.count < maxPieces else { return }
-        let kind: StackPieceKind = .pebble
-        let color = WarmShelfPalette.lavender
-        let piece = StackPieceNode(
-            kind: kind,
-            color: color.withAlpha(0.96),
-            scale: pieceScale,
-            isSignatureHero: false
-        )
-        let entryY = min(
-            size.height - piece.bodySize.height * 0.55,
-            groundLineY + (size.height - groundLineY) * 0.76
-        )
-        piece.position = CGPoint(x: size.width / 2 + CGFloat.random(in: -20...20), y: entryY)
-        piece.physicsBody?.isDynamic = true
-        piece.alpha = 0
-        pieceLayer.addChild(piece)
-        pieces.append(piece)
-        addShadow(for: piece)
-        piece.breatheSleepily(delay: 0.5)
+    /// A finger-sized dot demonstrates the first move, then leaves. It never moves
+    /// the actual stone, and the child's first touch cancels the demonstration.
+    private func showDragInvitationIfNeeded() {
+        guard !hasTouchedStone, !LullDemoState.shared.hasSeenHint(dragHintKey),
+              let base = pieces.first(where: { $0.isSignatureHero }),
+              let loose = pieces.first(where: { !$0.isSignatureHero }) else { return }
+        LullDemoState.shared.markHintSeen(dragHintKey)
+        let start = loose.position
+        let end = CGPoint(x: base.position.x, y: base.topY + loose.bodySize.height / 2 + 2)
+        let hint = SKNode()
+        hint.zPosition = 100
+        addChild(hint)
+        dragInvitation = hint
 
-        let fade = SKAction.fadeAlpha(to: 1, duration: 0.18)
-        piece.run(fade)
-        hasSpawnedFirstTrayBlock = true
+        let target = SKShapeNode(rectOf: loose.bodySize, cornerRadius: loose.bodySize.height * 0.36)
+        target.position = end
+        target.fillColor = .clear
+        target.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.18)
+        target.lineWidth = 2
+        hint.addChild(target)
+        let finger = SKShapeNode(circleOfRadius: 9 * pieceScale)
+        finger.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.92)
+        finger.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.3)
+        finger.lineWidth = 1.5
+        finger.position = start
+        hint.addChild(finger)
+
+        if AmbientAnimator.reduceMotion {
+            // Static trail preserves the instruction when motion is turned off.
+            for step in 1...4 {
+                let t = CGFloat(step) / 5
+                let dot = SKShapeNode(circleOfRadius: 2.5 * pieceScale)
+                dot.fillColor = WarmShelfPalette.cocoa.withAlpha(0.16)
+                dot.strokeColor = .clear
+                dot.position = CGPoint(x: start.x + (end.x - start.x) * t,
+                                       y: start.y + (end.y - start.y) * t)
+                hint.addChild(dot)
+            }
+        } else {
+            let path = CGMutablePath()
+            path.move(to: start)
+            path.addQuadCurve(to: end, control: CGPoint(x: start.x, y: end.y + 50 * pieceScale))
+            let move = SKAction.follow(path, asOffset: false, orientToPath: false, duration: 1.35)
+            move.timingMode = .easeInEaseOut
+            finger.run(.sequence([.wait(forDuration: 0.3), move, .fadeOut(withDuration: 0.4)]))
+        }
+        hint.run(.sequence([.wait(forDuration: 2.5), .fadeOut(withDuration: 0.35), .removeFromParent()]))
+    }
+
+    private func dismissDragInvitation() {
+        hasTouchedStone = true
+        removeAction(forKey: "stackDragHint")
+        dragInvitation?.removeFromParent()
+        dragInvitation = nil
+        LullDemoState.shared.markHintSeen(dragHintKey)
     }
 
     private func spawnPilePiece(animated: Bool, indexHint: Int = 0) {
@@ -563,17 +587,23 @@ final class StackScene: BaseToyScene {
         addShadow(for: piece)
 
         if animated {
-            // Rise gently out of the basket — not falling from nowhere.
-            // Scale 0→1.08→1.0 over 0.28s easeOut total.
-            piece.alpha = 0
-            piece.setScale(0)
-            let perk = SKAction.scale(to: 1.08, duration: 0.16); perk.timingMode = .easeOut
-            let exhale = SKAction.scale(to: 1.0, duration: 0.12); exhale.timingMode = .easeOut
-            let pop = SKAction.group([
-                .fadeAlpha(to: 1, duration: 0.22),
-                .sequence([perk, exhale])
-            ])
-            piece.run(pop)
+            // The refill rises from the exact tray the child just emptied.
+            if !AmbientAnimator.reduceMotion {
+                piece.physicsBody?.isDynamic = false
+                piece.position.y -= 12 * pieceScale
+                piece.alpha = 0
+                piece.setScale(0.8)
+                let rise = SKAction.moveTo(y: restY, duration: 0.28)
+                rise.timingMode = .easeOut
+                let settle = SKAction.scale(to: 1, duration: 0.28)
+                settle.timingMode = .easeOut
+                piece.run(.sequence([
+                    .group([rise, settle, .fadeIn(withDuration: 0.22)]),
+                    .run { [weak piece] in piece?.physicsBody?.isDynamic = true }
+                ]), withKey: "appearance")
+                supplyTray?.run(.sequence([.fadeAlpha(to: 1, duration: 0.1),
+                                           .fadeAlpha(to: 0.78, duration: 0.4)]), withKey: "refill")
+            }
             piece.breatheSleepily()
             AudioManager.shared.playStackPlace()
             isFrozen = false
@@ -661,6 +691,10 @@ final class StackScene: BaseToyScene {
             if activeTouches.isEmpty, consumeShelfReturnTouch(at: point) { return }
 
             if let piece = topPiece(at: point), !activeTouches.values.contains(where: { $0 === piece }) {
+                dismissDragInvitation()
+                piece.removeAction(forKey: "appearance")
+                piece.alpha = 1
+                piece.setScale(1)
                 // Bring the whole tower back to life so pulling a low stone can topple the rest.
                 unfreezeAll()
                 activeTouches[touch] = piece
@@ -692,6 +726,10 @@ final class StackScene: BaseToyScene {
                 piece.poseForCarry(move)
             }
             piece.position = clamped
+            if !trayRect.contains(CGPoint(x: piece.position.x, y: groundLineY + 10))
+                || piece.bottomY > groundLineY + piece.bodySize.height * 0.5 {
+                replenishPileIfNeeded()
+            }
         }
     }
 
@@ -991,6 +1029,7 @@ final class StackScene: BaseToyScene {
     private func replenishPileIfNeeded() {
         let inPile = pieces.filter { piece in
             activeTouches.values.contains(where: { $0 === piece }) == false
+            && (trayRect.minX...trayRect.maxX).contains(piece.position.x)
             && piece.position.y < groundLineY + piece.bodySize.height * 1.4
             && piece.speed2D < 14
         }

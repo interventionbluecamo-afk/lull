@@ -18,9 +18,13 @@ def block(source,needle):
   depth+=(source[i]=='{')-(source[i]=='}');i+=1
  return source[start:i]
 methods='\n'.join(block(cs,n) for n in ['struct CastRig','static func artMouthPoint','func receivedFood','func fulfillDesire','func restoreWishGranted','func restoreBitesRemaining', 'var visitIsComplete'])
+methods += '\n' + next(line for line in cs.splitlines() if 'static let chewBeatDuration:' in line)
 fixture=r'''
 import Foundation
-enum CharacterMood { case hungry, eating }
+#if canImport(CoreGraphics)
+import CoreGraphics
+#endif
+enum CharacterMood { case hungry, eating, satisfied, resting }
 enum FoodKind: Equatable { case apple, carrot, banana, egg }
 final class SKAction {
  var timingMode = Timing.easeIn
@@ -101,7 +105,42 @@ for radius: CGFloat in [30,60,80,104,128,200,400] {
  check(snap >= 40 && snap <= 60)
 }
 check(FeedServingRules.minimumDragTravel > 0)
-print("PASS: \(checks) request-state, mouth-landmark and serving-bound checks using extracted production methods")
+// Pending food and departure must wait for the complete chew, then visibly settle.
+let chew = CharacterModel.chewBeatDuration
+check(FeedServingRules.nextBiteDelay(mood:.eating,eatingDuration:chew) >= chew + 0.3)
+check(FeedServingRules.completedVisitDelay(mood:.eating,wishGranted:true,eatingDuration:chew)
+      >= chew + FeedServingRules.wishLaughDuration + 0.3)
+check(FeedServingRules.completedVisitDelay(mood:.satisfied,wishGranted:true,eatingDuration:chew)
+      >= FeedServingRules.wishLaughDuration + 0.3)
+check(FeedServingRules.completedVisitDelay(mood:.eating,wishGranted:false,eatingDuration:chew) >= 2.8)
+check(FeedServingRules.nextBiteDelay(mood:.satisfied,eatingDuration:chew) < chew)
+// Rotation changes the layout scale, not the visitor's identity or base head size.
+for radius: CGFloat in [60,80,104,128,144] {
+ for (oldScale,newScale): (CGFloat,CGFloat) in [(1.54,1.0),(1.0,1.54),(1.74,1.2),(1.2,1.74)] {
+  let rotated = FeedServingRules.rescaledHeadRadius(radius * oldScale,from:oldScale,to:newScale)
+  check(abs(rotated - radius * newScale) < 0.001)
+  let restored = FeedServingRules.rescaledHeadRadius(rotated,from:newScale,to:oldScale)
+  check(abs(restored - radius * oldScale) < 0.001)
+ }
+}
+// An above-head minimum used to force the bubble outside a short landscape phone.
+for (bounds,head,origin) in [
+ (CGRect(x:14,y:48,width:362,height:723),CGFloat(123),CGPoint(x:195,y:440)),
+ (CGRect(x:73,y:35,width:706,height:344),CGFloat(82),CGPoint(x:426,y:290)),
+ (CGRect(x:14,y:34,width:806,height:1124),CGFloat(128),CGPoint(x:417,y:640)),
+ (CGRect(x:14,y:34,width:1152,height:772),CGFloat(104),CGPoint(x:590,y:500))
+] {
+ let halfHeight = head * 0.78
+ let point = FeedServingRules.thoughtBubblePosition(desiredLocalY:head * 1.7,
+   preferredSide:0,headRadius:head,halfHeight:halfHeight,characterPosition:origin,visibleBounds:bounds)
+ let world = CGPoint(x:origin.x + point.x,y:origin.y + point.y)
+ check(world.y + halfHeight <= bounds.maxY + 0.001)
+ check(world.y - halfHeight >= bounds.minY - 0.001)
+ check(world.x + head * 0.86 <= bounds.maxX + 0.001)
+ check(world.x - head * 0.86 >= bounds.minX - 0.001)
+ if bounds.height < 400 { check(point.x > head * 1.2); check(point.y < head) }
+}
+print("PASS: \(checks) request-state, mouth-landmark, serving-bound, recovery-timing and rotation-layout checks using extracted production methods")
 '''
 with tempfile.TemporaryDirectory(prefix="lull-feed-verification-") as temporary_directory:
     temporary_path = Path(temporary_directory)

@@ -872,11 +872,17 @@ final class DropDotsScene: BaseToyScene {
             dragTarget = CGPoint(x: (p.x + dragOffset.x).clamped(to: 24...size.width - 24),
                                  y: (p.y + dragOffset.y + 6).clamped(to: 40...size.height - 40))
         }
-        // A real pull: dragging the handle down a little pours straight away.
-        if let pull = tabTouch, touches.contains(pull),
-           tabTouchStartY - pull.location(in: self).y > max(12, cell * 0.2) {
-            tabTouch = nil
-            triggerReset()
+        if let pull = tabTouch, touches.contains(pull) {
+            // Leaving sideways disarms the handle permanently for this touch. A palm
+            // sliding away must not become a pull when it later travels downward.
+            switch DropDotsHandleGesture.decision(at: pull.location(in: self), startY: tabTouchStartY,
+                                                 handle: resetTabRect, cell: cell) {
+            case .hold: break
+            case .cancel: tabTouch = nil
+            case .pour:
+                tabTouch = nil
+                triggerReset()
+            }
         }
     }
 
@@ -1387,6 +1393,19 @@ final class DropDotsScene: BaseToyScene {
             self?.triggerReset()
         })
         return elements
+    }
+}
+
+/// A downward pull can leave the handle vertically, but leaving its sides or top cancels it.
+enum DropDotsHandleGesture {
+    enum Decision { case hold, cancel, pour }
+
+    static func decision(at point: CGPoint, startY: CGFloat, handle: CGRect, cell: CGFloat) -> Decision {
+        let corridor = handle.insetBy(dx: -cell * 0.4, dy: -cell * 0.4)
+        guard point.x >= corridor.minX, point.x <= corridor.maxX, point.y <= corridor.maxY else {
+            return .cancel
+        }
+        return startY - point.y > max(12, cell * 0.2) ? .pour : .hold
     }
 }
 

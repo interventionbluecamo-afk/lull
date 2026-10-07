@@ -1,5 +1,6 @@
 import AVFoundation
 import QuartzCore
+import UIKit
 
 final class AudioManager {
     static let shared = AudioManager()
@@ -86,20 +87,28 @@ final class AudioManager {
     private var windowAmbienceTargets: [WindowAmbienceChannel: Float] = [:]
     private var windowAmbienceFadeGen: [WindowAmbienceChannel: Int] = [:]
     private var windowAmbienceActive = false
+    private var windowDayPhase: CGFloat?
+    private var sessionIsActive = false
+    private var applicationIsActive = UIApplication.shared.applicationState == .active
+    private var audioIsInterrupted = false
+    private var audioObservers: [NSObjectProtocol] = []
 
     var isEnabled: Bool {
         get { LullDemoState.shared.isSoundEnabled }
         set {
             LullDemoState.shared.isSoundEnabled = newValue
-            if !newValue {
-                stopWindowAmbience(fadeOut: 0.45)
+            if newValue {
+                resumeRoomAudio()
+            } else {
+                suspendPlayback()
+                deactivateAudioSession()
             }
         }
     }
 
     private init() {
-        configureAudioSession()
         loadPlayers()
+        observeAudioLifecycle()
     }
 
     func playBubblePop(size: CGFloat, isRare: Bool = false) {
@@ -297,12 +306,103 @@ final class AudioManager {
         LullToneEngine.shared.playOnceBuffer(buffer, volume: volume)
     }
 
-    private func configureAudioSession() {
+    /// All recorded and synthesized playback shares this live gate. Failed activation is
+    /// retried on the next interaction rather than leaving the toybox silent until relaunch.
+    @discardableResult
+    func prepareForPlayback() -> Bool {
+        guard isEnabled, applicationIsActive, !audioIsInterrupted else { return false }
+        guard !sessionIsActive else { return true }
         do {
-            try AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default, options: [.mixWithOthers])
+            // Toy sound follows the parent's Sound control, including on a phone in Silent Mode.
+            // Mixing lets a family's music continue; the app has no background-audio entitlement.
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
             try AVAudioSession.sharedInstance().setActive(true)
+            sessionIsActive = true
+            return true
         } catch {
-            // Audio should never block toy play; haptics remain as fallback.
+            sessionIsActive = false
+            #if DEBUG
+            print("AudioManager: audio session could not be activated: \(error)")
+            #endif
+            return false
+        }
+    }
+
+    private func observeAudioLifecycle() {
+        let center = NotificationCenter.default
+        audioObservers.append(center.addObserver(forName: UIApplication.willResignActiveNotification,
+                                                object: nil, queue: .main) { [weak self] _ in
+            guard let self else { return }
+            self.applicationIsActive = false
+            self.suspendPlayback()
+            self.deactivateAudioSession()
+        })
+        audioObservers.append(center.addObserver(forName: UIApplication.didBecomeActiveNotification,
+                                                object: nil, queue: .main) { [weak self] _ in
+            guard let self else { return }
+            self.applicationIsActive = true
+            self.resumeRoomAudio()
+        })
+        audioObservers.append(center.addObserver(forName: AVAudioSession.interruptionNotification,
+                                                object: AVAudioSession.sharedInstance(), queue: .main) { [weak self] note in
+            guard let self,
+                  let rawType = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+                  let type = AVAudioSession.InterruptionType(rawValue: rawType) else { return }
+            self.sessionIsActive = false
+            switch type {
+            case .began:
+                self.audioIsInterrupted = true
+                self.suspendPlayback()
+            case .ended:
+                self.audioIsInterrupted = false
+                let rawOptions = note.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0
+                if AVAudioSession.InterruptionOptions(rawValue: rawOptions).contains(.shouldResume) {
+                    self.resumeRoomAudio()
+                }
+            @unknown default:
+                break
+            }
+        })
+    }
+
+    private func deactivateAudioSession() {
+        sessionIsActive = false
+        do {
+            try AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
+        } catch {
+            // The engine and players are already stopped; a phone interruption can own the session.
+        }
+    }
+
+    private func suspendPlayback() {
+        for profilePlayers in players.values {
+            for player in profilePlayers {
+                player.stop()
+                player.currentTime = 0
+            }
+        }
+        lastPlayTime.removeAll()
+        silenceWindowAmbience()
+        LullToneEngine.shared.stopAllPlayback()
+    }
+
+    private func silenceWindowAmbience() {
+        windowAmbienceActive = false
+        for (channel, player) in windowAmbiencePlayers {
+            windowAmbienceFadeGen[channel, default: 0] += 1
+            windowAmbienceTargets[channel] = 0
+            player.volume = 0
+            player.stop()
+            player.currentTime = 0
+        }
+    }
+
+    private func resumeRoomAudio() {
+        guard prepareForPlayback() else { return }
+        // Resume only the room bed. Held Hum notes and old celebrations need a new gesture.
+        startToyAmbient(currentToyVoice)
+        if let phase = windowDayPhase {
+            setWindowAmbience(dayPhase: phase, animated: false)
         }
     }
 
@@ -354,7 +454,7 @@ final class AudioManager {
 
     @discardableResult
     private func play(_ profile: SoundProfile, rateOffset: Float = 0, volumeScale: Float = 1) -> Bool {
-        guard isEnabled else { return false }
+        guard prepareForPlayback() else { return false }
         let tuning = soundTunings[profile]
         let now = CACurrentMediaTime()
         if let tuning, tuning.cooldown > 0 {
@@ -580,8 +680,9 @@ final class AudioManager {
     /// Recorded daytime/nighttime Window room beds. Both players are kept prepared and only
     /// their volumes move, so a child scrubbing the day dial never restarts or clicks the bed.
     func setWindowAmbience(dayPhase: CGFloat, animated: Bool) {
-        guard isEnabled else {
-            stopWindowAmbience(fadeOut: 0.35)
+        windowDayPhase = dayPhase
+        guard prepareForPlayback() else {
+            silenceWindowAmbience()
             return
         }
         ensureWindowAmbiencePlayers()
@@ -603,6 +704,7 @@ final class AudioManager {
     }
 
     func stopWindowAmbience(fadeOut: TimeInterval = 1.2) {
+        windowDayPhase = nil
         windowAmbienceActive = false
         rampWindowAmbience(.morning, to: 0, duration: fadeOut, stopWhenSilent: true)
         rampWindowAmbience(.night, to: 0, duration: fadeOut, stopWhenSilent: true)

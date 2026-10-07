@@ -44,6 +44,8 @@ final class SleepyDropBoxScene: BaseToyScene {
     private var insideKinds: [DropTreasureNode.Kind] = []
     private var playSpots: [CGPoint] = []
     private let pieceKinds: [DropTreasureNode.Kind] = [.berry, .triangle, .cube, .star]
+    private var playSlotOrder = [0, 1, 2, 3]
+    private var returningDestinations: [DropTreasureNode.Kind: CGPoint] = [:]
 
     // Touch
     private var dragTouch: UITouch?
@@ -95,10 +97,14 @@ final class SleepyDropBoxScene: BaseToyScene {
         // A rotation keeps posted shapes inside and preserves the child's loose arrangement.
         // Rebuilding the full set also completes a partly animated drawer return safely.
         let savedInside = insideKinds
-        let savedOutside = treasures.map { piece in
-            (kind: piece.kind,
-             position: CGPoint(x: piece.position.x / max(1, oldSize.width),
-                               y: piece.position.y / max(1, oldSize.height)))
+        let savedOutside = pieceKinds.compactMap { kind -> (kind: DropTreasureNode.Kind, position: CGPoint)? in
+            guard !savedInside.contains(kind),
+                  let position = returningDestinations[kind] ?? treasures.first(where: { $0.kind == kind })?.position else {
+                return nil
+            }
+            return (kind: kind,
+                    position: CGPoint(x: position.x / max(1, oldSize.width),
+                                      y: position.y / max(1, oldSize.height)))
         }
         let drawerWasOpen = drawer.position.y < drawerClosedY - (drawerClosedY - drawerOpenY) * 0.65
         rebuild()
@@ -135,6 +141,7 @@ final class SleepyDropBoxScene: BaseToyScene {
         boxLayer.removeAllChildren(); frontLayer.removeAllChildren(); panelLayer.removeAllChildren(); pieceLayer.removeAllChildren()
         drawer.removeFromParent(); drawer.removeAllActions(); drawer.removeAllChildren()
         treasures.removeAll(); insideKinds.removeAll(); openings.removeAll()
+        returningDestinations.removeAll()
         dragTouch = nil; dragPiece = nil; drawerTouch = nil; hoverOpening = nil
 
         let landscape = size.width > size.height
@@ -679,7 +686,8 @@ final class SleepyDropBoxScene: BaseToyScene {
         let trayY = max(size.height * (landscape ? 0.12 : 0.115), boardBottom - r * 1.7)
         let n = 4
         // Equal, generous footprints keep all four silhouettes fully on-screen, including
-        // the moment a shape grows slightly on pickup. Their homes do not move each round.
+        // the moment a shape grows slightly on pickup. Completed rounds rearrange which
+        // shape occupies each footprint; socket fits stay the same.
         let spread = min(boxW * 0.82, size.width - r * 2.6)
 
         // A real shallow wooden dish the treasures live in — visible back wall, floor, and a lit
@@ -724,7 +732,7 @@ final class SleepyDropBoxScene: BaseToyScene {
             home.zPosition = 0.44
             boxLayer.addChild(home)
             let piece = DropTreasureNode(kind: kind, radius: r)
-            piece.position = playSpots[i]
+            piece.position = playSpots[playSlotOrder[i]]
             piece.zPosition = 12
             pieceLayer.addChild(piece)
             treasures.append(piece)
@@ -817,6 +825,7 @@ final class SleepyDropBoxScene: BaseToyScene {
                 dragPiece = piece
                 dragOffset = CGPoint(x: piece.position.x - p.x, y: piece.position.y - p.y)
                 dragTarget = piece.position
+                returningDestinations.removeValue(forKey: piece.kind)
                 piece.removeAllActions()
                 piece.setLifted(true)
                 piece.zPosition = 30
@@ -1083,6 +1092,9 @@ final class SleepyDropBoxScene: BaseToyScene {
     private func tumbleOut() {
         guard !insideKinds.isEmpty else { return }
         let kinds = insideKinds
+        if kinds.count == pieceKinds.count {
+            playSlotOrder = SleepyBoxRoundLayout.shuffledSlots(playSlotOrder)
+        }
         insideKinds.removeAll()
         setBoxMood(.surprised)
         HapticsManager.shared.impact(style: .rigid, intensity: 0.3)
@@ -1111,14 +1123,16 @@ final class SleepyDropBoxScene: BaseToyScene {
         }
         for (i, kind) in kinds.enumerated() {
             let homeIndex = pieceKinds.firstIndex(of: kind) ?? i
-            let home = playSpots[homeIndex % playSpots.count]
-            // Return each silhouette to its familiar home whenever that place is clear.
+            let home = playSpots[playSlotOrder[homeIndex % playSlotOrder.count]]
+            // A completed round returns the shapes to newly shuffled slots.
+            // Partial returns keep this round's places whenever they are clear.
             // If another loose piece occupies it, choose the nearest clear place instead.
             let destinationIndex = available.indices.min { a, b in
                 hypot(available[a].x - home.x, available[a].y - home.y)
                     < hypot(available[b].x - home.x, available[b].y - home.y)
             }
             let dest = destinationIndex.map { available.remove(at: $0) } ?? home
+            returningDestinations[kind] = dest
             let piece = DropTreasureNode(kind: kind, radius: r)
             // Each treasure emerges already-readable from the dark drawer cavity — spread
             // across the drawer's mouth by index, so returns never pile at one point.
@@ -1138,8 +1152,13 @@ final class SleepyDropBoxScene: BaseToyScene {
         treasures.append(piece)
         let r = piece.radius
         let appear = SKAction.group([.fadeIn(withDuration: 0.08), .scale(to: 1, duration: 0.12)])
+        let finishReturn = SKAction.run { [weak self, weak piece] in
+            guard let piece else { return }
+            self?.returningDestinations.removeValue(forKey: piece.kind)
+        }
         if AmbientAnimator.reduceMotion {
-            piece.run(.sequence([appear, .move(to: dest, duration: 0.4), .run { [weak piece] in piece?.squash(0.06) }]))
+            piece.run(.sequence([appear, .move(to: dest, duration: 0.4),
+                                 .run { [weak piece] in piece?.squash(0.06) }, finishReturn]))
             return
         }
         // Pour out toward the slot, then drop in with a gravity ease, a puff of dust, and a soft
@@ -1157,7 +1176,8 @@ final class SleepyDropBoxScene: BaseToyScene {
                 piece.squash(0.13); self.tumbleBump()
                 self.spawnMotes(at: piece.position, color: piece.color, count: 3)
             },
-            bounce
+            bounce,
+            finishReturn
         ]))
     }
 
@@ -1338,6 +1358,17 @@ final class SleepyDropBoxScene: BaseToyScene {
             self?.tumbleOut()
         })
         return elements
+    }
+}
+
+/// A new complete round keeps one of each shape while changing their loose tray order.
+enum SleepyBoxRoundLayout {
+    static func shuffledSlots(_ current: [Int]) -> [Int] {
+        guard current.count > 1 else { return current }
+        var next = current.shuffled()
+        // A completed round always visibly changes, even if random happens to repeat.
+        if next == current { next.append(next.removeFirst()) }
+        return next
     }
 }
 

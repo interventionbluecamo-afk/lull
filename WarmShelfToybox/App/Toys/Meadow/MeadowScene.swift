@@ -129,6 +129,7 @@ final class MeadowScene: BaseToyScene {
             paintStamps: paintedSpringPoints,
             area: springArea,
             bloomFired: bloomMomentFired,
+            dandelionPosition: dandelion?.position,
             snailPos: snail?.position ?? .zero,
             trail: trailPoints,
             flowerSpots: flowers.compactMap { $0.parent != nil ? $0.position : nil },
@@ -142,6 +143,7 @@ final class MeadowScene: BaseToyScene {
         let paintStamps: [CGPoint]
         let area: CGFloat
         let bloomFired: Bool
+        let dandelionPosition: CGPoint?
         let snailPos: CGPoint
         let trail: [CGPoint]
         let flowerSpots: [CGPoint]
@@ -151,6 +153,7 @@ final class MeadowScene: BaseToyScene {
     private func rebuild(restoring snap: MeadowSnap? = nil) {
         guard size.width > 160, size.height > 160 else { return }
         lastBuiltSize = size
+        removeAction(forKey: "meadow.dandelionOffer")
         [groundLayer, springLayer, trailLayer, lifeLayer, snailLayer].forEach { $0.removeAllChildren() }
         flowers.removeAll(); butterflies.removeAll(); landmarks.removeAll()
         springPaths.removeAll(); trailPoints.removeAll(); trailNode = nil
@@ -196,6 +199,13 @@ final class MeadowScene: BaseToyScene {
                 lm.wake(instantly: true)
             }
             snail?.position = snap.snailPos
+            if snap.bloomFired {
+                if let puffPosition = snap.dandelionPosition {
+                    offerDandelion(at: puffPosition, animated: false)
+                } else {
+                    scheduleDandelionOffer()
+                }
+            }
             trailPoints = snap.trail
             redrawTrail()
         }
@@ -1122,7 +1132,14 @@ final class MeadowScene: BaseToyScene {
             }
             for _ in 0..<2 { addButterfly() }
         }
-        run(.sequence([.wait(forDuration: 3.0), .run { [weak self] in self?.offerDandelion() }]))
+        scheduleDandelionOffer()
+    }
+
+    private func scheduleDandelionOffer() {
+        run(.sequence([.wait(forDuration: 3.0), .run { [weak self] in
+            guard let self, self.bloomMomentFired else { return }
+            self.offerDandelion()
+        }]), withKey: "meadow.dandelionOffer")
     }
 
     private func addButterfly() {
@@ -1177,7 +1194,7 @@ final class MeadowScene: BaseToyScene {
         butterflies.append(b)
     }
 
-    private func offerDandelion() {
+    private func offerDandelion(at restoredPosition: CGPoint? = nil, animated: Bool = true) {
         guard dandelion == nil || dandelion?.parent == nil, let snail else { return }
         let puff = SKNode()
         // The pass-2 dandelion is a round puff seen from above, like the rest of the meadow.
@@ -1198,12 +1215,13 @@ final class MeadowScene: BaseToyScene {
                 head.addChild(seed)
             }
         }
-        puff.position = CGPoint(x: snail.position.x + 140, y: snail.position.y + 90)
+        let preferred = restoredPosition ?? CGPoint(x: snail.position.x + 140, y: snail.position.y + 90)
+        puff.position = MeadowDandelionGeometry.position(preferred: preferred, worldSize: worldSize)
         puff.zPosition = 3
-        puff.alpha = 0
+        puff.alpha = animated ? 0 : 1
         lifeLayer.addChild(puff)
         dandelion = puff
-        puff.run(.fadeIn(withDuration: 0.8))
+        if animated { puff.run(.fadeIn(withDuration: 0.8)) }
         if !AmbientAnimator.reduceMotion {
             puff.run(.repeatForever(.sequence([
                 .rotate(toAngle: 0.06, duration: 1.3), .rotate(toAngle: -0.06, duration: 1.5), .rotate(toAngle: 0, duration: 1.2)
@@ -1215,6 +1233,8 @@ final class MeadowScene: BaseToyScene {
     /// petals lift away, the green sleeps, the little home garden remains. Begin again.
     private func firstFrost() {
         dandelion?.run(.sequence([.fadeOut(withDuration: 0.5), .removeFromParent()]))
+        dandelion = nil
+        removeAction(forKey: "meadow.dandelionOffer")
         tone(.single(11, .breath.with(body: 0.8, amplitude: 0.05, noiseGain: 0.85)), key: "wind")
         HapticsManager.shared.impact(style: .soft, intensity: 0.22)
 
@@ -1682,6 +1702,17 @@ private final class MeadowLandmark: SKNode {
             .rotate(byAngle: -0.05, duration: 0.16),
             .rotate(toAngle: home, duration: 0.22)
         ]), withKey: "delight")
+    }
+}
+
+/// The reset puff stays within the reachable felt world, including at camera edges.
+enum MeadowDandelionGeometry {
+    static func position(preferred: CGPoint, worldSize: CGSize) -> CGPoint {
+        let margin = min(64, min(worldSize.width, worldSize.height) * 0.25)
+        let limitX = max(0, worldSize.width / 2 - margin)
+        let limitY = max(0, worldSize.height / 2 - margin)
+        return CGPoint(x: min(max(preferred.x, -limitX), limitX),
+                       y: min(max(preferred.y, -limitY), limitY))
     }
 }
 

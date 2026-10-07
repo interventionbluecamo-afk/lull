@@ -1,0 +1,4 @@
+PASS: first welcome starts one seven-day trial
+PASS: replay preserves an active trial deadline
+PASS: replay cannot renew an expired trial
+PASS: replay preserves purchase access and family preferences

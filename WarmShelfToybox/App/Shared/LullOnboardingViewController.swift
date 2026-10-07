@@ -17,6 +17,7 @@ final class LullOnboardingViewController: UIViewController {
     private let pageDots = UIPageControl()
     private let primaryButton = UIButton(type: .system)
     private let backgroundGradient = CAGradientLayer()
+    private var accessObserver: NSObjectProtocol?
 
     private var windDownHour = LullDemoState.shared.windDownHour
     private var windPills: [UIButton] = []
@@ -30,6 +31,15 @@ final class LullOnboardingViewController: UIViewController {
         setupScaffold()
         buildPages()
         updateForPage(0, animated: false)
+        accessObserver = NotificationCenter.default.addObserver(
+            forName: .lullAccessDidChange, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.refreshHandoffPage() }
+        }
+    }
+
+    deinit {
+        if let accessObserver { NotificationCenter.default.removeObserver(accessObserver) }
     }
 
     override func viewDidLayoutSubviews() {
@@ -132,8 +142,12 @@ final class LullOnboardingViewController: UIViewController {
         let hero = WrenHeroView(side: 180)
 
         let eyebrow = makeEyebrow("WELCOME TO LULL")
-        let title = makeTitle("A quiet shelf of\nhandmade toys.")
-        let body = makeBody("For ages 2–6. A shelf made for little hands: touch, move, and discover at your own pace. No scores or races — just room to explore.")
+        let title = makeTitle("Little hands.\nRoom to explore.")
+        let body = makeBody("Nine handmade toys for ages 2–6. Build, sort, feed, make music, and wander through a meadow. Pictures and touch invite your child to choose, try, and repeat at their own pace.")
+
+        let privacy = makeBody("No child account. Play and family settings are saved on this device.")
+        privacy.font = .systemFont(ofSize: 13.5, weight: .medium)
+        privacy.textColor = WarmShelfPalette.cocoa.withAlphaComponent(0.72)
 
         let chips = UIStackView(arrangedSubviews: [
             makePromiseChip("No ads", icon: "rectangle.slash", WarmShelfPalette.waterBlue),
@@ -144,7 +158,7 @@ final class LullOnboardingViewController: UIViewController {
         chips.spacing = 8
         chips.distribution = .equalSpacing
 
-        let stack = UIStackView(arrangedSubviews: [hero, eyebrow, title, body, chips])
+        let stack = UIStackView(arrangedSubviews: [hero, eyebrow, title, body, chips, privacy])
         stack.axis = .vertical
         stack.spacing = 14
         stack.alignment = .leading
@@ -207,7 +221,7 @@ final class LullOnboardingViewController: UIViewController {
     // MARK: - Page 3 — hand-off
 
     private func handoffPage() -> UIView {
-        let eyebrow = makeEyebrow("ONE LAST THING")
+        let eyebrow = makeEyebrow("YOUR FAMILY'S TOYBOX")
         let state = LullDemoState.shared
         let titleText: String
         let timelineRows: [UIView]
@@ -257,6 +271,19 @@ final class LullOnboardingViewController: UIViewController {
         }
         let title = makeTitle(titleText)
 
+        let parentOptions = UIButton(type: .system)
+        parentOptions.setTitle(state.hasPurchasedFullToybox ? "Set up our shelf" : "See full toybox & price", for: .normal)
+        parentOptions.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
+        parentOptions.titleLabel?.numberOfLines = 0
+        parentOptions.titleLabel?.textAlignment = .center
+        parentOptions.setTitleColor(WarmShelfPalette.terracotta, for: .normal)
+        parentOptions.backgroundColor = WarmShelfPalette.paperHighlight.withAlphaComponent(0.74)
+        parentOptions.layer.cornerRadius = 18
+        parentOptions.layer.borderWidth = 1
+        parentOptions.layer.borderColor = WarmShelfPalette.softLine.cgColor
+        parentOptions.heightAnchor.constraint(greaterThanOrEqualToConstant: 48).isActive = true
+        parentOptions.addTarget(self, action: #selector(showParentOptions), for: .touchUpInside)
+
         let timeline = makeWarmCard()
         let rows = UIStackView(arrangedSubviews: timelineRows)
         rows.axis = .vertical
@@ -298,7 +325,9 @@ final class LullOnboardingViewController: UIViewController {
             gColumn.bottomAnchor.constraint(equalTo: exploration.bottomAnchor, constant: -16)
         ])
 
-        let reassure = makeBody("One optional purchase. No subscription or automatic renewal.")
+        let reassure = makeBody(state.hasPurchasedFullToybox
+            ? "Your full toybox is open."
+            : "The free week never turns into a charge. A full toybox purchase is optional.")
         reassure.font = .systemFont(ofSize: 14, weight: .semibold)
         reassure.textColor = WarmShelfPalette.cocoa.withAlphaComponent(0.75)
         reassure.textAlignment = .center
@@ -322,7 +351,7 @@ final class LullOnboardingViewController: UIViewController {
             gateLabel.bottomAnchor.constraint(equalTo: gate.bottomAnchor, constant: -16)
         ])
 
-        let stack = UIStackView(arrangedSubviews: [eyebrow, title, timeline, exploration, reassure, gate])
+        let stack = UIStackView(arrangedSubviews: [eyebrow, title, parentOptions, timeline, exploration, reassure, gate])
         stack.axis = .vertical
         stack.spacing = 14
         stack.alignment = .fill
@@ -331,6 +360,27 @@ final class LullOnboardingViewController: UIViewController {
         stack.setCustomSpacing(12, after: timeline)
         stack.setCustomSpacing(10, after: exploration)
         return wrapInPage(stack)
+    }
+
+    private func refreshHandoffPage() {
+        guard pagesStack.arrangedSubviews.count == pageCount,
+              let oldPage = pagesStack.arrangedSubviews.last else { return }
+        pagesStack.removeArrangedSubview(oldPage)
+        oldPage.removeFromSuperview()
+        let page = handoffPage()
+        page.translatesAutoresizingMaskIntoConstraints = false
+        pagesStack.addArrangedSubview(page)
+        page.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor).isActive = true
+        updateForPage(currentPage, animated: false)
+    }
+
+    @objc private func showParentOptions() {
+        AdultGate.present(from: self) { [weak self] in
+            guard let self else { return }
+            let parent = ParentInfoViewController()
+            parent.modalPresentationStyle = .fullScreen
+            self.present(parent, animated: true)
+        }
     }
 
     /// One row of the trial timeline: a clay dot with a connecting thread, a bold beat
@@ -403,7 +453,19 @@ final class LullOnboardingViewController: UIViewController {
     private func updateForPage(_ page: Int, animated: Bool) {
         currentPage = page
         pageDots.currentPage = page
-        let title = page == pageCount - 1 ? "Give it to your little one" : "Continue"
+        let state = LullDemoState.shared
+        let title: String
+        if page != pageCount - 1 {
+            title = "Continue"
+        } else if state.hasPurchasedFullToybox {
+            title = "Open toybox"
+        } else if state.isTrialActive {
+            title = "Continue free week"
+        } else if state.hasTrialStarted {
+            title = "Open free toys"
+        } else {
+            title = "Start seven free days"
+        }
         UIView.transition(with: primaryButton, duration: animated ? 0.2 : 0, options: .transitionCrossDissolve) {
             self.primaryButton.setTitle(title, for: .normal)
         }

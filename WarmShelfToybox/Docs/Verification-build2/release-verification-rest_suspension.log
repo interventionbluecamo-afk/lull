@@ -1,0 +1,4 @@
+PASS: cancels before pause, restores interaction/gesture states, resumes once
+PASS: preserves a previously paused or disabled view
+PASS: scene replacement restores its host without resuming stale scene audio
+PASS: missing and non-playable views cannot be suspended

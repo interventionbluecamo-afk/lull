@@ -132,6 +132,8 @@ final class LullToneEngine {
     private var nextNode = 0
     private var cache: [String: AVAudioPCMBuffer] = [:]
     private var started = false
+    private var playbackGeneration = 0
+    private var oneShotNodes: [ObjectIdentifier: AVAudioPlayerNode] = [:]
 
     /// Reserved for a future spatial pass. Disabled for now because shelf taps must be
     /// absolutely crash-proof across Simulator, iPhone, and iPad routes.
@@ -181,13 +183,36 @@ final class LullToneEngine {
     }
 
     private func startIfNeeded() {
+        guard AudioManager.shared.prepareForPlayback() else {
+            started = false
+            return
+        }
         if engine.isRunning { started = true; return }
         do {
             try engine.start()
             started = true
         } catch {
             started = false
+            #if DEBUG
+            print("LullToneEngine: audio engine could not be started: \(error)")
+            #endif
         }
+    }
+
+    /// Sound Off and app interruptions cancel every voice, including delayed notes and
+    /// temporary one-shot nodes. Cached buffers and the fixed voice pool stay ready to reuse.
+    func stopAllPlayback() {
+        playbackGeneration += 1
+        for node in pool { node.stop() }
+        for id in Array(ambientNodes.keys) { commitStopAmbient(id: id) }
+        let transientNodes = Array(oneShotNodes.values)
+        oneShotNodes.removeAll()
+        for node in transientNodes {
+            node.stop()
+            engine.detach(node)
+        }
+        engine.pause()
+        started = false
     }
 
     // MARK: - Playback
@@ -216,17 +241,15 @@ final class LullToneEngine {
     /// Render and cache a spec WITHOUT playing it — warms the cache so the first real strike
     /// (and fast glissandos) never synthesise on the calling thread.
     func prewarm(_ spec: Spec, cacheKey: String) {
-        startIfNeeded()
-        guard started, cache[cacheKey] == nil, let rendered = render(spec) else { return }
+        guard cache[cacheKey] == nil, let rendered = render(spec) else { return }
         cache[cacheKey] = rendered
     }
 
     /// Render and cache a looping ambient buffer without playing it — so the first held note
     /// never synthesises on the calling thread.
     func prewarmAmbient(id: String, spec: AmbientSpec) {
-        startIfNeeded()
         let key = "~ambient~\(id)"
-        guard started, cache[key] == nil, let rendered = renderAmbient(spec) else { return }
+        guard cache[key] == nil, let rendered = renderAmbient(spec) else { return }
         cache[key] = rendered
     }
 
@@ -237,12 +260,14 @@ final class LullToneEngine {
     func playSequence(_ steps: [(spec: Spec, delay: Double, cacheKey: String)]) {
         startIfNeeded()
         guard started else { return }
+        let generation = playbackGeneration
         for step in steps {
             if step.delay <= 0 {
                 play(step.spec, cacheKey: step.cacheKey)
             } else {
                 DispatchQueue.main.asyncAfter(deadline: .now() + step.delay) { [weak self] in
-                    self?.play(step.spec, cacheKey: step.cacheKey)
+                    guard let self, self.playbackGeneration == generation else { return }
+                    self.play(step.spec, cacheKey: step.cacheKey)
                 }
             }
         }
@@ -356,9 +381,6 @@ final class LullToneEngine {
     /// Synthesize Wren's unique first-breath sound. The variant (0–11) subtly shifts pitch,
     /// attack, and the felt/breath harmonic blend so each device gets its own quiet moment.
     func synthesizeWrenBreath(variant: Int) -> AVAudioPCMBuffer? {
-        startIfNeeded()
-        guard started else { return nil }
-
         let v = max(0, min(11, variant))
         let duration = 2.2
         let frameCount = AVAudioFrameCount(duration * sampleRate)
@@ -430,10 +452,13 @@ final class LullToneEngine {
         engine.attach(node)
         engine.connect(node, to: engine.mainMixerNode, format: format)
         node.volume = volume
+        let identifier = ObjectIdentifier(node)
+        oneShotNodes[identifier] = node
         node.scheduleBuffer(buffer, at: nil, options: []) { [weak self, weak node] in
             DispatchQueue.main.async {
-                node?.stop()
-                if let self, let node { self.engine.detach(node) }
+                guard let self, let node, self.oneShotNodes.removeValue(forKey: identifier) === node else { return }
+                node.stop()
+                self.engine.detach(node)
             }
         }
         node.play()

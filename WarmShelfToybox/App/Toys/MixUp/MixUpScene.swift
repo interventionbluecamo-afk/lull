@@ -29,19 +29,54 @@ final class MixUpScene: BaseToyScene {
     private var miniFrameSize: CGSize = .zero
     private var savingKeepsake = false
     private var lastFlourishAt: TimeInterval = 0
-    private var theaterValanceHeight: CGFloat = 0   // creations ledge clears the curtain top
     private var lastBowedMatch: String?             // the bow fires once per match, re-armed when it breaks
     private weak var stageLightPool: SKShapeNode?
 
-    /// Scale off available *height* (not min dimension) so the character fills a tall
-    /// portrait canvas but never overflows the short landscape one.
-    private var mixScale: CGFloat {
-        let landscape = size.width > size.height
-        return (size.height / (landscape ? 380 : 490)).clamped(to: 0.9...2.6)
+    /// The character and its controls have separate space. A circular control is
+    /// finger-sized on a phone, rather than growing with the clay character.
+    private lazy var characterEnvelope: CGRect = {
+        var bounds = CGRect.null
+        for zone in MixUpZone.allCases {
+            let offset: CGFloat = zone == .head ? 92 : zone == .body ? 0 : -88
+            for part in MixUpLibrary.parts(for: zone) {
+                let frame = part.build(1).calculateAccumulatedFrame().offsetBy(dx: 0, dy: offset)
+                bounds = bounds.union(frame)
+            }
+        }
+        return bounds.isNull ? CGRect(x: -60, y: -98, width: 120, height: 239) : bounds
+    }()
+
+    private var controlRadius: CGFloat { isTabletLayout ? 27 : 22 }
+    private var controlTouchRadius: CGFloat { controlRadius + 6 }
+    private var keepsakeRadius: CGFloat { isTabletLayout ? 31 : 25 }
+    private var floorY: CGFloat {
+        max(safePlayRect().minY + (isLandscapeLayout ? 50 : 100),
+            size.height * (isLandscapeLayout ? 0.19 : 0.25))
     }
-    private var floorY: CGFloat { size.height * (size.width > size.height ? 0.24 : 0.31) }
-    private var characterRootY: CGFloat { floorY + 76 * mixScale }   // sits lower, feet planted on the floor
+    private var mixScale: CGFloat {
+        let play = safePlayRect()
+        let upperLimit = isLandscapeLayout ? play.maxY - 16
+            : play.maxY - miniFrameBaseWidth * 1.42 - 16
+        let heightFit = (upperLimit - floorY - 24) / max(237, characterEnvelope.height + 28)
+        let widthFit = (play.width - 2 * (controlRadius * 2 + 18)) / max(130, characterEnvelope.width + 8)
+        return min(heightFit, widthFit).clamped(to: 0.68...2.6)
+    }
+    private var characterRootY: CGFloat { floorY - characterEnvelope.minY * mixScale }
     private var roomDecorScale: CGFloat { mixScale.clamped(to: 0.9...1.55) }
+
+    private func controlPosition(for zone: MixUpZone) -> CGPoint {
+        let rightLimit = safePlayRect().maxX - controlRadius - 6
+        let x = min(size.width / 2 + (characterEnvelope.maxX + 5) * mixScale + controlRadius + 18, rightLimit)
+        let bodyY = characterRootY - 7 * mixScale
+        let gap = controlRadius * 2 + 12
+        let y: CGFloat
+        switch zone {
+        case .head: y = max(characterRootY + 76 * mixScale, bodyY + gap)
+        case .body: y = bodyY
+        case .legs: y = min(characterRootY + (characterEnvelope.minY - 42) / 2 * mixScale, bodyY - gap)
+        }
+        return CGPoint(x: x, y: y)
+    }
 
     private func slotLocalY(_ zone: MixUpZone) -> CGFloat {
         switch zone {
@@ -127,7 +162,7 @@ final class MixUpScene: BaseToyScene {
         keepsakeButton.zPosition = 30
         keepsakeButton.addChild(keepsakeButtonArt)
 
-        let r = 23 * roomDecorScale
+        let r = keepsakeRadius
         let shadow = SKShapeNode(ellipseOf: CGSize(width: r * 2.1, height: r * 0.7))
         shadow.fillColor = WarmShelfPalette.contactShadow.withAlpha(0.12)
         shadow.strokeColor = .clear
@@ -140,12 +175,8 @@ final class MixUpScene: BaseToyScene {
             art.zPosition = 2
             keepsakeButtonArt.addChild(art)
             stage.addChild(keepsakeButton)
-            let safe = view?.safeAreaInsets ?? .zero
-            let landscape = size.width > size.height
-            keepsakeButton.position = CGPoint(
-                x: size.width - safe.right - (landscape ? 56 : 44) - r,
-                y: floorY * (landscape ? 0.52 : 0.46)
-            )
+            keepsakeButton.position = CGPoint(x: size.width / 2,
+                y: max(safeInsets.bottom + r + 12, floorY * 0.46))
             if !AmbientAnimator.reduceMotion {
                 keepsakeButtonArt.run(.repeatForever(.sequence([
                     .wait(forDuration: 4.0),
@@ -175,11 +206,8 @@ final class MixUpScene: BaseToyScene {
 
         stage.addChild(keepsakeButton)
 
-        let safe = view?.safeAreaInsets ?? .zero
-        let landscape = size.width > size.height
-        let x = size.width - safe.right - (landscape ? 56 : 44) - r
-        let y = floorY * (landscape ? 0.52 : 0.46)
-        keepsakeButton.position = CGPoint(x: x, y: y)
+        keepsakeButton.position = CGPoint(x: size.width / 2,
+            y: max(safeInsets.bottom + r + 12, floorY * 0.46))
 
         // A gentle, occasional breath so it's noticed but never nags.
         if !AmbientAnimator.reduceMotion {
@@ -193,7 +221,7 @@ final class MixUpScene: BaseToyScene {
 
     private func keepsakeButtonContains(_ point: CGPoint) -> Bool {
         guard keepsakeButton.parent != nil else { return false }
-        let radius = 42 * roomDecorScale
+        let radius = keepsakeRadius + 8
         return hypot(point.x - keepsakeButton.position.x, point.y - keepsakeButton.position.y) < radius
     }
 
@@ -224,18 +252,20 @@ final class MixUpScene: BaseToyScene {
         guard let texture else { savingKeepsake = false; return }
 
         // A copy of the character lifts off and flies up to its new spot on the creations shelf.
-        let innerW = miniFrameSize.width * 0.82
-        let innerH = miniFrameSize.height * 0.82
+        let innerW = miniFrameSize.width * 0.84
+        let innerH = miniFrameSize.height * 0.86
         let texSize = texture.size()
         let fit = min(innerW / max(1, texSize.width), innerH / max(1, texSize.height))
 
         let recipe = currentRecipe()
         let newCount = min(MixUpCreationStore.load().count + 1, creationDisplayCapacity)
         let slots = shelfSlotPositions(count: newCount)
-        let target = CGPoint(x: ledge.position.x + (slots.last?.x ?? 0), y: ledge.position.y)
+        let target = CGPoint(x: ledge.position.x + (slots.last?.x ?? 0),
+                             y: ledge.position.y + (slots.last?.y ?? 0))
 
         let flying = SKSpriteNode(texture: texture)
-        flying.position = root.position
+        let characterBounds = root.calculateAccumulatedFrame()
+        flying.position = CGPoint(x: characterBounds.midX, y: characterBounds.midY)
         flying.zPosition = 60
         addChild(flying)
 
@@ -268,11 +298,25 @@ final class MixUpScene: BaseToyScene {
 
     private enum MixUpCreationStore {
         private static let key = "lull.mixup.creations"
+        private static let castVersionKey = "lull.mixup.creations.castVersion"
+        private static let castVersion = 3
         static let capacity = 6
         static func load() -> [MixUpCreation] {
-            guard let data = UserDefaults.standard.data(forKey: key),
+            let defaults = UserDefaults.standard
+            guard let data = defaults.data(forKey: key),
                   let list = try? JSONDecoder().decode([MixUpCreation].self, from: data) else { return [] }
-            return list
+            let storedVersion = defaults.integer(forKey: castVersionKey)
+            guard storedVersion != castVersion else { return list }
+            let migrated = list.map { recipe in
+                MixUpCreation(head: MixUpLibrary.migratedIndex(recipe.head, fromVersion: storedVersion),
+                              body: MixUpLibrary.migratedIndex(recipe.body, fromVersion: storedVersion),
+                              legs: MixUpLibrary.migratedIndex(recipe.legs, fromVersion: storedVersion))
+            }
+            if let data = try? JSONEncoder().encode(migrated) {
+                defaults.set(data, forKey: key)
+                defaults.set(castVersion, forKey: castVersionKey)
+            }
+            return migrated
         }
         static func append(_ creation: MixUpCreation) {
             var list = load()
@@ -280,6 +324,7 @@ final class MixUpScene: BaseToyScene {
             if list.count > capacity { list.removeFirst(list.count - capacity) }
             if let data = try? JSONEncoder().encode(list) {
                 UserDefaults.standard.set(data, forKey: key)
+                UserDefaults.standard.set(castVersion, forKey: castVersionKey)
             }
         }
     }
@@ -288,80 +333,95 @@ final class MixUpScene: BaseToyScene {
         MixUpCreation(head: indices[.head] ?? 0, body: indices[.body] ?? 0, legs: indices[.legs] ?? 0)
     }
 
-    private var miniFrameBaseWidth: CGFloat { min(58 * roomDecorScale, size.width * 0.13) }
+    private var miniFrameBaseWidth: CGFloat {
+        min(isTabletLayout ? 94 : 68, safePlayRect().width * 0.22)
+    }
 
-    /// How many saved looks fit on this device's wall (the store keeps up to 6; we show the newest).
+    /// Portrait keepsakes sit above the character; landscape keepsakes form a
+    /// short column to its left so neither reduces the character to a thumbnail.
     private var creationDisplayCapacity: Int {
-        let usable = size.width - 170   // clear of the home pebble and side margins
-        return max(2, min(MixUpCreationStore.capacity, Int(usable / (miniFrameBaseWidth + 14))))
+        let play = safePlayRect()
+        let space = isLandscapeLayout ? play.height - 12 : play.width - 12
+        let step = isLandscapeLayout ? miniFrameBaseWidth * 1.42 + 16 : miniFrameBaseWidth + 14
+        return max(1, min(MixUpCreationStore.capacity, Int(space / step)))
     }
 
     private func shelfSlotPositions(count: Int) -> [CGPoint] {
-        let spacing = miniFrameSize.width + 14
-        let total = CGFloat(max(0, count - 1)) * spacing
-        return (0..<max(1, count)).map { CGPoint(x: -total / 2 + CGFloat($0) * spacing, y: 0) }
+        let step = isLandscapeLayout ? miniFrameSize.height + 16 : miniFrameSize.width + 14
+        let total = CGFloat(max(0, count - 1)) * step
+        return (0..<max(1, count)).map { index in
+            isLandscapeLayout
+                ? CGPoint(x: 0, y: total / 2 - CGFloat(index) * step)
+                : CGPoint(x: -total / 2 + CGFloat(index) * step, y: 0)
+        }
     }
 
-    /// A wooden ledge high on the wall holding the child's saved creations — a quiet library of
-    /// looks they made. The portraits are STATIC minis rebuilt from their recipes (true persistence,
-    /// no images), so the live character below always stays the hero.
     private func buildCreationsShelf() {
         creationsLedge?.removeFromParent()
         creationFrames.removeAll()
-
-        let frameW = miniFrameBaseWidth
-        let frameH = frameW * 1.18
-        miniFrameSize = CGSize(width: frameW, height: frameH)
-
+        miniFrameSize = CGSize(width: miniFrameBaseWidth, height: miniFrameBaseWidth * 1.42)
+        let play = safePlayRect()
         let ledge = SKNode()
-        ledge.position = CGPoint(x: size.width / 2 + 20, y: safePlayRect().maxY - theaterValanceHeight - frameH * 0.55)
-        ledge.zPosition = 1.18
+        ledge.position = isLandscapeLayout
+            ? CGPoint(x: play.minX + miniFrameSize.width * 0.6 + 12, y: play.midY)
+            : CGPoint(x: size.width / 2, y: play.maxY - miniFrameSize.height / 2 - 8)
+        ledge.zPosition = 3
         stage.addChild(ledge)
         creationsLedge = ledge
-
         let creations = Array(MixUpCreationStore.load().suffix(creationDisplayCapacity))
         let positions = shelfSlotPositions(count: max(1, creations.count))
 
-        // The wooden board under the row — sized to its contents, with a little room to grow.
-        let rowW = max(frameW * 2.2, (positions.last?.x ?? 0) - (positions.first?.x ?? 0) + frameW * 1.6)
-        let board = SKShapeNode(rect: CGRect(x: -rowW / 2, y: -frameH * 0.6, width: rowW, height: 9 * roomDecorScale), cornerRadius: 4.5 * roomDecorScale)
-        board.fillColor = WarmShelfPalette.sand.withAlpha(0.8)
-        board.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.14)
-        board.lineWidth = 1
-        board.zPosition = 0
-        ledge.addChild(board)
-        let boardHi = SKShapeNode(rect: CGRect(x: -rowW / 2 + 4, y: -frameH * 0.6 + 6 * roomDecorScale, width: rowW - 8, height: 2), cornerRadius: 1)
-        boardHi.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.4)
-        boardHi.strokeColor = .clear
-        boardHi.zPosition = 0.05
-        ledge.addChild(boardHi)
+        func addLedge(at point: CGPoint, width: CGFloat) {
+            let board = SKShapeNode(rectOf: CGSize(width: width, height: 7), cornerRadius: 3.5)
+            board.position = CGPoint(x: point.x, y: point.y - miniFrameSize.height * 0.55)
+            board.fillColor = WarmShelfPalette.sand.withAlpha(0.7)
+            board.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.1)
+            board.lineWidth = 1
+            ledge.addChild(board)
+        }
+        if isLandscapeLayout {
+            positions.forEach { addLedge(at: $0, width: miniFrameSize.width * 1.22) }
+        } else {
+            let width = (positions.last?.x ?? 0) - (positions.first?.x ?? 0) + miniFrameSize.width * 1.24
+            addLedge(at: .zero, width: width)
+        }
 
-        for (i, recipe) in creations.enumerated() {
+        if creations.isEmpty {
+            // The quiet empty frame echoes the save heart; pressing it replaces
+            // this placeholder with the child's own portrait.
+            let empty = makeCreationMat()
+            let heart = SKShapeNode(path: Self.heartPath(size: miniFrameSize.width * 0.3))
+            heart.fillColor = WarmShelfPalette.petal.withAlpha(0.32)
+            heart.strokeColor = WarmShelfPalette.rhubarb.withAlpha(0.18)
+            heart.lineWidth = 1
+            heart.zPosition = 2
+            empty.addChild(heart)
+            ledge.addChild(empty)
+        }
+        for (index, recipe) in creations.enumerated() {
             let frame = makeCreationFrame(recipe: recipe)
-            frame.position = positions[i]
-            frame.alpha = 0
+            frame.position = positions[index]
             ledge.addChild(frame)
-            frame.run(.sequence([.wait(forDuration: Double(i) * 0.05), .fadeIn(withDuration: 0.22)]))
             creationFrames.append((node: frame, recipe: recipe))
         }
     }
 
-    /// One framed portrait: a static mini of the saved look, rebuilt from its 3-part recipe.
-    private func makeCreationFrame(recipe: MixUpCreation) -> SKNode {
+    private func makeCreationMat() -> SKNode {
         let node = SKNode()
-        let mat = SKShapeNode(
-            rect: CGRect(x: -miniFrameSize.width / 2, y: -miniFrameSize.height / 2,
-                         width: miniFrameSize.width, height: miniFrameSize.height),
-            cornerRadius: 6
-        )
-        mat.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.96)
-        mat.strokeColor = WarmShelfPalette.sand.withAlpha(0.55)
-        mat.lineWidth = 2
+        let mat = SKShapeNode(rectOf: miniFrameSize, cornerRadius: 8)
+        mat.fillColor = WarmShelfPalette.paperHighlight
+        mat.strokeColor = WarmShelfPalette.softLine.withAlpha(0.9)
+        mat.lineWidth = 1.4
         mat.zPosition = 1.5
         node.addChild(mat)
+        return node
+    }
 
+    /// One framed portrait: a static mini of the saved look, rebuilt from its 3-part recipe.
+    private func makeCreationFrame(recipe: MixUpCreation) -> SKNode {
+        let node = makeCreationMat()
         let mini = SKNode()
-        let s = miniFrameSize.height * 0.82 / 340   // a full character spans ~340 units at scale 1
+        let s: CGFloat = 1
         let stack: [(zone: MixUpZone, index: Int, z: CGFloat)] = [
             (.legs, recipe.legs, 1.52), (.body, recipe.body, 1.54), (.head, recipe.head, 1.56)
         ]
@@ -374,7 +434,11 @@ final class MixUpScene: BaseToyScene {
             part.zPosition = entry.z
             mini.addChild(part)
         }
-        mini.position = CGPoint(x: 0, y: -miniFrameSize.height * 0.04)
+        let bounds = mini.calculateAccumulatedFrame()
+        let fit = min(miniFrameSize.width * 0.84 / max(1, bounds.width),
+                      miniFrameSize.height * 0.86 / max(1, bounds.height))
+        mini.setScale(fit)
+        mini.position = CGPoint(x: -bounds.midX * fit, y: -bounds.midY * fit)
         mini.isPaused = true   // a portrait, not a puppet — any part animations freeze solid
         node.addChild(mini)
         return node
@@ -453,296 +517,74 @@ final class MixUpScene: BaseToyScene {
 
     // MARK: - Room
 
+    /// A quiet cream room and a plain wooden stand, using the same palette and
+    /// soft material depth as the shelf. The character is the only ornament.
     private func addRoom() {
-        let decorScale = roomDecorScale
-        theaterValanceHeight = 0
-
-        // The authored theater (Docs/MixUpSlice.md): room plate, round stage, red curtains.
-        if let roomTex = ToyArt.texture("mixup-room") {
-            buildTheaterRoom(roomTex, decorScale: decorScale)
-            return
-        }
-
-        // A confident two-tone wall: one warm wash + a soft glow pooled behind the character.
-        // (The old ghost-alpha wall patches and shelf furniture read as smudges — removed; the
-        // creations ledge above is the wall's one piece of furniture now.)
-        let wall = SKShapeNode(rect: CGRect(x: 0, y: floorY, width: size.width, height: size.height - floorY))
-        wall.fillColor = WarmShelfPalette.warmCream.withAlpha(0.42); wall.strokeColor = .clear; wall.zPosition = 1
+        let decor = roomDecorScale
+        let wall = SKShapeNode(rect: CGRect(origin: .zero, size: size))
+        wall.fillColor = WarmShelfPalette.linen
+        wall.strokeColor = .clear
+        wall.zPosition = 1
         stage.addChild(wall)
 
-        let wallGlow = SKShapeNode(ellipseOf: CGSize(width: size.width * 0.95, height: (size.height - floorY) * 1.1))
-        wallGlow.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.22)
-        wallGlow.strokeColor = .clear
-        wallGlow.position = CGPoint(x: size.width / 2, y: floorY + (size.height - floorY) * 0.42)
-        wallGlow.zPosition = 1.02
-        stage.addChild(wallGlow)
-
-        // Gentle wallpaper dots: enough pattern to say "room", quiet enough to stay sleepy.
-        var dy = floorY + 50 * decorScale; var even = true
-        while dy < size.height - 20 {
-            var dx: CGFloat = even ? 34 * decorScale : 70 * decorScale
-            while dx < size.width - 14 {
-                let dot = SKShapeNode(circleOfRadius: 2.4 * decorScale)
-                dot.fillColor = WarmShelfPalette.sand.withAlpha(0.13)
-                dot.strokeColor = .clear
-                dot.position = CGPoint(x: dx, y: dy); dot.zPosition = 1.1; stage.addChild(dot); dx += 72 * decorScale
-            }
-            dy += 72 * decorScale; even.toggle()
-        }
+        let light = SKSpriteNode(texture: ProceduralTexture.softRadialGlow)
+        light.color = WarmShelfPalette.paperHighlight
+        light.colorBlendFactor = 1
+        light.size = CGSize(width: min(size.width * 1.2, 900), height: size.height * 0.9)
+        light.position = CGPoint(x: size.width / 2, y: floorY + (size.height - floorY) * 0.42)
+        light.alpha = 0.4
+        light.zPosition = 1.1
+        stage.addChild(light)
 
         let floor = SKShapeNode(rect: CGRect(x: 0, y: 0, width: size.width, height: floorY))
-        floor.fillColor = WarmShelfPalette.sand.withAlpha(0.36); floor.strokeColor = .clear; floor.zPosition = 2
+        floor.fillColor = WarmShelfPalette.warmCream.withAlpha(0.65)
+        floor.strokeColor = .clear
+        floor.zPosition = 2
         stage.addChild(floor)
+        let seam = SKShapeNode(rect: CGRect(x: 0, y: floorY - 1, width: size.width, height: 2))
+        seam.fillColor = WarmShelfPalette.cocoa.withAlpha(0.06)
+        seam.strokeColor = .clear
+        seam.zPosition = 2.05
+        stage.addChild(seam)
 
-        var plankY = max(22 * decorScale, floorY * 0.16)
-        while plankY < floorY - 18 * decorScale {
-            let line = SKShapeNode(rect: CGRect(x: 0, y: plankY, width: size.width, height: max(1, decorScale)), cornerRadius: 0.5 * decorScale)
-            line.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.075)
-            line.strokeColor = .clear
-            line.zPosition = 2.05
-            stage.addChild(line)
-            plankY += 34 * decorScale
+        let width = min(safePlayRect().width * 0.72,
+                        max(150, characterEnvelope.width * mixScale * 1.3), 440 * decor)
+        let front = SKShapeNode(rectOf: CGSize(width: width, height: 24 * decor), cornerRadius: 10 * decor)
+        front.fillColor = WarmShelfPalette.sand.withAlpha(0.76)
+        front.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.14)
+        front.lineWidth = 1
+        front.position = CGPoint(x: size.width / 2, y: floorY - 20 * decor)
+        front.zPosition = 2.3
+        stage.addChild(front)
+        let top = SKShapeNode(ellipseOf: CGSize(width: width, height: 42 * decor))
+        top.fillColor = UIColor(hex: 0xDEC9AB)
+        top.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.12)
+        top.lineWidth = 1
+        top.position = CGPoint(x: size.width / 2, y: floorY - 9 * decor)
+        top.zPosition = 2.4
+        stage.addChild(top)
+        for index in -1...1 {
+            let path = CGMutablePath()
+            let y = CGFloat(index) * 7 * decor
+            path.move(to: CGPoint(x: -width * 0.3, y: y))
+            path.addQuadCurve(to: CGPoint(x: width * 0.3, y: y),
+                              control: CGPoint(x: 0, y: y + 3 * decor))
+            let grain = SKShapeNode(path: path)
+            grain.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.07)
+            grain.lineWidth = 1
+            grain.zPosition = 0.01
+            top.addChild(grain)
         }
+        stageLightPool = top
 
-        let baseboard = SKShapeNode(rect: CGRect(x: 0, y: floorY - 4, width: size.width, height: 8))
-        baseboard.fillColor = WarmShelfPalette.cocoa.withAlpha(0.12); baseboard.strokeColor = .clear; baseboard.zPosition = 2.1; stage.addChild(baseboard)
-        let baseboardHighlight = SKShapeNode(rect: CGRect(x: 0, y: floorY + 3, width: size.width, height: 2))
-        baseboardHighlight.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.18); baseboardHighlight.strokeColor = .clear; baseboardHighlight.zPosition = 2.12; stage.addChild(baseboardHighlight)
-
-        // The creations shelf is the wall's one piece of furniture (it was stranded inside the
-        // removed decor pass — restoring it restores the heart-save feature).
+        let shadowSize = CGSize(width: min(104 * mixScale, width * 0.7), height: 18 * decor)
+        let shadow = SKSpriteNode(texture: ProceduralTexture.softClayShadow(size: shadowSize))
+        shadow.size = shadowSize
+        shadow.position = CGPoint(x: size.width / 2, y: floorY - 1.5 * decor)
+        shadow.alpha = 0.55
+        shadow.zPosition = 2.5
+        stage.addChild(shadow)
         buildCreationsShelf()
-
-        // A real rug with conviction — big, warm, two-ring, properly under the character. It's the
-        // room's anchor (the doll stands ON something), not a faint smudge.
-        let rugY = floorY - 8 * mixScale
-        let rugW = min(size.width * 0.8, 470 * decorScale)
-        let rugH = 86 * decorScale
-        let rug = SKShapeNode(ellipseOf: CGSize(width: rugW, height: rugH))
-        rug.fillColor = WarmShelfPalette.terracotta.withAlpha(0.26)
-        rug.strokeColor = WarmShelfPalette.terracotta.withAlpha(0.4)
-        rug.lineWidth = 3.5
-        rug.position = CGPoint(x: size.width / 2, y: rugY); rug.zPosition = 2.4; stage.addChild(rug)
-        let rugInner = SKShapeNode(ellipseOf: CGSize(width: rugW * 0.7, height: rugH * 0.66))
-        rugInner.fillColor = WarmShelfPalette.warmCream.withAlpha(0.2)
-        rugInner.strokeColor = WarmShelfPalette.paperHighlight.withAlpha(0.3)
-        rugInner.lineWidth = 2
-        rugInner.zPosition = 0.1
-        rug.addChild(rugInner)
-
-        // A baked soft contact shadow under the feet, separate from the character squash.
-        let shadowSize = CGSize(width: 150 * decorScale, height: 30 * decorScale)
-        let footShadow = SKSpriteNode(texture: ProceduralTexture.softClayShadow(size: shadowSize))
-        footShadow.size = shadowSize
-        footShadow.alpha = 0.9
-        footShadow.position = CGPoint(x: size.width / 2, y: floorY - 1 * decorScale)
-        footShadow.zPosition = 2.55
-        stage.addChild(footShadow)
-
-        // A single quiet window — context without competition. The character is the scene.
-        addWindow()
-    }
-
-    /// The dress-up theater: warm wooden room plate, a round stage under the performer,
-    /// a soft spotlight pool, and red curtains framing the proscenium. The creations
-    /// shelf (the keepsake wall) stays — it is the toy's heart.
-    private func buildTheaterRoom(_ roomTex: SKTexture, decorScale: CGFloat) {
-        let ts = roomTex.size()
-        let plate = SKSpriteNode(texture: roomTex)
-        let cover = max(size.width / max(1, ts.width), size.height / max(1, ts.height)) * 1.08
-        plate.size = CGSize(width: ts.width * cover, height: ts.height * cover)
-        plate.position = CGPoint(x: size.width / 2, y: size.height / 2)
-        plate.zPosition = 1
-        stage.addChild(plate)
-
-        // The round wooden stage the performer stands on.
-        if let platform = ToyArt.sprite("mixup-stage", fit: CGSize(width: min(size.width * 0.82, 500 * decorScale), height: 240 * decorScale)) {
-            platform.position = CGPoint(x: size.width / 2, y: floorY - platform.size.height * 0.30)
-            platform.zPosition = 2.4
-            stage.addChild(platform)
-            // A quiet pool of warm light on its top face.
-            let pool = SKShapeNode(ellipseOf: CGSize(width: platform.size.width * 0.74, height: platform.size.height * 0.4))
-            pool.fillColor = WarmShelfPalette.butter.withAlpha(0.2)
-            pool.strokeColor = .clear
-            pool.blendMode = .add
-            pool.position = CGPoint(x: size.width / 2, y: floorY - 4 * decorScale)
-            pool.zPosition = 2.45
-            stage.addChild(pool)
-            stageLightPool = pool
-        }
-
-        // Proscenium: valance across the top, swags at the sides — framing, never covering.
-        if let valance = ToyArt.texture("mixup-curtain-valance") {
-            let v = SKSpriteNode(texture: valance)
-            let vScale = (size.width * 1.05) / max(1, valance.size().width)
-            v.size = CGSize(width: valance.size().width * vScale, height: valance.size().height * vScale)
-            v.anchorPoint = CGPoint(x: 0.5, y: 1)
-            v.position = CGPoint(x: size.width / 2, y: size.height + 2)
-            v.zPosition = 12
-            stage.addChild(v)
-            theaterValanceHeight = v.size.height   // the creations ledge ducks below it
-        }
-        for (slot, side) in [("mixup-curtain-swag-left", CGFloat(-1)), ("mixup-curtain-swag-right", CGFloat(1))] {
-            guard let swag = ToyArt.sprite(slot, fit: CGSize(width: size.width * 0.30, height: (size.height - floorY) * 0.92)) else { continue }
-            swag.anchorPoint = CGPoint(x: 0.5, y: 1)
-            swag.position = CGPoint(x: size.width / 2 + side * (size.width / 2 - swag.size.width * 0.30), y: size.height + 2)
-            swag.zPosition = 12
-            stage.addChild(swag)
-        }
-
-        // The keepsake wall and the grounding shadow stay exactly as they are.
-        buildCreationsShelf()
-        let shadowSize = CGSize(width: 150 * decorScale, height: 30 * decorScale)
-        let footShadow = SKSpriteNode(texture: ProceduralTexture.softClayShadow(size: shadowSize))
-        footShadow.size = shadowSize
-        footShadow.alpha = 0.9
-        footShadow.position = CGPoint(x: size.width / 2, y: floorY - 1 * decorScale)
-        footShadow.zPosition = 2.55
-        stage.addChild(footShadow)
-    }
-
-    private func addQuietPlayroomDetails(decorScale: CGFloat) {
-        guard size.width > 260, size.height > 260 else { return }
-
-        let wallHeight = max(1, size.height - floorY)
-        let shelfY = floorY + wallHeight * (size.width > size.height ? 0.42 : 0.34)
-        let shelfX = size.width * (size.width > size.height ? 0.16 : 0.20)
-        let shelfW = min(size.width * 0.32, 178 * decorScale)
-
-        let shelfShadow = SKShapeNode(
-            ellipseOf: CGSize(width: shelfW * 0.92, height: 10 * decorScale)
-        )
-        shelfShadow.fillColor = WarmShelfPalette.contactShadow.withAlpha(0.045)
-        shelfShadow.strokeColor = .clear
-        shelfShadow.position = CGPoint(x: shelfX, y: shelfY - 13 * decorScale)
-        shelfShadow.zPosition = 1.18
-        stage.addChild(shelfShadow)
-
-        let shelf = SKShapeNode(
-            rect: CGRect(x: -shelfW / 2, y: -4 * decorScale, width: shelfW, height: 8 * decorScale),
-            cornerRadius: 4 * decorScale
-        )
-        shelf.fillColor = WarmShelfPalette.sand.withAlpha(0.34)
-        shelf.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.08)
-        shelf.lineWidth = 1
-        shelf.position = CGPoint(x: shelfX, y: shelfY)
-        shelf.zPosition = 1.22
-        stage.addChild(shelf)
-
-        let blockColors = [
-            WarmShelfPalette.sage.withAlpha(0.20),
-            WarmShelfPalette.butter.withAlpha(0.20),
-            WarmShelfPalette.waterBlue.withAlpha(0.18)
-        ]
-        let blockRotations: [CGFloat] = [-0.06, 0.04, -0.03]
-        for index in 0..<3 {
-            let block = SKShapeNode(
-                rect: CGRect(x: -11 * decorScale, y: -1 * decorScale, width: 22 * decorScale, height: 22 * decorScale),
-                cornerRadius: 6 * decorScale
-            )
-            block.fillColor = blockColors[index]
-            block.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.035)
-            block.lineWidth = 1
-            block.position = CGPoint(x: shelfX - 46 * decorScale + CGFloat(index) * 32 * decorScale, y: shelfY + 16 * decorScale)
-            block.zRotation = blockRotations[index]
-            block.zPosition = 1.26
-            stage.addChild(block)
-            ProceduralTexture.addMatteClayDepth(
-                to: block,
-                in: CGRect(x: -11 * decorScale, y: -1 * decorScale, width: 22 * decorScale, height: 22 * decorScale),
-                cornerRadius: 6 * decorScale,
-                zPosition: 0.1,
-                highlightAlpha: 0.06,
-                shadeAlpha: 0.012,
-                rimAlpha: 0.010,
-                speckleCount: 0
-            )
-        }
-
-        // The creations shelf: a wooden ledge high on the wall holding the child's saved looks.
-        buildCreationsShelf()
-    }
-
-    /// One quiet window on the upper wall, showing the same sky the rest of the app
-    /// breathes with — dawn, midday, dusk, night, on the family's own wind-down clock.
-    /// Context without competition: the character stays the hero. (This replaces an
-    /// earlier busy dressing-room — wardrobe + mirror + framed art — that pulled focus.)
-    private func addWindow() {
-        let landscape = size.width > size.height
-        let paneW = min(96 * mixScale, size.width * 0.22)
-        let paneH = min(124 * mixScale, size.height * 0.20)
-        let cx = size.width * (landscape ? 0.84 : 0.77)
-        let cy = size.height * (landscape ? 0.74 : 0.83)
-        let sky = TimeOfDay.sky
-        let frameInset = 9 * mixScale
-
-        // Painted-wood frame.
-        let outer = SKShapeNode(rect: CGRect(x: -paneW / 2 - frameInset, y: -paneH / 2 - frameInset, width: paneW + frameInset * 2, height: paneH + frameInset * 2), cornerRadius: 9 * mixScale)
-        outer.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.95)
-        outer.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.16); outer.lineWidth = 2
-        outer.position = CGPoint(x: cx, y: cy); outer.zPosition = 1.4
-        stage.addChild(outer)
-
-        // Sky pane, clipped so the cloud can drift off-edge.
-        let crop = SKCropNode()
-        let mask = SKShapeNode(rect: CGRect(x: -paneW / 2, y: -paneH / 2, width: paneW, height: paneH), cornerRadius: 4 * mixScale)
-        mask.fillColor = .white; mask.strokeColor = .clear
-        crop.maskNode = mask; crop.zPosition = 0.1
-        outer.addChild(crop)
-
-        let skyNode = SKSpriteNode(texture: TimeOfDay.gradientTexture(size: CGSize(width: paneW, height: paneH), top: sky.top, bottom: sky.bottom))
-        skyNode.size = CGSize(width: paneW, height: paneH)
-        crop.addChild(skyNode)
-
-        // Sun or moon, placed where the app's sky puts it that hour.
-        let orbR = 12 * mixScale
-        let orbPos = CGPoint(x: -paneW / 2 + paneW * sky.orbX, y: -paneH / 2 + paneH * (0.34 + 0.52 * sky.orbHeight))
-        let glow = SKShapeNode(circleOfRadius: orbR * 1.9)
-        glow.fillColor = sky.orbGlow.withAlpha(0.45); glow.strokeColor = .clear
-        glow.position = orbPos; glow.zPosition = 0.2; crop.addChild(glow)
-        if !AmbientAnimator.reduceMotion {
-            glow.run(.repeatForever(.sequence([.fadeAlpha(to: 0.26, duration: 2.6), .fadeAlpha(to: 0.5, duration: 2.6)])))
-        }
-        let orb = SKShapeNode(circleOfRadius: orbR)
-        orb.fillColor = sky.orb; orb.strokeColor = .clear
-        orb.position = orbPos; orb.zPosition = 0.3; crop.addChild(orb)
-
-        if sky.starAlpha > 0 {
-            for _ in 0..<7 {
-                let star = SKShapeNode(circleOfRadius: CGFloat.random(in: 0.8...1.6) * mixScale)
-                star.fillColor = UIColor.white.withAlpha(sky.starAlpha * CGFloat.random(in: 0.5...1.0)); star.strokeColor = .clear
-                star.position = CGPoint(x: .random(in: -paneW / 2 + 6...paneW / 2 - 6), y: .random(in: -paneH * 0.1...paneH / 2 - 6))
-                star.zPosition = 0.25; crop.addChild(star)
-                if !AmbientAnimator.reduceMotion {
-                    star.run(.repeatForever(.sequence([.fadeAlpha(to: 0.2, duration: .random(in: 1.4...2.6)), .fadeAlpha(to: 1.0, duration: .random(in: 1.4...2.6))])))
-                }
-            }
-        } else {
-            // One soft cloud drifts slowly across the pane.
-            let cloud = SKNode()
-            let puffA = SKShapeNode(ellipseOf: CGSize(width: 32 * mixScale, height: 15 * mixScale)); puffA.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.85); puffA.strokeColor = .clear
-            let puffB = SKShapeNode(ellipseOf: CGSize(width: 21 * mixScale, height: 12 * mixScale)); puffB.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.8); puffB.strokeColor = .clear; puffB.position = CGPoint(x: 11 * mixScale, y: 3 * mixScale)
-            cloud.addChild(puffA); cloud.addChild(puffB)
-            let cloudStartX = -paneW / 2 - 24 * mixScale
-            cloud.zPosition = 0.28; cloud.position = CGPoint(x: cloudStartX, y: paneH * 0.2); crop.addChild(cloud)
-            if AmbientAnimator.reduceMotion {
-                cloud.position.x = 0
-            } else {
-                let drift = SKAction.moveBy(x: paneW + 48 * mixScale, y: 0, duration: 30)
-                let reset = SKAction.run { cloud.position = CGPoint(x: cloudStartX, y: CGFloat.random(in: paneH * 0.02...paneH * 0.30)) }
-                cloud.run(.repeatForever(.sequence([drift, reset])))
-            }
-        }
-
-        // Muntin bars — reads instantly as a window.
-        let barColor = WarmShelfPalette.paperHighlight.withAlpha(0.96)
-        let vBar = SKShapeNode(rect: CGRect(x: -1.6 * mixScale, y: -paneH / 2, width: 3.2 * mixScale, height: paneH)); vBar.fillColor = barColor; vBar.strokeColor = .clear; vBar.zPosition = 0.5; outer.addChild(vBar)
-        let hBar = SKShapeNode(rect: CGRect(x: -paneW / 2, y: -1.6 * mixScale, width: paneW, height: 3.2 * mixScale)); hBar.fillColor = barColor; hBar.strokeColor = .clear; hBar.zPosition = 0.5; outer.addChild(hBar)
-
-        // Sill.
-        let sill = SKShapeNode(rect: CGRect(x: -paneW / 2 - frameInset - 4 * mixScale, y: -paneH / 2 - frameInset - 7 * mixScale, width: paneW + frameInset * 2 + 8 * mixScale, height: 7 * mixScale), cornerRadius: 2 * mixScale)
-        sill.fillColor = WarmShelfPalette.sand.withAlpha(0.65); sill.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.12); sill.lineWidth = 1
-        sill.position = CGPoint(x: cx, y: cy); sill.zPosition = 1.45; stage.addChild(sill)
     }
 
     private func installPart(in zone: MixUpZone) {
@@ -768,49 +610,36 @@ final class MixUpScene: BaseToyScene {
     }
 
     private func addChevrons(for zone: MixUpZone) {
-        let y = slotLocalY(zone)
-        // Chunky clay toy-buttons, kept fully on-screen beside the character on every device — the
-        // reach is clamped so the right/left column never clips off the edge or covers the keepsake.
-        let r = 22 * mixScale
-        let reach: CGFloat = min(102 * mixScale, size.width / 2 - max(14, safeInsets.left, safeInsets.right) - r - 6)
-        // One "next" button per zone, not a pair. Tapping the doll already cycles forward;
-        // the button's real job is signalling "this part changes" — three quiet clay signs
-        // instead of six. (Parts wrap, so everything stays reachable.)
-        for dir in [CGFloat(1)] {
-            let chevron = SKNode()
-            chevron.position = CGPoint(x: dir * reach, y: y)
-            chevron.zPosition = 50
-            // A chunky clay toy-button — not a flat UI chevron. Soft shadow, bevel, bold tab arrow.
-            let shadow = SKShapeNode(circleOfRadius: r)
-            shadow.fillColor = WarmShelfPalette.contactShadow.withAlpha(0.16); shadow.strokeColor = .clear
-            shadow.position = CGPoint(x: 0, y: -3.5 * mixScale); shadow.zPosition = -1
-            chevron.addChild(shadow)
-            let disc = SKShapeNode(circleOfRadius: r)
-            disc.fillColor = WarmShelfPalette.butter; disc.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.22); disc.lineWidth = 2
-            chevron.addChild(disc)
-            ProceduralTexture.applyClayFill(to: disc, base: WarmShelfPalette.butter, size: CGSize(width: r * 2, height: r * 2))
-            let bevel = SKShapeNode(ellipseOf: CGSize(width: r * 0.95, height: r * 0.62))
-            bevel.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.42); bevel.strokeColor = .clear
-            bevel.position = CGPoint(x: -r * 0.16, y: r * 0.34); bevel.zPosition = 0.5
-            disc.addChild(bevel)
-            let a = 8.5 * mixScale
-            let arrow = SKShapeNode(path: {
-                let p = CGMutablePath()
-                p.move(to: CGPoint(x: dir * -a * 0.66, y: a)); p.addLine(to: CGPoint(x: dir * a, y: 0)); p.addLine(to: CGPoint(x: dir * -a * 0.66, y: -a)); p.closeSubpath(); return p
-            }())
-            arrow.fillColor = WarmShelfPalette.cocoa.withAlpha(0.72); arrow.strokeColor = .clear; arrow.zPosition = 1
-            chevron.addChild(arrow)
-            chevron.alpha = 0.0
-            chevron.setScale(0.88)   // quieter at rest — the character is the hero, not the buttons
-            root.addChild(chevron)
-            chevrons.append((zone, dir, chevron))
-            // Fade in to a recessive presence; one soft invite pulse, then stillness (no perpetual
-            // pulsing competing with the doll).
-            chevron.run(.sequence([.wait(forDuration: 0.6), .fadeAlpha(to: 0.66, duration: 0.3)]))
-            if !AmbientAnimator.reduceMotion {
-                disc.run(.sequence([.wait(forDuration: 2.2), .scale(to: 1.14, duration: 0.3), .scale(to: 1.0, duration: 0.35)]))
-            }
-        }
+        let r = controlRadius
+        let chevron = SKNode()
+        chevron.position = controlPosition(for: zone)
+        // Scene-level controls stay still while the character bows or hops.
+        chevron.zPosition = 50
+        let shadow = SKShapeNode(circleOfRadius: r)
+        shadow.fillColor = WarmShelfPalette.contactShadow.withAlpha(0.09)
+        shadow.strokeColor = .clear
+        shadow.position = CGPoint(x: 0, y: -2)
+        shadow.zPosition = 50
+        chevron.addChild(shadow)
+        let disc = SKShapeNode(circleOfRadius: r)
+        disc.fillColor = WarmShelfPalette.warmCream
+        disc.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.2)
+        disc.lineWidth = 1.5
+        disc.zPosition = 51
+        chevron.addChild(disc)
+        let path = CGMutablePath()
+        path.move(to: CGPoint(x: -3, y: 7))
+        path.addLine(to: CGPoint(x: 4, y: 0))
+        path.addLine(to: CGPoint(x: -3, y: -7))
+        let arrow = SKShapeNode(path: path)
+        arrow.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.85)
+        arrow.lineWidth = 3
+        arrow.lineCap = .round
+        arrow.lineJoin = .round
+        arrow.zPosition = 52
+        chevron.addChild(arrow)
+        stage.addChild(chevron)
+        chevrons.append((zone, 1, chevron))
     }
 
     // MARK: - Touch
@@ -833,14 +662,22 @@ final class MixUpScene: BaseToyScene {
                 return
             }
 
-            // Chevron hit first (precise control).
-            let localToRoot = CGPoint(x: point.x - root.position.x, y: point.y - root.position.y)
-            if let hit = chevrons.min(by: { hypot($0.node.position.x - localToRoot.x, $0.node.position.y - localToRoot.y) < hypot($1.node.position.x - localToRoot.x, $1.node.position.y - localToRoot.y) }),
-               hypot(hit.node.position.x - localToRoot.x, hit.node.position.y - localToRoot.y) < 46 * mixScale {
-                flip(hit.zone, forward: hit.dir > 0)
-                return
+            // The visible controls own only their reserved lane, not the body.
+            if let hit = chevrons.min(by: {
+                let first = $0.node.convert(CGPoint.zero, to: self)
+                let second = $1.node.convert(CGPoint.zero, to: self)
+                return hypot(first.x - point.x, first.y - point.y)
+                    < hypot(second.x - point.x, second.y - point.y)
+            }) {
+                let center = hit.node.convert(CGPoint.zero, to: self)
+                if hypot(center.x - point.x, center.y - point.y) < controlTouchRadius {
+                    hit.node.run(.sequence([.scale(to: 0.92, duration: 0.07),
+                                           .scale(to: 1, duration: 0.18)]), withKey: "press")
+                    flip(hit.zone, forward: hit.dir > 0)
+                    return
+                }
             }
-
+            let localToRoot = CGPoint(x: point.x - root.position.x, y: point.y - root.position.y)
             let localY = point.y - root.position.y
             let touchedCharacter = abs(localToRoot.x) < 140 * mixScale &&
                 localY > -145 * mixScale && localY < 155 * mixScale
@@ -1268,15 +1105,25 @@ final class MixUpScene: BaseToyScene {
             case .body: label = "body: \(name), tap to change"
             case .legs: label = "legs: \(name), tap to change"
             }
-            let scenePos = CGPoint(x: root.position.x, y: root.position.y + slotLocalY(zone))
+            let scenePos = controlPosition(for: zone)
             elements.append(makeActivatableAccessibilityElement(
                 in: view,
                 label: label,
                 scenePosition: scenePos,
-                size: CGSize(width: 200, height: 90 * mixScale),
+                size: CGSize(width: controlTouchRadius * 2, height: controlTouchRadius * 2),
                 traits: .button
             ) { [weak self] in
                 self?.flip(zone, forward: true)
+            })
+        }
+        for (index, entry) in creationFrames.enumerated() {
+            elements.append(makeActivatableAccessibilityElement(
+                in: view, label: "Saved look \(index + 1), bring it back",
+                scenePosition: entry.node.convert(CGPoint.zero, to: self),
+                size: miniFrameSize, traits: .button
+            ) { [weak self, weak frame = entry.node] in
+                guard let frame else { return }
+                self?.applyCreation(entry.recipe, from: frame)
             })
         }
         if keepsakeButton.parent != nil {

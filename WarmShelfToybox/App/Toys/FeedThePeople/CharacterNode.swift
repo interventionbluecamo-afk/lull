@@ -232,6 +232,19 @@ final class CharacterNode: SKNode {
     var needsMoreFood: Bool { bitesRemaining > 0 }
     var visitIsComplete: Bool { wishGranted || (!hasRemainingDesires && !needsMoreFood) }
 
+    private var eatingBeatDuration: TimeInterval {
+        castMember != nil && artSprite != nil ? Self.chewBeatDuration : WarmShelfMotion.pop
+    }
+
+    var nextBiteDelay: TimeInterval {
+        FeedServingRules.nextBiteDelay(mood: mood, eatingDuration: eatingBeatDuration)
+    }
+
+    var completedVisitDelay: TimeInterval {
+        FeedServingRules.completedVisitDelay(mood: mood, wishGranted: wishGranted,
+                                            eatingDuration: eatingBeatDuration)
+    }
+
     func mouthDistance(to scenePoint: CGPoint) -> CGFloat {
         guard let mouthScenePosition else { return .greatestFiniteMagnitude }
         return hypot(scenePoint.x - mouthScenePosition.x, scenePoint.y - mouthScenePosition.y)
@@ -356,9 +369,9 @@ final class CharacterNode: SKNode {
     }
 
     func restoreMood(_ restoredMood: CharacterMood) {
-        removeAction(forKey: "moodCycle")
-        mood = restoredMood
-        updateExpression(animated: false)
+        // A rebuilt visitor must finish its mood cycle, including a bite interrupted
+        // by rotation. Replaying the expression never commits another bite or wish.
+        transitionTo(restoredMood)
     }
 
     func restoreWishGranted(_ restoredWishGranted: Bool) {
@@ -538,8 +551,8 @@ final class CharacterNode: SKNode {
 
     /// Lets the scene fan out thought bubbles so neighbours never overlap, with the scene
     /// supplying a clamped local Y so bubbles never clip off the top (esp. in landscape).
-    func arrangeThoughtBubble(sideSign: CGFloat, localY: CGFloat) {
-        thoughtBubble?.position = CGPoint(x: sideSign * headRadius * 0.62, y: localY)
+    func arrangeThoughtBubble(at localPosition: CGPoint) {
+        thoughtBubble?.position = localPosition
     }
     var thoughtBubbleHalfHeight: CGFloat { headRadius * 0.78 }
     var defaultThoughtBubbleLocalY: CGFloat { headRadius * 1.7 }
@@ -1196,9 +1209,8 @@ final class CharacterNode: SKNode {
         case .eating:
             // The painted cast gets a real chew beat (surprise, three chews) before the
             // happy face; the procedural cast keeps its quick pop.
-            let chewing = castMember != nil && artSprite != nil
             run(.sequence([
-                .wait(forDuration: chewing ? CharacterNode.chewBeatDuration : WarmShelfMotion.pop),
+                .wait(forDuration: eatingBeatDuration),
                 .run { [weak self] in self?.transitionTo(.satisfied) }
             ]), withKey: "moodCycle")
         case .satisfied:
@@ -1243,7 +1255,7 @@ final class CharacterNode: SKNode {
                 // A granted wish laughs first, then settles into the happy face.
                 if animated, wishGranted, let laugh = cellTexture(3), let happy = cellTexture(2) {
                     art.texture = laugh
-                    art.run(.sequence([.wait(forDuration: 0.7),
+                    art.run(.sequence([.wait(forDuration: FeedServingRules.wishLaughDuration),
                                        .run { [weak art] in art?.texture = happy }]),
                             withKey: CharacterNode.expressionBeatKey)
                 } else if let tex = cellTexture(2) {

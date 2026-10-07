@@ -40,7 +40,7 @@ final class FeedScene: BaseToyScene {
         let base: UIColor
         let clothing: UIColor
         let personality: CharacterPersonality
-        let radius: CGFloat
+        var radius: CGFloat
         let dislikedFood: FoodKind?
         let desiredFoods: [FoodKind]
         let hungerBites: Int
@@ -67,6 +67,7 @@ final class FeedScene: BaseToyScene {
 
     private struct CharacterSnapshot {
         let spec: CharacterSpec
+        let layoutScale: CGFloat
         let mood: CharacterMood
         let bitesRemaining: Int
         let wishGranted: Bool
@@ -376,15 +377,22 @@ final class FeedScene: BaseToyScene {
     private func arrangeThoughtBubbles() {
         let sorted = characters.sorted { $0.position.x < $1.position.x }
         let n = sorted.count
+        let insets = view?.safeAreaInsets ?? .zero
+        let visibleBounds = CGRect(x: insets.left + 14, y: insets.bottom + 14,
+                                   width: max(1, size.width - insets.left - insets.right - 28),
+                                   height: max(1, size.height - insets.top - insets.bottom - 28))
         for (i, character) in sorted.enumerated() {
             let t = n <= 1 ? 0.5 : CGFloat(i) / CGFloat(n - 1)
             let side = (t - 0.5) * 2
             let lift: CGFloat = (i == 0 || i == n - 1) ? 0 : character.headRadius * 0.6
             let desired = character.defaultThoughtBubbleLocalY + lift
-            // Never let the bubble clip the top of the screen (matters in landscape).
-            let maxLocalY = (size.height - 14 - character.thoughtBubbleHalfHeight) - character.position.y
-            let localY = min(desired, max(character.headRadius * 1.2, maxLocalY))
-            character.arrangeThoughtBubble(sideSign: side, localY: localY)
+            // On a short landscape screen, place the wish beside the head instead of
+            // forcing an above-head minimum that clips it off the screen.
+            let localPosition = FeedServingRules.thoughtBubblePosition(
+                desiredLocalY: desired, preferredSide: side, headRadius: character.headRadius,
+                halfHeight: character.thoughtBubbleHalfHeight, characterPosition: character.position,
+                visibleBounds: visibleBounds)
+            character.arrangeThoughtBubble(at: localPosition)
         }
     }
 
@@ -409,6 +417,7 @@ final class FeedScene: BaseToyScene {
             )
             return CharacterSnapshot(
                 spec: spec,
+                layoutScale: characterBaseScale(for: oldSize),
                 mood: character.snapshotMood,
                 bitesRemaining: character.snapshotBitesRemaining,
                 wishGranted: character.wishGranted,
@@ -684,9 +693,16 @@ final class FeedScene: BaseToyScene {
     private func addCharacters(from snapshots: [CharacterSnapshot]) {
         // On rotation, keep WHO is at the table but re-derive clean slot positions for the
         // new orientation. Replaying stale offsets was what made rotation "break".
-        let slots = characterSlots(for: snapshots.map { $0.spec.radius })
-        characters = zip(snapshots, slots).map { snapshot, slot in
-            let character = addCharacter(spec: snapshot.spec, in: slot, arrivalSide: nil)
+        let specs = snapshots.map { snapshot -> CharacterSpec in
+            var spec = snapshot.spec
+            spec.radius = FeedServingRules.rescaledHeadRadius(spec.radius,
+                from: snapshot.layoutScale, to: characterBaseScale)
+            return spec
+        }
+        let slots = characterSlots(for: specs.map(\.radius))
+        characters = snapshots.indices.map { index in
+            let snapshot = snapshots[index]
+            let character = addCharacter(spec: specs[index], in: slots[index], arrivalSide: nil)
             character.alpha = max(0.82, snapshot.alpha)
             character.restoreBitesRemaining(snapshot.bitesRemaining)
             character.restoreWishGranted(snapshot.wishGranted)
@@ -696,9 +712,9 @@ final class FeedScene: BaseToyScene {
         addPlates(under: characters)
         for character in characters where character.mood != .hungry {
             if character.visitIsComplete {
-                satisfyAndReplace(character, after: character.mood == .eating ? 1.0 : 1.4)
+                satisfyAndReplace(character, after: character.completedVisitDelay)
             } else {
-                character.inviteAnotherBite(after: character.mood == .eating ? 0.8 : 0.3)
+                character.inviteAnotherBite(after: character.nextBiteDelay)
             }
         }
     }
@@ -1307,12 +1323,12 @@ final class FeedScene: BaseToyScene {
                 character.playDesiredFoodDance()
                 playWowMoment(for: character)
             }
-            satisfyAndReplace(character, after: character.wishGranted ? 1.2 : 2.8)
+            satisfyAndReplace(character, after: character.completedVisitDelay)
         } else {
             if matchedWish { character.playDesiredFoodDance() }
-            character.inviteAnotherBite(after: 0.92)
+            character.inviteAnotherBite(after: character.nextBiteDelay)
             run(.sequence([
-                .wait(forDuration: 1.12),
+                .wait(forDuration: character.nextBiteDelay + 0.20),
                 .run { [weak self] in self?.inviteFirstDesiredFood() }
             ]), withKey: "feed.moreFoodInvite")
         }
@@ -1434,7 +1450,7 @@ final class FeedScene: BaseToyScene {
 
     /// The friend got exactly what they wanted: a beat of joy, then they happily leave and
     /// a fresh friend arrives. This is the core one-at-a-time rhythm.
-    private func satisfyAndReplace(_ character: CharacterNode, after delay: TimeInterval = 1.2) {
+    private func satisfyAndReplace(_ character: CharacterNode, after delay: TimeInterval) {
         run(.sequence([
             .wait(forDuration: delay),
             .run { [weak self, weak character] in
@@ -1605,9 +1621,43 @@ final class FeedScene: BaseToyScene {
     }
 }
 
-// Keeps physical acceptance independent of art scale and phone/tablet layout.
+// Rules that can be verified without SpriteKit animation or touch dispatch.
 enum FeedServingRules {
     static let minimumDragTravel: CGFloat = 18
+    static let wishLaughDuration: TimeInterval = 0.7
+
+    static func nextBiteDelay(mood: CharacterMood, eatingDuration: TimeInterval) -> TimeInterval {
+        (mood == .eating ? eatingDuration : 0) + 0.35
+    }
+
+    static func completedVisitDelay(mood: CharacterMood, wishGranted: Bool,
+                                    eatingDuration: TimeInterval) -> TimeInterval {
+        let recovery = nextBiteDelay(mood: mood, eatingDuration: eatingDuration)
+        let laugh = wishGranted && (mood == .eating || mood == .satisfied) ? wishLaughDuration : 0
+        return wishGranted ? recovery + laugh : max(2.8, recovery)
+    }
+
+    static func rescaledHeadRadius(_ radius: CGFloat, from oldScale: CGFloat,
+                                   to newScale: CGFloat) -> CGFloat {
+        radius * newScale / max(0.01, oldScale)
+    }
+
+    static func thoughtBubblePosition(desiredLocalY: CGFloat, preferredSide: CGFloat,
+                                     headRadius: CGFloat, halfHeight: CGFloat,
+                                     characterPosition: CGPoint, visibleBounds: CGRect) -> CGPoint {
+        let maxLocalY = visibleBounds.maxY - halfHeight - characterPosition.y
+        let besideHead = maxLocalY < headRadius * 1.2
+        let side: CGFloat = preferredSide == 0 ? 1 : preferredSide
+        let desiredX = besideHead ? side * headRadius * 1.85 : preferredSide * headRadius * 0.62
+        // Includes the little tail, the idle drift and the invitation pulse.
+        let halfWidth = headRadius * 0.86
+        let minX = visibleBounds.minX + halfWidth - characterPosition.x
+        let maxX = visibleBounds.maxX - halfWidth - characterPosition.x
+        let minY = visibleBounds.minY + halfHeight - characterPosition.y
+        let desiredY = besideHead ? min(desiredLocalY, headRadius * 0.2) : desiredLocalY
+        return CGPoint(x: min(max(desiredX, minX), maxX),
+                       y: min(max(desiredY, minY), maxLocalY))
+    }
 
     static func snapRadius(headRadius: CGFloat) -> CGFloat {
         min(60, max(40, headRadius * 0.50))

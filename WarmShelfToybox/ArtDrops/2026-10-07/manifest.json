@@ -1,0 +1,472 @@
+{
+  "created": "2026-10-07",
+  "repository": "https://github.com/interventionbluecamo-afk/lull",
+  "branch": "codex/lull-art-pass-02",
+  "base_commit": "1f109f4",
+  "asset_count": 27,
+  "total_bytes": 52571323,
+  "generation": "OpenAI built-in image_gen",
+  "status": "Generated masters; runtime integration and app play checks remain pending.",
+  "optional_icon_stone_awake": "not_generated",
+  "assets": [
+    {
+      "id": "icon-bg",
+      "file": "WarmShelfToybox/ArtDrops/2026-10-07/icon-bg.png",
+      "prompt_file": "WarmShelfToybox/ArtDrops/2026-10-07/icon-bg.prompt.json",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGB",
+      "bytes": 2763215,
+      "sha256": "60d747f4b861b983dfc866b91e83b7cffb18fc911fb2a3305bd91a42d020b4a2",
+      "background": "opaque",
+      "significant_alpha_bounds": [
+        0,
+        0,
+        1254,
+        1254
+      ]
+    },
+    {
+      "id": "icon-stone",
+      "file": "WarmShelfToybox/ArtDrops/2026-10-07/icon-stone.png",
+      "prompt_file": "WarmShelfToybox/ArtDrops/2026-10-07/icon-stone.prompt.json",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 1683582,
+      "sha256": "1b3401d5caf328e8f51394c657f7f1c6b9af83b05cb704af5effa5f8a0be1e2c",
+      "background": "transparent",
+      "significant_alpha_bounds": [
+        177,
+        113,
+        1077,
+        1168
+      ]
+    },
+    {
+      "id": "meadow-rock",
+      "file": "WarmShelfToybox/ArtDrops/2026-10-07/meadow-rock.png",
+      "prompt_file": "WarmShelfToybox/ArtDrops/2026-10-07/meadow-rock.prompt.json",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 2417729,
+      "sha256": "8c734d640d78c33dafddda1cadd9711b3c02ed4e0c9349f52d670915807d6b66",
+      "background": "transparent",
+      "significant_alpha_bounds": [
+        96,
+        107,
+        1165,
+        1144
+      ]
+    },
+    {
+      "id": "meadow-rock-awake",
+      "file": "WarmShelfToybox/ArtDrops/2026-10-07/meadow-rock-awake.png",
+      "prompt_file": "WarmShelfToybox/ArtDrops/2026-10-07/meadow-rock-awake.prompt.json",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 2226100,
+      "sha256": "223e2534167ce9fd1c9b3f79ec791cadc21380a7903ac093a50d04134a618461",
+      "background": "transparent",
+      "significant_alpha_bounds": [
+        95,
+        103,
+        1167,
+        1146
+      ]
+    },
+    {
+      "id": "meadow-mushroom",
+      "file": "WarmShelfToybox/ArtDrops/2026-10-07/meadow-mushroom.png",
+      "prompt_file": "WarmShelfToybox/ArtDrops/2026-10-07/meadow-mushroom.prompt.json",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 2229800,
+      "sha256": "3b1767b82c94e1f87d38fe37a324fb10af3626c9b5a0a5ac06b0b74709b855ab",
+      "background": "transparent",
+      "significant_alpha_bounds": [
+        73,
+        79,
+        1182,
+        1172
+      ]
+    },
+    {
+      "id": "meadow-mushroom-awake",
+      "file": "WarmShelfToybox/ArtDrops/2026-10-07/meadow-mushroom-awake.png",
+      "prompt_file": "WarmShelfToybox/ArtDrops/2026-10-07/meadow-mushroom-awake.prompt.json",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 2053007,
+      "sha256": "960574f236b92d6d5c4dd813d03645514c467510c2279eee1d079738fc657498",
+      "background": "transparent",
+      "significant_alpha_bounds": [
+        73,
+        77,
+        1184,
+        1174
+      ]
+    },
+    {
+      "id": "meadow-pebbles",
+      "file": "WarmShelfToybox/ArtDrops/2026-10-07/meadow-pebbles.png",
+      "prompt_file": "WarmShelfToybox/ArtDrops/2026-10-07/meadow-pebbles.prompt.json",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 1609160,
+      "sha256": "2621333a7020e2bf593d7c9c052359fe69695f709dff2133f99e2cbb7fb4df83",
+      "background": "transparent",
+      "significant_alpha_bounds": [
+        123,
+        208,
+        1145,
+        1051
+      ]
+    },
+    {
+      "id": "meadow-pebbles-awake",
+      "file": "WarmShelfToybox/ArtDrops/2026-10-07/meadow-pebbles-awake.png",
+      "prompt_file": "WarmShelfToybox/ArtDrops/2026-10-07/meadow-pebbles-awake.prompt.json",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 1473540,
+      "sha256": "c00d06c2a27226055313f092d44769ef8795d1c6f9d08186c19096e21f096c0e",
+      "background": "transparent",
+      "significant_alpha_bounds": [
+        122,
+        207,
+        1147,
+        1052
+      ]
+    },
+    {
+      "id": "meadow-dandelion",
+      "file": "WarmShelfToybox/ArtDrops/2026-10-07/meadow-dandelion.png",
+      "prompt_file": "WarmShelfToybox/ArtDrops/2026-10-07/meadow-dandelion.prompt.json",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "bytes": 2089895,
+      "sha256": "f711058409f33c20bef50607334ced634ea62a2e22d743f54e8970118c4cf5ad",
+      "background": "transparent",
+      "significant_alpha_bounds": [
+        122,
+        98,
+        1122,
+        1121
+      ]
+    },
+    {
+      "id": "feed-cast-grandmother-1",
+      "file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-grandmother-1.png",
+      "prompt_file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-grandmother-1.prompt.json",
+      "width": 1086,
+      "height": 1448,
+      "mode": "RGBA",
+      "bytes": 2053399,
+      "sha256": "4cc4876aa3f4f16322cccc72572b59e536e39289ec91d0243d467286bfe55dc1",
+      "background": "transparent",
+      "significant_alpha_bounds": [
+        93,
+        28,
+        995,
+        1431
+      ]
+    },
+    {
+      "id": "feed-cast-grandmother-2",
+      "file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-grandmother-2.png",
+      "prompt_file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-grandmother-2.prompt.json",
+      "width": 1086,
+      "height": 1448,
+      "mode": "RGBA",
+      "bytes": 1971101,
+      "sha256": "fb30faebc8292393f5e88bdd15b9e9adb32181dc375edd8466cc0fdd3343dad7",
+      "background": "transparent",
+      "significant_alpha_bounds": [
+        95,
+        27,
+        1027,
+        1448
+      ]
+    },
+    {
+      "id": "feed-cast-grandmother-3",
+      "file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-grandmother-3.png",
+      "prompt_file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-grandmother-3.prompt.json",
+      "width": 1086,
+      "height": 1448,
+      "mode": "RGBA",
+      "bytes": 1989847,
+      "sha256": "3d74c9ce8131c7abe24379b56d0ba96e4138736c14f7bb170abf60e606d7dc39",
+      "background": "transparent",
+      "significant_alpha_bounds": [
+        96,
+        23,
+        1020,
+        1433
+      ]
+    },
+    {
+      "id": "feed-cast-grandmother-4",
+      "file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-grandmother-4.png",
+      "prompt_file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-grandmother-4.prompt.json",
+      "width": 1086,
+      "height": 1448,
+      "mode": "RGBA",
+      "bytes": 1979250,
+      "sha256": "08b7317f2a8fdb94aba7ee44e6246419543c997ad1a35773b92867a99d16abff",
+      "background": "transparent",
+      "significant_alpha_bounds": [
+        95,
+        27,
+        1027,
+        1448
+      ]
+    },
+    {
+      "id": "feed-cast-grandmother-5",
+      "file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-grandmother-5.png",
+      "prompt_file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-grandmother-5.prompt.json",
+      "width": 1086,
+      "height": 1448,
+      "mode": "RGBA",
+      "bytes": 1921340,
+      "sha256": "aadced882b68cfe97b5b58fc485cfa4287dfc1aa18858f022963af848fcd4dae",
+      "background": "transparent",
+      "significant_alpha_bounds": [
+        96,
+        24,
+        1012,
+        1432
+      ]
+    },
+    {
+      "id": "feed-cast-grandmother-6",
+      "file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-grandmother-6.png",
+      "prompt_file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-grandmother-6.prompt.json",
+      "width": 1086,
+      "height": 1448,
+      "mode": "RGBA",
+      "bytes": 1962854,
+      "sha256": "ca9939a693d825029f19bca48de6284e8941b794ce48df6ad0bc9c00d0c132c9",
+      "background": "transparent",
+      "significant_alpha_bounds": [
+        95,
+        26,
+        1027,
+        1448
+      ]
+    },
+    {
+      "id": "feed-cast-sprout-1",
+      "file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-sprout-1.png",
+      "prompt_file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-sprout-1.prompt.json",
+      "width": 1086,
+      "height": 1448,
+      "mode": "RGBA",
+      "bytes": 1877781,
+      "sha256": "c65c4235fca4a491608ce1629dc330dbb775a2a4f7b8ce22a23caad287b4f49c",
+      "background": "transparent",
+      "significant_alpha_bounds": [
+        118,
+        55,
+        969,
+        1395
+      ]
+    },
+    {
+      "id": "feed-cast-sprout-2",
+      "file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-sprout-2.png",
+      "prompt_file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-sprout-2.prompt.json",
+      "width": 1086,
+      "height": 1448,
+      "mode": "RGBA",
+      "bytes": 1841762,
+      "sha256": "4e351638b778a560db189ec5827706f3a5c3948f4e794a3975983adb4e4706c8",
+      "background": "transparent",
+      "significant_alpha_bounds": [
+        119,
+        56,
+        997,
+        1439
+      ]
+    },
+    {
+      "id": "feed-cast-sprout-3",
+      "file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-sprout-3.png",
+      "prompt_file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-sprout-3.prompt.json",
+      "width": 1086,
+      "height": 1448,
+      "mode": "RGBA",
+      "bytes": 1814552,
+      "sha256": "32d6d0178287bdafa00062dc9d07942dd85f5710059f8932876acff6f7e7d9f4",
+      "background": "transparent",
+      "significant_alpha_bounds": [
+        115,
+        55,
+        981,
+        1425
+      ]
+    },
+    {
+      "id": "feed-cast-sprout-4",
+      "file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-sprout-4.png",
+      "prompt_file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-sprout-4.prompt.json",
+      "width": 1086,
+      "height": 1448,
+      "mode": "RGBA",
+      "bytes": 1844180,
+      "sha256": "9dcff1d73fa67c7d797577d1003f37575790c144de1b3d49c456a0105c5b7501",
+      "background": "transparent",
+      "significant_alpha_bounds": [
+        122,
+        54,
+        997,
+        1399
+      ]
+    },
+    {
+      "id": "feed-cast-sprout-5",
+      "file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-sprout-5.png",
+      "prompt_file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-sprout-5.prompt.json",
+      "width": 1086,
+      "height": 1448,
+      "mode": "RGBA",
+      "bytes": 1860411,
+      "sha256": "c6325784337546fc8d9f2d7c5d93b4011b2aa76daf020e5d8262ec680f3de5de",
+      "background": "transparent",
+      "significant_alpha_bounds": [
+        121,
+        55,
+        1002,
+        1439
+      ]
+    },
+    {
+      "id": "feed-cast-sprout-6",
+      "file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-sprout-6.png",
+      "prompt_file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-sprout-6.prompt.json",
+      "width": 1086,
+      "height": 1448,
+      "mode": "RGBA",
+      "bytes": 1835102,
+      "sha256": "fafac25cac3c941e07fc79bc497970c6ff609adad1548af8857ec2e6ceb6a39b",
+      "background": "transparent",
+      "significant_alpha_bounds": [
+        121,
+        56,
+        1002,
+        1440
+      ]
+    },
+    {
+      "id": "feed-cast-knithat-1",
+      "file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-knithat-1.png",
+      "prompt_file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-knithat-1.prompt.json",
+      "width": 1086,
+      "height": 1448,
+      "mode": "RGBA",
+      "bytes": 1944297,
+      "sha256": "0452a10128d189e4109c3cf0df97490f9fa2f2ff238bacf1b81acda1b6979d15",
+      "background": "transparent",
+      "significant_alpha_bounds": [
+        117,
+        19,
+        970,
+        1426
+      ]
+    },
+    {
+      "id": "feed-cast-knithat-2",
+      "file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-knithat-2.png",
+      "prompt_file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-knithat-2.prompt.json",
+      "width": 1086,
+      "height": 1448,
+      "mode": "RGBA",
+      "bytes": 1828695,
+      "sha256": "c62214512a7e11d4ee67825f2fc180eeeb4c2dbf403bf8ffc979f8d25b54dfbf",
+      "background": "transparent",
+      "significant_alpha_bounds": [
+        116,
+        14,
+        979,
+        1431
+      ]
+    },
+    {
+      "id": "feed-cast-knithat-3",
+      "file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-knithat-3.png",
+      "prompt_file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-knithat-3.prompt.json",
+      "width": 1086,
+      "height": 1448,
+      "mode": "RGBA",
+      "bytes": 1868865,
+      "sha256": "639143a6752798eaeb11e502cf72d5c53e3af5d908d4ac411e52a7c01553291e",
+      "background": "transparent",
+      "significant_alpha_bounds": [
+        115,
+        14,
+        987,
+        1429
+      ]
+    },
+    {
+      "id": "feed-cast-knithat-4",
+      "file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-knithat-4.png",
+      "prompt_file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-knithat-4.prompt.json",
+      "width": 1086,
+      "height": 1448,
+      "mode": "RGBA",
+      "bytes": 1804550,
+      "sha256": "33d0536af9461662dc4ae938372f3138261eb7a011f10c70af0168f17dbc22c3",
+      "background": "transparent",
+      "significant_alpha_bounds": [
+        114,
+        15,
+        974,
+        1427
+      ]
+    },
+    {
+      "id": "feed-cast-knithat-5",
+      "file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-knithat-5.png",
+      "prompt_file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-knithat-5.prompt.json",
+      "width": 1086,
+      "height": 1448,
+      "mode": "RGBA",
+      "bytes": 1823529,
+      "sha256": "83e487bf2c4a92be874296265c1f2ef040f8d45dca72fff98edf994ddb3c0366",
+      "background": "transparent",
+      "significant_alpha_bounds": [
+        114,
+        16,
+        974,
+        1428
+      ]
+    },
+    {
+      "id": "feed-cast-knithat-6",
+      "file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-knithat-6.png",
+      "prompt_file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-knithat-6.prompt.json",
+      "width": 1086,
+      "height": 1448,
+      "mode": "RGBA",
+      "bytes": 1803780,
+      "sha256": "d9f037a6e2ed5be3d6c13bf00f3746793755b38141052849b75b977d36c79fe7",
+      "background": "transparent",
+      "significant_alpha_bounds": [
+        115,
+        16,
+        973,
+        1427
+      ]
+    }
+  ]
+}

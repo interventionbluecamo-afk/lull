@@ -1,0 +1,14 @@
+{
+  "id": "icon-stone",
+  "prompt": "Use case: precise-object-edit. Asset type: transparent square app-icon foreground layer, 1024 by 1024. The input image is the edit target and exact character reference. Preserve this signature rounded terracotta clay stone, its butter-yellow capstone, closed dark arc eyes, tiny calm smile, rosy cheeks, material, proportions, straight-on camera and upper-left soft light. Remove the cream crescent from its belly entirely, repairing it with matching plain terracotta clay; no markings on belly. Remove all beige scenery, floor, vignette and cast shadow. The complete isolated stone and capstone centred together, occupying about 70% of the square. Genuine transparent alpha background with clean natural clay edges, no teal or coloured fringe. No extra objects or text.",
+  "transparent_background": true,
+  "generation": "built-in image_gen",
+  "base_commit": "1f109f4",
+  "status": "generated",
+  "file": "WarmShelfToybox/ArtDrops/2026-10-07/icon-stone.png",
+  "reference_files": [
+    "WarmShelfToybox/App/Resources/Assets.xcassets/AppIcon.appiconset/Icon-1024.png"
+  ],
+  "generated_filename": "exec-279029f4-cf2f-46d4-aa26-061b19bc0ff4.png",
+  "reference_path_note": "Reference paths are repository-relative; resolve against your local checkout. Prompt text is the exact text used."
+}

@@ -1,0 +1,14 @@
+{
+  "id": "meadow-rock-awake",
+  "prompt": "Use case: precise-object-edit. Asset type: transparent game sprite expression variant. The input is the edit target. Change only the sleepy facial expression of this exact top-down grey felt moss stone: round dark eyes softly open with one tiny highlight each, rosy felt cheeks, small happy smile. Preserve all moss patches and both lichen flowers, every pebble mark, silhouette, surface texture, exact straight-down camera, object position and scale, canvas size and transparent padding, upper-left light. No new foliage, no rotation, no tilt, no crop, no reframing or resizing. Background stays genuinely transparent; no cast shadow, teal or colour fringe. This frame will crossfade directly over the original, so alignment outside the face must remain unchanged.",
+  "transparent_background": true,
+  "generation": "built-in image_gen",
+  "base_commit": "1f109f4",
+  "status": "generated",
+  "file": "WarmShelfToybox/ArtDrops/2026-10-07/meadow-rock-awake.png",
+  "reference_files": [
+    "WarmShelfToybox/ArtDrops/2026-10-07/meadow-rock.png"
+  ],
+  "generated_filename": "exec-c4ce6236-5a00-476b-b703-0c22f61433f5.png",
+  "reference_path_note": "Reference paths are repository-relative; resolve against your local checkout. Prompt text is the exact text used."
+}

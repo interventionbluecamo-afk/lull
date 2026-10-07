@@ -1,0 +1,450 @@
+{
+  "assets": {
+    "icon-bg": {
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGB",
+      "alpha_extrema": [
+        255,
+        255
+      ],
+      "fully_transparent_percent": 0.0,
+      "partially_transparent_percent": 0.0,
+      "alpha_bounds_gt": {
+        "0": [
+          0,
+          0,
+          1254,
+          1254
+        ],
+        "16": [
+          0,
+          0,
+          1254,
+          1254
+        ],
+        "128": [
+          0,
+          0,
+          1254,
+          1254
+        ],
+        "250": [
+          0,
+          0,
+          1254,
+          1254
+        ]
+      },
+      "alpha_weighted_center": [
+        626.5,
+        626.5
+      ],
+      "corner_alpha": [
+        255,
+        255,
+        255,
+        255
+      ]
+    },
+    "icon-stone": {
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "fully_transparent_percent": 54.366,
+      "partially_transparent_percent": 45.578,
+      "alpha_bounds_gt": {
+        "0": [
+          0,
+          21,
+          1176,
+          1214
+        ],
+        "16": [
+          176,
+          112,
+          1078,
+          1169
+        ],
+        "128": [
+          177,
+          113,
+          1077,
+          1168
+        ],
+        "250": [
+          177,
+          114,
+          1076,
+          1167
+        ]
+      },
+      "alpha_weighted_center": [
+        626.994,
+        700.864
+      ],
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "meadow-rock": {
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "fully_transparent_percent": 43.685,
+      "partially_transparent_percent": 56.306,
+      "alpha_bounds_gt": {
+        "0": [
+          0,
+          53,
+          1210,
+          1182
+        ],
+        "16": [
+          94,
+          104,
+          1168,
+          1145
+        ],
+        "128": [
+          96,
+          107,
+          1165,
+          1144
+        ],
+        "250": [
+          97,
+          110,
+          1163,
+          1143
+        ]
+      },
+      "alpha_weighted_center": [
+        624.453,
+        627.941
+      ],
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "meadow-rock-awake": {
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "fully_transparent_percent": 43.903,
+      "partially_transparent_percent": 56.074,
+      "alpha_bounds_gt": {
+        "0": [
+          89,
+          95,
+          1175,
+          1156
+        ],
+        "16": [
+          94,
+          100,
+          1169,
+          1147
+        ],
+        "128": [
+          95,
+          103,
+          1167,
+          1146
+        ],
+        "250": [
+          97,
+          109,
+          1165,
+          1144
+        ]
+      },
+      "alpha_weighted_center": [
+        624.786,
+        627.766
+      ],
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "meadow-mushroom": {
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "fully_transparent_percent": 40.104,
+      "partially_transparent_percent": 59.85,
+      "alpha_bounds_gt": {
+        "0": [
+          0,
+          70,
+          1191,
+          1246
+        ],
+        "16": [
+          73,
+          78,
+          1183,
+          1173
+        ],
+        "128": [
+          73,
+          79,
+          1182,
+          1172
+        ],
+        "250": [
+          75,
+          80,
+          1181,
+          1171
+        ]
+      },
+      "alpha_weighted_center": [
+        627.618,
+        629.765
+      ],
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "meadow-mushroom-awake": {
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "fully_transparent_percent": 40.09,
+      "partially_transparent_percent": 59.837,
+      "alpha_bounds_gt": {
+        "0": [
+          0,
+          73,
+          1188,
+          1214
+        ],
+        "16": [
+          72,
+          76,
+          1185,
+          1175
+        ],
+        "128": [
+          73,
+          77,
+          1184,
+          1174
+        ],
+        "250": [
+          74,
+          78,
+          1183,
+          1173
+        ]
+      },
+      "alpha_weighted_center": [
+        627.714,
+        630.396
+      ],
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "meadow-pebbles": {
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "fully_transparent_percent": 60.913,
+      "partially_transparent_percent": 39.072,
+      "alpha_bounds_gt": {
+        "0": [
+          0,
+          20,
+          1236,
+          1254
+        ],
+        "16": [
+          122,
+          207,
+          1146,
+          1052
+        ],
+        "128": [
+          123,
+          208,
+          1145,
+          1051
+        ],
+        "250": [
+          124,
+          209,
+          1143,
+          1048
+        ]
+      },
+      "alpha_weighted_center": [
+        598.479,
+        642.557
+      ],
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "meadow-dandelion": {
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "fully_transparent_percent": 42.575,
+      "partially_transparent_percent": 57.425,
+      "alpha_bounds_gt": {
+        "0": [
+          0,
+          15,
+          1246,
+          1227
+        ],
+        "16": [
+          108,
+          74,
+          1142,
+          1140
+        ],
+        "128": [
+          122,
+          98,
+          1122,
+          1121
+        ],
+        "250": [
+          156,
+          155,
+          1095,
+          1097
+        ]
+      },
+      "alpha_weighted_center": [
+        628.216,
+        621.696
+      ],
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "pairs": {
+    "meadow-rock": {
+      "alpha_mask_thresholds": {
+        "0": {
+          "iou": 0.991678,
+          "changed_pixel_count": 7386
+        },
+        "16": {
+          "iou": 0.99617,
+          "changed_pixel_count": 3344
+        },
+        "128": {
+          "iou": 0.993841,
+          "changed_pixel_count": 5357
+        },
+        "250": {
+          "iou": 0.991124,
+          "changed_pixel_count": 7636
+        }
+      },
+      "weighted_center_shift_px": [
+        0.333,
+        -0.175
+      ]
+    },
+    "meadow-mushroom": {
+      "alpha_mask_thresholds": {
+        "0": {
+          "iou": 0.990878,
+          "changed_pixel_count": 8632
+        },
+        "16": {
+          "iou": 0.996217,
+          "changed_pixel_count": 3536
+        },
+        "128": {
+          "iou": 0.996035,
+          "changed_pixel_count": 3696
+        },
+        "250": {
+          "iou": 0.990856,
+          "changed_pixel_count": 8462
+        }
+      },
+      "weighted_center_shift_px": [
+        0.096,
+        0.631
+      ]
+    }
+  },
+  "analysis_only": true,
+  "reviewed_at": "2026-10-07",
+  "visual_review": "All eight images inspected with view_image. No materially unclear faces or wrong-camera finding; rock and mushroom pairs closely aligned. In-scene scale and contrast checks remain.",
+  "integration_note": "Square padded masters fit by full canvas; current visible-body sizes approximately rock 84x81, mushroom 80x78, pebbles 65x54, dandelion 61x62. Revisit runtime sizing or consistent padded exports. Preserve common frame/crop per expression pair."
+}

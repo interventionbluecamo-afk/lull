@@ -1,0 +1,12 @@
+{
+  "id": "meadow-pebbles",
+  "prompt": "Use case: stylized-concept. Asset type: transparent square top-down game sprite, 1024 by 1024. Soft 3D clay-and-felt children's toy illustration, stop-motion still. Matte clay, warm wood where specified, hand-felted wool, soft key light from upper left, muted warm palette, cozy serene mood. No text, no logos. A little family of exactly three round felt pebbles viewed DIRECTLY FROM ABOVE in an orthographic straight-down bird's-eye view: one large oat-coloured pebble, one medium sand-coloured pebble and one small grey pebble nestled together. Each has two closed sleepy arc eyes and a tiny calm smile on its upward-facing top surface. Soft rounded forms with subtle felt texture. No front-facing vertical sides or horizon. Entire three-pebble family centered together with complete outlines, arranged in a compact broad cluster, at most 80% of canvas width, generous transparent padding. Genuine transparent alpha background, no ground, no external cast shadow, no teal or colour fringe.",
+  "transparent_background": true,
+  "generation": "built-in image_gen",
+  "base_commit": "1f109f4",
+  "status": "generated",
+  "file": "WarmShelfToybox/ArtDrops/2026-10-07/meadow-pebbles.png",
+  "reference_files": [],
+  "generated_filename": "exec-8fc367fe-beca-404e-ab81-7bc8d44f96b9.png",
+  "reference_path_note": "Reference paths are repository-relative; resolve against your local checkout. Prompt text is the exact text used."
+}

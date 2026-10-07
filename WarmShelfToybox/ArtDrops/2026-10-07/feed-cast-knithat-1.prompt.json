@@ -1,0 +1,14 @@
+{
+  "id": "feed-cast-knithat-1",
+  "transparent_background": true,
+  "prompt": "Soft 3D clay-and-felt children's toy illustration, stop-motion still. Matte clay, warm wood where specified, hand-felted wool, soft key light from upper left, muted warm palette, cozy serene mood. No text, no logos. Re-create the attached small existing game character as a fresh high-resolution production illustration. Preserve its recognizable identity, face proportions and handmade toy charm; do not reproduce the old cutout's missing pixels or damaged edges. One friendly doll with a deep warm brown matte clay face, round muted rosy cheeks, a lavender and cream striped knitted hat with a soft pompom, and a muted blue knitted sweater. Strictly front-facing, waist-up portrait, relaxed neutral pose. Calm neutral expression: two open dark eyes with tiny highlights and a very small closed smile. Mouth easy to see and centred below the eyes. Complete head, hair or hat, shoulders and upper body visible with clean intact silhouettes and breathing room. Head fills the upper half; body extends to the waist at the bottom, with a straight-on symmetrical stance suitable for sitting behind a counter. Exactly one figure centred. True transparent background, no ground, no backdrop, no base, no cast shadow outside the figure, no props or food. Portrait 3:4 canvas, at least 1024 pixels wide. Full detail in the face, knitted stitches and felt, but uncluttered and readable at game size. All future expression variants will use this exact frame and body.",
+  "generation": "built-in image_gen",
+  "base_commit": "1f109f4",
+  "status": "generated",
+  "file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-knithat-1.png",
+  "reference_files": [
+    "WarmShelfToybox/App/Resources/Assets.xcassets/feed-cast-knithat-1.imageset/feed-cast-knithat-1.png"
+  ],
+  "generated_filename": "exec-9e887f05-14b2-42e9-ac8a-56cfa0a618fb.png",
+  "reference_path_note": "Reference paths are repository-relative; resolve against your local checkout. Prompt text is the exact text used."
+}

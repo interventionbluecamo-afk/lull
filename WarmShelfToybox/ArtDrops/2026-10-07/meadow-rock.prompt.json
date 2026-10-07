@@ -1,0 +1,12 @@
+{
+  "id": "meadow-rock",
+  "prompt": "Use case: stylized-concept. Asset type: transparent square top-down game sprite, 1024 by 1024. Soft 3D clay-and-felt children's toy illustration, stop-motion still. Matte clay, warm wood where specified, hand-felted wool, soft key light from upper left, muted warm palette, cozy serene mood. No text, no logos. A round grey felt stone seen DIRECTLY FROM ABOVE in an orthographic straight-down bird's-eye view, with soft patches of green felt moss and two tiny pale lichen flowers on its top. A sleeping face lies flat on the upward-facing surface: two gently closed eyes as soft dark arcs and a small calm mouth. The top surface forms the entire round silhouette, no visible vertical front face or side-view horizon. Complete object centred, approximately 78% of canvas width, generous transparent padding. Genuine transparent alpha background, no floor, no external cast shadow, no teal, no vignette or coloured fringe. Square canvas.",
+  "transparent_background": true,
+  "generation": "built-in image_gen",
+  "base_commit": "1f109f4",
+  "status": "generated",
+  "file": "WarmShelfToybox/ArtDrops/2026-10-07/meadow-rock.png",
+  "reference_files": [],
+  "generated_filename": "exec-8613d57f-c7a1-418b-8a8e-10b36f3e0acc.png",
+  "reference_path_note": "Reference paths are repository-relative; resolve against your local checkout. Prompt text is the exact text used."
+}

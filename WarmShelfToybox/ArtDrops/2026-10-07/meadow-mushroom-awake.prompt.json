@@ -1,0 +1,14 @@
+{
+  "id": "meadow-mushroom-awake",
+  "prompt": "Use case: precise-object-edit. Asset type: transparent game sprite expression variant. The input is the edit target. Change only the sleeping face of this exact top-down red felt mushroom cap: softly open round dark eyes with tiny highlights, rosy felt cheeks, a small happy smile. Preserve every cream spot, red colour, wool texture, circular silhouette, hidden stem, exact straight-down camera, object position and scale, canvas size and transparent padding, upper-left light. No new spots, stem, rotation, tilt, crop, reframing or resizing. Background stays genuinely transparent with no cast shadow, teal or colour fringe. This frame crossfades directly over the original: everything outside the face must stay aligned.",
+  "transparent_background": true,
+  "generation": "built-in image_gen",
+  "base_commit": "1f109f4",
+  "status": "generated",
+  "file": "WarmShelfToybox/ArtDrops/2026-10-07/meadow-mushroom-awake.png",
+  "reference_files": [
+    "WarmShelfToybox/ArtDrops/2026-10-07/meadow-mushroom.png"
+  ],
+  "generated_filename": "exec-8ededbba-64ca-4b72-99fa-93bba9273e0a.png",
+  "reference_path_note": "Reference paths are repository-relative; resolve against your local checkout. Prompt text is the exact text used."
+}

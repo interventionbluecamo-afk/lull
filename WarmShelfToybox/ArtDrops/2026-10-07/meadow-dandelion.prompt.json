@@ -1,0 +1,12 @@
+{
+  "id": "meadow-dandelion",
+  "prompt": "Use case: stylized-concept. Asset type: transparent square top-down game sprite, 1024 by 1024. Soft 3D clay-and-felt children's toy illustration, stop-motion still. Matte clay, warm wood where specified, hand-felted wool, soft key light from upper left, muted warm palette, cozy serene mood. No text, no logos. A dandelion seed-puff seen DIRECTLY FROM ABOVE in an orthographic straight-down bird's-eye view: a round fluffy white wool sphere made of many tiny soft seed parachutes radiating from the centre. A handmade felt-and-wool miniature, delicate but visually simple, ready for one breath of wind. Stem completely hidden beneath and invisible. No face or added props. Complete round puff centered and filling approximately 76% of canvas width with generous transparent padding. Genuine transparent alpha background and delicate alpha at fine wool edges, no floor, no external cast shadow, no teal or coloured fringe, no sky.",
+  "transparent_background": true,
+  "generation": "built-in image_gen",
+  "base_commit": "1f109f4",
+  "status": "generated",
+  "file": "WarmShelfToybox/ArtDrops/2026-10-07/meadow-dandelion.png",
+  "reference_files": [],
+  "generated_filename": "exec-b0643a6d-f5ed-4f49-a8d6-ae4d50a4952c.png",
+  "reference_path_note": "Reference paths are repository-relative; resolve against your local checkout. Prompt text is the exact text used."
+}

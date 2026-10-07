@@ -1,0 +1,14 @@
+{
+  "id": "meadow-pebbles-awake",
+  "transparent_background": true,
+  "prompt": "Soft 3D clay-and-felt children's toy illustration, stop-motion still. Matte clay, warm wood where specified, hand-felted wool, soft key light from upper left, muted warm palette, cozy serene mood. No text, no logos. Edit the attached sleeping pebble family. Change ONLY the three faces: all three now softly awake with two open round dark eyes each, tiny highlights, gentle happy smiles and round rosy cheeks. Keep each face centred and clearly readable on its own pebble. Preserve the exact same three pebble silhouettes, sizes, positions, rotations, felt texture, oat/sand/grey colors, strict directly overhead camera, lighting, transparent background, square canvas and crop. Do not shift, rotate, scale or redesign any pebble. No new decorations, text, border, backdrop, ground or cast shadow.",
+  "generation": "built-in image_gen",
+  "base_commit": "1f109f4",
+  "status": "generated",
+  "file": "WarmShelfToybox/ArtDrops/2026-10-07/meadow-pebbles-awake.png",
+  "reference_files": [
+    "WarmShelfToybox/ArtDrops/2026-10-07/meadow-pebbles.png"
+  ],
+  "generated_filename": "exec-35600008-36b6-47ca-b746-6c04301bc86b.png",
+  "reference_path_note": "Reference paths are repository-relative; resolve against your local checkout. Prompt text is the exact text used."
+}

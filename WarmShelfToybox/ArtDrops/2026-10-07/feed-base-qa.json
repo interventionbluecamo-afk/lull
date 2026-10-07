@@ -1,0 +1,256 @@
+{
+  "assets": {
+    "meadow-pebbles-awake": {
+      "size": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "fully_transparent_percent": 60.96,
+      "alpha_bounds_gt": {
+        "0": [
+          97,
+          53,
+          1202,
+          1212
+        ],
+        "16": [
+          121,
+          207,
+          1148,
+          1053
+        ],
+        "128": [
+          122,
+          207,
+          1147,
+          1052
+        ],
+        "250": [
+          123,
+          209,
+          1146,
+          1050
+        ]
+      },
+      "alpha_weighted_center": [
+        599.318,
+        642.964
+      ],
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "top_edge_max_alpha": 0,
+      "top_edge_pixels_gt16": 0,
+      "top_edge_pixels_gt128": 0,
+      "bottom_edge_max_alpha": 0,
+      "side_edge_max_alpha": [
+        0,
+        0
+      ]
+    },
+    "feed-cast-grandmother-1": {
+      "size": [
+        1086,
+        1448
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "fully_transparent_percent": 36.802,
+      "alpha_bounds_gt": {
+        "0": [
+          33,
+          13,
+          1027,
+          1434
+        ],
+        "16": [
+          92,
+          26,
+          996,
+          1431
+        ],
+        "128": [
+          93,
+          28,
+          995,
+          1431
+        ],
+        "250": [
+          95,
+          30,
+          993,
+          1429
+        ]
+      },
+      "alpha_weighted_center": [
+        539.275,
+        798.702
+      ],
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "top_edge_max_alpha": 0,
+      "top_edge_pixels_gt16": 0,
+      "top_edge_pixels_gt128": 0,
+      "bottom_edge_max_alpha": 0,
+      "side_edge_max_alpha": [
+        0,
+        0
+      ]
+    },
+    "feed-cast-sprout-1": {
+      "size": [
+        1086,
+        1448
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "fully_transparent_percent": 45.002,
+      "alpha_bounds_gt": {
+        "0": [
+          0,
+          47,
+          1031,
+          1406
+        ],
+        "16": [
+          117,
+          54,
+          971,
+          1396
+        ],
+        "128": [
+          118,
+          55,
+          969,
+          1395
+        ],
+        "250": [
+          122,
+          57,
+          968,
+          1394
+        ]
+      },
+      "alpha_weighted_center": [
+        544.652,
+        820.555
+      ],
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "top_edge_max_alpha": 0,
+      "top_edge_pixels_gt16": 0,
+      "top_edge_pixels_gt128": 0,
+      "bottom_edge_max_alpha": 0,
+      "side_edge_max_alpha": [
+        1,
+        0
+      ]
+    },
+    "feed-cast-knithat-1": {
+      "size": [
+        1086,
+        1448
+      ],
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "fully_transparent_percent": 40.304,
+      "alpha_bounds_gt": {
+        "0": [
+          0,
+          0,
+          1072,
+          1434
+        ],
+        "16": [
+          115,
+          15,
+          972,
+          1426
+        ],
+        "128": [
+          117,
+          19,
+          970,
+          1426
+        ],
+        "250": [
+          119,
+          31,
+          967,
+          1424
+        ]
+      },
+      "alpha_weighted_center": [
+        544.965,
+        786.514
+      ],
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "top_edge_max_alpha": 1,
+      "top_edge_pixels_gt16": 0,
+      "top_edge_pixels_gt128": 0,
+      "bottom_edge_max_alpha": 0,
+      "side_edge_max_alpha": [
+        1,
+        0
+      ]
+    }
+  },
+  "analysis_only": true,
+  "pebble_pair": {
+    "alpha_mask_thresholds": {
+      "0": {
+        "iou": 0.986087,
+        "changed_pixel_count": 8606
+      },
+      "16": {
+        "iou": 0.993258,
+        "changed_pixel_count": 4074
+      },
+      "128": {
+        "iou": 0.992981,
+        "changed_pixel_count": 4224
+      },
+      "250": {
+        "iou": 0.986357,
+        "changed_pixel_count": 8118
+      }
+    },
+    "weighted_center_shift_px": [
+      0.84,
+      0.408
+    ]
+  },
+  "reviewed_at": "2026-10-07",
+  "visual_review": "Feed neutral masters are coherent front-facing waist-up references with clear faces. No material generation fix justified. Knithat has alpha=1 fringe at the top; meaningful fur starts y=15 at alpha >16 and does not clip. Pebble awake preserves faces and arrangement.",
+  "recommendation": "Proceed with expression edits from each neutral master, preserving frame. Recalibrate head/mouth hit regions during integration. Preserve common crop/padding per expression family."
+}

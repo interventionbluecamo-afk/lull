@@ -1,0 +1,14 @@
+{
+  "id": "feed-cast-grandmother-3",
+  "transparent_background": true,
+  "prompt": "Soft 3D clay-and-felt children's toy illustration, stop-motion still. Matte clay, warm wood where specified, hand-felted wool, soft key light from upper left, muted warm palette, cozy serene mood. No text, no logos. Edit the attached neutral grandmother character into the 'laughing' expression. Change ONLY the eyes, mouth and cheek expression. Eyes gently squeezed into happy closed arcs, mouth open in a small rounded laugh with a soft dark inner mouth. Warm quiet delight, no exaggerated teeth. Preserve the exact character identity, head shape and size, face centre, nose, hair or hat or sprout, glasses if present, button if present, clothing and knit stitches, arms, pose, body silhouette, muted palette, upper-left lighting and material. Keep mouth centred at the original mouth location. Do not move the character, shift the head, crop, zoom, rotate, enlarge, change clothes or add props. Output on exactly the same portrait 3:4 canvas at the same resolution and framing as the attachment, transparent background. Keep the complete hair/hat/pompom/leaves and all outer edges intact. The expression will crossfade over this original frame in a children's feeding game, so preserving registration and clothing is essential. No text, background, ground plane, exterior cast shadow, food, speech bubbles or motion graphics.",
+  "generation": "built-in image_gen",
+  "base_commit": "1f109f4",
+  "status": "generated",
+  "file": "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-grandmother-3.png",
+  "reference_files": [
+    "WarmShelfToybox/ArtDrops/2026-10-07/feed-cast-grandmother-1.png"
+  ],
+  "generated_filename": "exec-4b9a1e05-58c6-43a1-8ac7-1ccdc6e05c39.png",
+  "reference_path_note": "Reference paths are repository-relative; resolve against your local checkout. Prompt text is the exact text used."
+}

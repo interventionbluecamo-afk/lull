@@ -1,0 +1,12 @@
+{
+  "id": "icon-bg",
+  "prompt": "Use case: stylized-concept. Asset type: square opaque app-icon background layer, 1024 by 1024. Soft 3D clay-and-felt children's toy illustration, stop-motion still. Matte clay, warm wood where specified, hand-felted wool, soft key light from upper left, muted warm palette, cozy serene mood. No text, no logos. A calm dusk sky made of felt fills the entire square edge to edge: deep indigo at top fading to soft plum-lavender near bottom, a few tiny cream felt stars scattered in the upper left, a small cream felt crescent moon in the upper right with faint warm glow, one low wide rounded felt hill in muted slate-blue along the bottom edge. Centre left empty for a character. Simple large masses, restrained wool texture, readable at tiny icon size. Full canvas, square, no rounded-corner mask, no character, no teal key background.",
+  "transparent_background": false,
+  "generation": "built-in image_gen",
+  "base_commit": "1f109f4",
+  "status": "generated",
+  "file": "WarmShelfToybox/ArtDrops/2026-10-07/icon-bg.png",
+  "reference_files": [],
+  "generated_filename": "exec-3936eb81-3f6a-412d-b203-68ae839cec86.png",
+  "reference_path_note": "Reference paths are repository-relative; resolve against your local checkout. Prompt text is the exact text used."
+}

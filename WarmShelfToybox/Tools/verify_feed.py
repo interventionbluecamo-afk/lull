@@ -5,6 +5,8 @@ Requires Python 3 and Xcode command-line tools. Scene animation and touch
 behavior still require hands-on device or simulator playtesting.
 """
 from pathlib import Path
+import os
+import shutil
 import subprocess
 import tempfile
 
@@ -15,7 +17,7 @@ def block(source,needle):
  while depth:
   depth+=(source[i]=='{')-(source[i]=='}');i+=1
  return source[start:i]
-methods='\n'.join(block(cs,n) for n in ['static func artMouthPoint','func receivedFood','func fulfillDesire','func restoreWishGranted','func restoreBitesRemaining', 'var visitIsComplete'])
+methods='\n'.join(block(cs,n) for n in ['struct CastRig','static func artMouthPoint','func receivedFood','func fulfillDesire','func restoreWishGranted','func restoreBitesRemaining', 'var visitIsComplete'])
 fixture=r'''
 import Foundation
 enum CharacterMood { case hungry, eating }
@@ -77,16 +79,21 @@ check(!noRequest.receivedFood()); check(!noRequest.visitIsComplete)
 noRequest.mood = .hungry
 check(noRequest.receivedFood()); check(noRequest.visitIsComplete)
 check(!CharacterModel().visitIsComplete); check(c.visitIsComplete)
-// Mouth local coordinates reconstruct the authored pixel landmark over several scales.
-for (member, ts, mouthY) in [("sprout",CGSize(width:263,height:383),CGFloat(167)),("grandmother",CGSize(width:281,height:397),CGFloat(199)),("knithat",CGSize(width:281,height:474),CGFloat(220))] {
+// Mouth local coordinates reconstruct the painted mouth (measured on the registered
+// runtime exports, design pass 2) over several scales, with the sprite sized and anchored
+// exactly as buildArtCharacter does.
+for (member, ts, mouthY) in [("sprout",CGSize(width:760,height:1187),CGFloat(617)),("grandmother",CGSize(width:760,height:1149),CGFloat(580)),("knithat",CGSize(width:760,height:1211),CGFloat(694))] {
+ let rig = CharacterModel.CastRig.of(member)
  for radius: CGFloat in [60,80,104,128,144] {
-  let w = radius * 2 / 0.78
+  let w = radius * 2 / rig.headWidth
   let h = w * ts.height / ts.width
-  let p = CharacterModel.artMouthPoint(member:member,spriteSize:CGSize(width:w,height:h),anchorPoint:CGPoint(x:0.5,y:0.72))
-  let topFraction = 1 - (p.y / h + 0.72)
+  let anchor = CGPoint(x:0.5,y:1 - rig.headCentre)
+  let p = CharacterModel.artMouthPoint(member:member,spriteSize:CGSize(width:w,height:h),anchorPoint:anchor)
+  let topFraction = 1 - (p.y / h + anchor.y)
   check(abs(topFraction * ts.height - mouthY) < 3)
   check(abs(p.x) < 0.01)
-  check(p.y < 0)
+  check(p.y < 0)          // the mouth sits below the head centre
+  check(abs(w * rig.headWidth - radius * 2) < 0.01)   // the painted head is 2 x headRadius wide
  }
 }
 for radius: CGFloat in [30,60,80,104,128,200,400] {
@@ -103,6 +110,7 @@ with tempfile.TemporaryDirectory(prefix="lull-feed-verification-") as temporary_
     module_cache = temporary_path / "module-cache"
     module_cache.mkdir()
     subprocess.run(
-        ["xcrun", "swift", "-module-cache-path", str(module_cache), str(swift_source)],
+        (["xcrun", "swift"] if shutil.which("xcrun") else [os.environ.get("SWIFT", "swift")])
+        + ["-module-cache-path", str(module_cache), str(swift_source)],
         check=True,
     )

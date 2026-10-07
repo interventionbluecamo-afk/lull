@@ -195,15 +195,29 @@ final class CharacterNode: SKNode {
         FeedServingRules.snapRadius(headRadius: headRadius)
     }
 
-    // Neutral expression mouth centers measured in the authored source cells.
+    /// Where a painted friend's head and mouth sit in its runtime art, as fractions of the
+    /// exported canvas. Measured on each friend's neutral frame after the six expressions
+    /// were registered to it and cropped with one shared box (`Tools/Art/register_cast.py`),
+    /// so every expression shares these numbers. headWidth: head (with hair/hat) width over
+    /// canvas width. headCentre and mouth: distance from the canvas TOP over canvas height.
+    struct CastRig {
+        let headWidth: CGFloat
+        let headCentre: CGFloat
+        let mouth: CGFloat
+
+        static func of(_ member: String) -> CastRig {
+            switch member {
+            case "grandmother": return CastRig(headWidth: 0.875, headCentre: 0.40, mouth: 0.505)
+            case "knithat":     return CastRig(headWidth: 0.933, headCentre: 0.48, mouth: 0.573)
+            default:            return CastRig(headWidth: 0.893, headCentre: 0.44, mouth: 0.520)   // sprout
+            }
+        }
+    }
+
+    // Neutral expression mouth centres, from the cast rig above.
     // SpriteKit Y runs upward; the source image fraction runs down from its top.
     static func artMouthPoint(member: String, spriteSize: CGSize, anchorPoint: CGPoint) -> CGPoint {
-        let topFraction: CGFloat
-        switch member {
-        case "grandmother": topFraction = 0.50
-        case "knithat": topFraction = 0.46
-        default: topFraction = 0.44
-        }
+        let topFraction = CastRig.of(member).mouth
         return CGPoint(x: (0.5 - anchorPoint.x) * spriteSize.width,
                        y: (1 - topFraction - anchorPoint.y) * spriteSize.height)
     }
@@ -418,16 +432,18 @@ final class CharacterNode: SKNode {
         buildProceduralRemainder(bodySize: bodySize)
     }
 
-    /// The authored friend. The cell's painted head is ~78% of its width with its
-    /// centre ~28% from the cell top — the sprite anchors there, so headRadius keeps
-    /// its meaning and the want bubble, mouth point, and every hop land unchanged.
+    /// The authored friend. The sprite is sized so the painted head is exactly
+    /// 2 × headRadius wide and anchored on the painted head centre (see CastRig), so
+    /// headRadius keeps its meaning and the want bubble, mouth point, warm flash and every
+    /// hop land on the face.
     private func buildArtCharacter(member: String, neutral: SKTexture) {
+        let rig = CastRig.of(member)
         let ts = neutral.size()
-        let w = headRadius * 2.0 / 0.78
+        let w = headRadius * 2.0 / rig.headWidth
         let h = w * ts.height / max(1, ts.width)
         let art = SKSpriteNode(texture: neutral)
         art.size = CGSize(width: w, height: h)
-        art.anchorPoint = CGPoint(x: 0.5, y: 0.72)
+        art.anchorPoint = CGPoint(x: 0.5, y: 1 - rig.headCentre)
         art.zPosition = 3
         addChild(art)
         artSprite = art
@@ -1147,6 +1163,30 @@ final class CharacterNode: SKNode {
         return cheek
     }
 
+    static let expressionBeatKey = "expressionBeat"
+    /// Surprise as the food arrives, then three chews: cheeks puffed (cell 6) on each
+    /// squash, closed-mouth neutral between them. Keep in step with chewBeat(member:).
+    static let chewBeatDuration: TimeInterval = 0.18 + 3 * (0.15 + 0.1)
+
+    private func chewBeat(member: String) -> SKAction? {
+        guard let art = artSprite,
+              let surprise = ToyArt.texture("feed-cast-\(member)-5"),
+              let chew = ToyArt.texture("feed-cast-\(member)-6") ?? ToyArt.texture("feed-cast-\(member)-3"),
+              let rest = ToyArt.texture("feed-cast-\(member)-1") else { return nil }
+        let reduce = AmbientAnimator.reduceMotion
+        func show(_ tex: SKTexture) -> SKAction { .run { [weak art] in art?.texture = tex } }
+        var steps: [SKAction] = [show(surprise), .wait(forDuration: 0.18)]
+        for _ in 0..<3 {
+            // The squash is about the head-centre anchor, so the cheeks visibly fill.
+            let down = SKAction.group([.scaleX(to: reduce ? 1 : 1.03, duration: 0.15),
+                                       .scaleY(to: reduce ? 1 : 0.96, duration: 0.15)])
+            let up = SKAction.group([.scaleX(to: 1, duration: 0.1), .scaleY(to: 1, duration: 0.1)])
+            steps += [show(chew), down, show(rest), up]
+        }
+        steps.append(show(chew))
+        return .sequence(steps)
+    }
+
     private func transitionTo(_ newMood: CharacterMood) {
         removeAction(forKey: "moodCycle")
         mood = newMood
@@ -1154,8 +1194,11 @@ final class CharacterNode: SKNode {
 
         switch newMood {
         case .eating:
+            // The painted cast gets a real chew beat (surprise, three chews) before the
+            // happy face; the procedural cast keeps its quick pop.
+            let chewing = castMember != nil && artSprite != nil
             run(.sequence([
-                .wait(forDuration: WarmShelfMotion.pop),
+                .wait(forDuration: chewing ? CharacterNode.chewBeatDuration : WarmShelfMotion.pop),
                 .run { [weak self] in self?.transitionTo(.satisfied) }
             ]), withKey: "moodCycle")
         case .satisfied:
@@ -1177,20 +1220,35 @@ final class CharacterNode: SKNode {
         // Authored cast: moods are expression cells (1 neutral, 2 happy, 3 laughing,
         // 4 sleepy, 5 surprised). A bite lands as a flash of surprise, then the chew.
         if let member = castMember, let art = artSprite {
-            let cell: Int
+            // Expression cells: 1 neutral, 2 happy, 3 laughing, 4 sleepy, 5 surprised,
+            // 6 chewing. Every timed swap runs under one key and is cancelled by the next
+            // mood, so a late swap can never leave a friend on the wrong face (the old
+            // surprise flash outlived the 0.16s eating beat and could land the laugh
+            // frame on top of the happy one).
+            art.removeAction(forKey: CharacterNode.expressionBeatKey)
+            art.setScale(1)
+            func cellTexture(_ cell: Int) -> SKTexture? { ToyArt.texture("feed-cast-\(member)-\(cell)") }
             switch mood {
-            case .hungry:    cell = 1
-            case .eating:    cell = 3
-            case .satisfied: cell = 2
-            case .resting:   cell = 4
-            }
-            if animated, mood == .eating, let surprise = ToyArt.texture("feed-cast-\(member)-5") {
-                art.texture = surprise
-                art.run(.sequence([.wait(forDuration: 0.22), .run { [weak art] in
-                    if let tex = ToyArt.texture("feed-cast-\(member)-\(cell)") { art?.texture = tex }
-                }]))
-            } else if let tex = ToyArt.texture("feed-cast-\(member)-\(cell)") {
-                art.texture = tex
+            case .hungry:
+                if let tex = cellTexture(1) { art.texture = tex }
+            case .resting:
+                if let tex = cellTexture(4) { art.texture = tex }
+            case .eating:
+                if animated, let beat = chewBeat(member: member) {
+                    art.run(beat, withKey: CharacterNode.expressionBeatKey)
+                } else if let tex = cellTexture(6) ?? cellTexture(3) {
+                    art.texture = tex
+                }
+            case .satisfied:
+                // A granted wish laughs first, then settles into the happy face.
+                if animated, wishGranted, let laugh = cellTexture(3), let happy = cellTexture(2) {
+                    art.texture = laugh
+                    art.run(.sequence([.wait(forDuration: 0.7),
+                                       .run { [weak art] in art?.texture = happy }]),
+                            withKey: CharacterNode.expressionBeatKey)
+                } else if let tex = cellTexture(2) {
+                    art.texture = tex
+                }
             }
             let thoughtAlpha: CGFloat = (mood == .hungry && hasRemainingDesires) ? 1.0 : 0
             thoughtBubble?.run(.fadeAlpha(to: thoughtAlpha, duration: animated ? 0.34 : 0))

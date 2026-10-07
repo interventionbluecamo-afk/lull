@@ -1180,7 +1180,8 @@ final class MeadowScene: BaseToyScene {
     private func offerDandelion() {
         guard dandelion == nil || dandelion?.parent == nil, let snail else { return }
         let puff = SKNode()
-        if let art = ToyArt.sprite("meadow-dandelion", fit: CGSize(width: 76, height: 96)) {
+        // The pass-2 dandelion is a round puff seen from above, like the rest of the meadow.
+        if let art = ToyArt.sprite("meadow-dandelion", fit: CGSize(width: 84, height: 84)) {
             puff.addChild(art)
         } else {
             let head = SKShapeNode(circleOfRadius: 22)
@@ -1380,13 +1381,17 @@ private final class MeadowLandmark: SKNode {
             case .pebbles: return "meadow-pebbles"
             }
         }
+        /// Fit boxes for the runtime art. Rock, mushroom and pebbles are the top-down
+        /// pass-2 exports, cropped to their bodies with ~4% padding (so the visible body is
+        /// ~93% of the box): rock ≈ 104 pt, mushroom ≈ 100 pt, pebbles ≈ 115 × 95 pt,
+        /// all about 2.4× the ladybug. Stump and pond keep their earlier art and boxes.
         var fit: CGSize {
             switch self {
-            case .rock: return CGSize(width: 116, height: 98)
+            case .rock: return CGSize(width: 112, height: 109)
             case .stump: return CGSize(width: 112, height: 106)
-            case .mushroom: return CGSize(width: 96, height: 90)
+            case .mushroom: return CGSize(width: 108, height: 107)
             case .pond: return CGSize(width: 126, height: 116)
-            case .pebbles: return CGSize(width: 106, height: 80)
+            case .pebbles: return CGSize(width: 124, height: 102)
             }
         }
         /// Each sleeper hums its own waking note.
@@ -1399,9 +1404,12 @@ private final class MeadowLandmark: SKNode {
             case .pebbles: return 15
             }
         }
-        /// Drawn from directly above (can be rotated on the ground). The rock, mushroom and
-        /// pebbles art is still a side view until its top-down regeneration lands.
-        var isTopDown: Bool {
+        /// Drawn from directly above, so it can be turned on the ground. Every kind is now
+        /// (rock, mushroom and pebbles were redrawn top-down in design pass 2).
+        var isTopDown: Bool { true }
+        /// The stump and pond art carries its own soft shadow (despilled from the teal key);
+        /// the pass-2 top-down art has clean alpha and needs one from code.
+        var hasBakedShadow: Bool {
             switch self {
             case .stump, .pond: return true
             case .rock, .mushroom, .pebbles: return false
@@ -1433,12 +1441,17 @@ private final class MeadowLandmark: SKNode {
     required init?(coder: NSCoder) { fatalError("MeadowLandmark is code-built") }
 
     private func build(night: Bool) {
-        // Authored sleepers carry their own soft warm shadow (despilled from the teal key);
-        // a second procedural pad under them doubled it. Only the understudy gets one.
-        if ToyArt.texture(kind.slot) == nil {
-            let shadow = SKSpriteNode(texture: ProceduralTexture.softClayShadow(size: CGSize(width: 130, height: 110)))
+        // One shadow each: art with a baked shadow (stump, pond) gets none from code; the
+        // clean pass-2 art and the procedural understudies get a soft contact shadow,
+        // nudged down-right away from the upper-left key light.
+        let hasArt = ToyArt.texture(kind.slot) != nil
+        if !hasArt || !kind.hasBakedShadow {
+            let size = hasArt ? CGSize(width: kind.fit.width * 1.02, height: kind.fit.height * 0.96)
+                              : CGSize(width: 130, height: 110)
+            let shadow = SKSpriteNode(texture: ProceduralTexture.softClayShadow(size: size))
+            shadow.position = hasArt ? CGPoint(x: kind.fit.width * 0.05, y: -kind.fit.height * 0.07) : .zero
             shadow.zPosition = -1
-            shadow.alpha = night ? 0.5 : 0.8
+            shadow.alpha = hasArt ? (night ? 0.35 : 0.5) : (night ? 0.5 : 0.8)
             addChild(shadow)
         }
 

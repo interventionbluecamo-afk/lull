@@ -110,9 +110,10 @@ final class FeedScene: BaseToyScene {
         static let frontEdgeBottom: CGFloat = 0.68
         static let insetX: CGFloat = 0.06
         static let boardOffsets: [CGFloat] = [0.0, 0.42, 0.18, 0.55, 0.30, 0.08, 0.47, 0.24]
-        /// Share of a painted friend hidden behind the counter's far edge: the round base
-        /// and the feet. The friend is seen from the chest up, leaning on the counter.
-        static let hiddenFraction: CGFloat = 0.30
+        /// Share of a painted friend hidden behind the counter's far edge: the lower body.
+        /// The pass-2 waist-up friends' necks end ~68% down the canvas, so hiding 26%
+        /// keeps a little collar or shawl above the counter instead of cutting at the chin.
+        static let hiddenFraction: CGFloat = 0.26
     }
 
     private var hasCounterArt: Bool { ToyArt.texture("feed-counter") != nil }

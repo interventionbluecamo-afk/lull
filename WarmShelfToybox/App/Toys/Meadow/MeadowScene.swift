@@ -1,5 +1,6 @@
 import SpriteKit
 import QuartzCore
+import UIKit
 
 /// Meadow — the ladybug who carries spring. A top-down endless-feeling meadow, dormant
 /// pale winter felt as far as the eye can see. Lead her anywhere and her aura paints
@@ -26,6 +27,23 @@ final class MeadowScene: BaseToyScene {
     private let snailLayer = SKNode()
     private let goldenVeil = SKSpriteNode()
     private var worldSize = CGSize.zero
+    // Spring is ONE moss surface laid over the whole world and revealed only where the
+    // ladybug has been: soft stamps form the reveal mask, and a feathered moss-coloured
+    // edge sits under it. One texture scale everywhere (each old disc re-stretched the
+    // moss into its own circle and wore a translucent ring, so the garden read as
+    // overlapping stickers) and a bounded node count.
+    private let springReveal = SKCropNode()
+    private let springMask = SKNode()
+    private let springFringe = SKNode()
+    /// Honest coverage: coarse world cells the spring has actually reached. Also the
+    /// de-dupe that stops a child circling one spot from piling up thousands of nodes.
+    private var paintedCells = Set<Int>()
+    private var coverCell: CGFloat = 24
+    /// Fraction of the world that must be spring for the full-bloom moment. The old 0.4
+    /// summed every overlapping stamp, so it fired after ~45s of leading; true coverage
+    /// of 0.10 keeps that pacing.
+    private let bloomCoverage: CGFloat = 0.10
+    private var springEdgeColor: UIColor { isNight ? UIColor(hex: 0x6B7487) : UIColor(hex: 0x909947) }
 
     // MARK: - Snail
     private var snail: SKNode?
@@ -144,11 +162,14 @@ final class MeadowScene: BaseToyScene {
         paintedSpringPoints.removeAll()
         paintRadius = min(max(min(size.width, size.height) * 0.13, 48), 72) // the bloom her aura paints
         paintStep = paintRadius * 0.72                                      // overlap, so the garden is seamless
+        coverCell = paintRadius * 0.5
+        paintedCells.removeAll()
 
         worldSize = CGSize(width: max(size.width, size.height) * 2.6,
                            height: max(size.width, size.height) * 2.6)
 
         buildWinterGround()
+        buildSpringSurface()
         if snap == nil { buildHomeSpring() }   // a restored garden brings its own home
         buildLandmarks()
         buildSnail()
@@ -169,7 +190,7 @@ final class MeadowScene: BaseToyScene {
             paintedSpringPoints = snap.paintStamps
             springArea = snap.area
             bloomMomentFired = snap.bloomFired
-            goldenVeil.alpha = min(0.16, (snap.area / (worldSize.width * worldSize.height)) * 0.4)
+            updateSpringGlow(allowMoment: false)
             for p in snap.flowerSpots { bloomRosette(at: p, silent: true) }
             for (lm, awake) in zip(landmarks, snap.landmarksAwake) where awake {
                 lm.wake(instantly: true)
@@ -226,14 +247,13 @@ final class MeadowScene: BaseToyScene {
         let night = isNight
         let slot = night ? "meadow-winter-ground-night" : "meadow-winter-ground"
         let base = night ? winterNightColor : winterColor
-        if let tex = ToyArt.texture(slot) ?? (night ? ToyArt.texture("meadow-winter-ground") : nil) {
-            let plate = SKSpriteNode(texture: tex)
-            plate.size = worldSize
-            if night, ToyArt.texture(slot) == nil {
-                plate.color = UIColor(hex: 0x2A2E4A)
-                plate.colorBlendFactor = 0.4   // day art moonlit until the night art lands
-            }
-            groundLayer.addChild(plate)
+        let groundArt = ToyArt.texture(slot) ?? (night ? ToyArt.texture("meadow-winter-ground") : nil)
+        if let tex = groundArt {
+            // Tiled at the art's own size (mirrored so every seam meets itself) instead of
+            // one plate stretched over the whole world — that was a ~5x upscale that turned
+            // the felt into blur next to the crisp creatures.
+            let moonlit = night && ToyArt.texture(slot) == nil   // day art moonlit until night art lands
+            addTiles(of: tex, to: groundLayer, tint: moonlit ? UIColor(hex: 0x2A2E4A) : nil)
         } else {
             let ground = SKShapeNode(rectOf: worldSize, cornerRadius: 90)
             ground.fillColor = base
@@ -253,7 +273,9 @@ final class MeadowScene: BaseToyScene {
         }
 
         // Sleeping tufts and pebbles drifted across the whole world — quiet landmarks
-        // so moving feels like going somewhere.
+        // so moving feels like going somewhere. The authored felt already carries its own
+        // tufts; flat vector ovals on top of it only broke the material.
+        guard groundArt == nil else { return }
         for _ in 0..<70 {
             let p = CGPoint(x: .random(in: -worldSize.width/2 + 60 ... worldSize.width/2 - 60),
                             y: .random(in: -worldSize.height/2 + 60 ... worldSize.height/2 - 60))
@@ -273,6 +295,117 @@ final class MeadowScene: BaseToyScene {
                 pebble.zPosition = 0.2
                 groundLayer.addChild(pebble)
             }
+        }
+    }
+
+    /// Covers the world with one texture at its native point size, mirrored tile to tile
+    /// so edges always meet. All tiles share a texture, so they draw as one batch.
+    private func addTiles(of tex: SKTexture, to parent: SKNode, tint: UIColor?, tintFactor: CGFloat = 0.4) {
+        let ts = tex.size()
+        let side = max(256, min(ts.width, ts.height))
+        let nx = Int(ceil(worldSize.width / side)), ny = Int(ceil(worldSize.height / side))
+        let originX = -CGFloat(nx) * side / 2, originY = -CGFloat(ny) * side / 2
+        for i in 0..<nx {
+            for j in 0..<ny {
+                let tile = SKSpriteNode(texture: tex)
+                tile.size = CGSize(width: side, height: side)
+                tile.position = CGPoint(x: originX + (CGFloat(i) + 0.5) * side,
+                                        y: originY + (CGFloat(j) + 0.5) * side)
+                if i % 2 == 1 { tile.xScale = -1 }
+                if j % 2 == 1 { tile.yScale = -1 }
+                if let tint { tile.color = tint; tile.colorBlendFactor = tintFactor }
+                parent.addChild(tile)
+            }
+        }
+    }
+
+    /// The one spring surface: world-aligned moss (muted toward the felt palette — the raw
+    /// texture is acid lime next to the straw winter and the clay creatures), shown only
+    /// through the stamps in `springMask`, over a feathered edge in `springFringe`.
+    private func buildSpringSurface() {
+        springFringe.removeFromParent()
+        springReveal.removeFromParent()
+        springReveal.removeAllChildren()
+        springMask.removeAllChildren()
+        springFringe.removeAllChildren()
+        springReveal.removeAllActions(); springFringe.removeAllActions()
+        springReveal.alpha = 1
+        springFringe.alpha = 1
+        springReveal.maskNode = springMask
+        springFringe.zPosition = 0
+        springReveal.zPosition = 1
+        springLayer.addChild(springFringe)
+        springLayer.addChild(springReveal)
+
+        let night = isNight
+        if let moss = ToyArt.texture("meadow-spring-moss") {
+            addTiles(of: moss, to: springReveal, tint: night ? UIColor(hex: 0x9AA0B8) : nil, tintFactor: 1)
+        } else {
+            springReveal.addChild(SKSpriteNode(color: night ? UIColor(hex: 0x5E7361) : springColor, size: worldSize))
+        }
+        let veil = SKSpriteNode(color: night ? UIColor(hex: 0x3E4560) : UIColor(hex: 0xB8B48E), size: worldSize)
+        veil.alpha = night ? 0.35 : 0.30
+        veil.zPosition = 1
+        springReveal.addChild(veil)
+    }
+
+    /// A solid disc with an anti-aliased rim: one stamp of the spring reveal mask.
+    private static let stampTexture: SKTexture = {
+        let side: CGFloat = 128
+        let img = UIGraphicsImageRenderer(size: CGSize(width: side, height: side)).image { ctx in
+            UIColor.white.setFill()
+            ctx.cgContext.fillEllipse(in: CGRect(x: 1, y: 1, width: side - 2, height: side - 2))
+        }
+        return SKTexture(image: img)
+    }()
+
+    /// Solid to 70% of its radius, then feathering to nothing: the soft felt edge where
+    /// spring meets winter.
+    private static let featherTexture: SKTexture = {
+        let side: CGFloat = 128
+        let img = UIGraphicsImageRenderer(size: CGSize(width: side, height: side)).image { ctx in
+            let colors = [UIColor.white.cgColor, UIColor.white.cgColor,
+                          UIColor.white.withAlphaComponent(0).cgColor] as CFArray
+            guard let grad = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                                        colors: colors, locations: [0, 0.7, 1]) else { return }
+            let c = CGPoint(x: side / 2, y: side / 2)
+            ctx.cgContext.drawRadialGradient(grad, startCenter: c, startRadius: 0,
+                                             endCenter: c, endRadius: side / 2, options: [])
+        }
+        return SKTexture(image: img)
+    }()
+
+    private func coverKey(_ ix: Int, _ iy: Int) -> Int { (ix &+ 4096) &* 8192 &+ (iy &+ 4096) }
+
+    /// Marks the coverage cells a disc reaches; returns how many were new ground.
+    @discardableResult
+    private func markCovered(center p: CGPoint, radius r: CGFloat) -> Int {
+        let c = coverCell
+        let x0 = Int(floor((p.x - r) / c)), x1 = Int(floor((p.x + r) / c))
+        let y0 = Int(floor((p.y - r) / c)), y1 = Int(floor((p.y + r) / c))
+        var fresh = 0
+        for ix in x0...x1 {
+            for iy in y0...y1 {
+                let cx = (CGFloat(ix) + 0.5) * c, cy = (CGFloat(iy) + 0.5) * c
+                guard hypot(cx - p.x, cy - p.y) <= r else { continue }
+                if paintedCells.insert(coverKey(ix, iy)).inserted { fresh += 1 }
+            }
+        }
+        return fresh
+    }
+
+    private var springCoverage: CGFloat {
+        CGFloat(paintedCells.count) * coverCell * coverCell / max(1, worldSize.width * worldSize.height)
+    }
+
+    /// The warm glow grows with the spring, and the full-bloom moment fires once it is
+    /// truly widespread — only from live play, never from a rotation restore.
+    private func updateSpringGlow(allowMoment: Bool) {
+        let progress = springCoverage / bloomCoverage
+        goldenVeil.alpha = min(0.16, progress * 0.12)
+        if allowMoment, progress >= 1, !bloomMomentFired {
+            bloomMomentFired = true
+            fireBloomMoment()
         }
     }
 
@@ -302,7 +435,9 @@ final class MeadowScene: BaseToyScene {
             lm.position = CGPoint(x: worldSize.width * fx, y: worldSize.height * fy)
             lm.zPosition = 1
             lm.setScale(.random(in: 0.92...1.08))
-            lm.zRotation = .random(in: -0.3...0.3)
+            // Only art drawn from straight above can be turned; a side-view mushroom or
+            // rock spun on the ground reads as tipping over.
+            lm.zRotation = kind.isTopDown ? .random(in: -0.3...0.3) : 0
             lifeLayer.addChild(lm)
             landmarks.append(lm)
         }
@@ -475,14 +610,12 @@ final class MeadowScene: BaseToyScene {
         }
     }
 
+    /// The world node's offset, kept so the world always covers the whole screen.
     private func clampWorldOffset(_ p: CGPoint) -> CGPoint {
         let halfW = worldSize.width / 2, halfH = worldSize.height / 2
-        let minX = size.width - halfW * 1.0 - 0   // world edge meets screen edge
-        let maxX = halfW
-        let minY = size.height - halfH
-        let maxY = halfH
-        return CGPoint(x: min(max(p.x, minX - halfW + size.width), maxX + 0) ,
-                       y: min(max(p.y, minY - halfH + size.height), maxY))
+        guard halfW * 2 > size.width, halfH * 2 > size.height else { return p }
+        return CGPoint(x: min(max(p.x, size.width - halfW), halfW),
+                       y: min(max(p.y, size.height - halfH), halfH))
     }
 
     // MARK: - Touch (lead the snail; world coords via the scrolling node)
@@ -647,9 +780,10 @@ final class MeadowScene: BaseToyScene {
             }
         }
 
-        // The camera drifts after the snail — soft lag, never a hard lock.
-        let want = CGPoint(x: size.width / 2 - snail.position.x,
-                           y: size.height / 2 - snail.position.y)
+        // The camera drifts after the snail — soft lag, never a hard lock — and stops at the
+        // world's edge, so the felt never ends in bare background at the borders.
+        let want = clampWorldOffset(CGPoint(x: size.width / 2 - snail.position.x,
+                                            y: size.height / 2 - snail.position.y))
         let cur = worldNode.position
         worldNode.position = CGPoint(x: cur.x + (want.x - cur.x) * min(1, dt * 4.6),
                                      y: cur.y + (want.y - cur.y) * min(1, dt * 4.6))
@@ -738,10 +872,12 @@ final class MeadowScene: BaseToyScene {
             return
         }
         let night = isNight
+        // Only a soft warm wake of light now. The bright white core line read as a
+        // highlighter stroke drawn over the felt — the one flat-UI mark in the meadow.
         if trailHalo == nil {
             let halo = SKShapeNode()
-            halo.strokeColor = UIColor(hex: 0xFFF3C9).withAlpha(night ? 0.18 : 0.11)
-            halo.lineWidth = 24
+            halo.strokeColor = UIColor(hex: 0xFFECBE).withAlpha(night ? 0.16 : 0.10)
+            halo.lineWidth = 22
             halo.lineCap = .round
             halo.lineJoin = .round
             halo.fillColor = .clear
@@ -750,45 +886,38 @@ final class MeadowScene: BaseToyScene {
             trailLayer.addChild(halo)
             trailHalo = halo
         }
-        if trailNode == nil {
-            let core = SKShapeNode()
-            core.strokeColor = WarmShelfPalette.paperHighlight.withAlpha(night ? 0.5 : 0.32)
-            core.lineWidth = 7
-            core.lineCap = .round
-            core.lineJoin = .round
-            core.fillColor = .clear
-            core.blendMode = .add
-            core.zPosition = 0.1
-            trailLayer.addChild(core)
-            trailNode = core
-        }
-        let path = MeadowScene.smoothOpenPath(trailPoints)
-        trailHalo?.path = path
-        trailNode?.path = path
+        trailHalo?.path = MeadowScene.smoothOpenPath(trailPoints)
     }
 
     /// A soft mossy bloom of spring, laid down where she is led — the brush the aura paints
-    /// with. Stamps overlap into one continuous garden that follows her path.
+    /// with. Each stamp opens the one moss surface a little wider (see `springReveal`).
     private func paintSpringStamp(at p: CGPoint, animated: Bool = true, record: Bool = true) {
         let r = paintRadius
-        let disc = SKShapeNode(circleOfRadius: r)
-        disc.strokeColor = (isNight ? UIColor(hex: 0x8E94AC) : springColor).withAlpha(isNight ? 0.10 : 0.13)
-        disc.lineWidth = r * 0.62
-        disc.position = p
-        disc.zPosition = 0.5
-        if let moss = ToyArt.texture("meadow-spring-moss") {
-            disc.fillTexture = moss
-            disc.fillColor = isNight ? UIColor(hex: 0x9AA0B8) : .white
-        } else {
-            disc.fillColor = isNight ? UIColor(hex: 0x5E7361) : springColor
-        }
-        springLayer.addChild(disc)
+        let fresh = markCovered(center: p, radius: r)
+        // Ground that is already spring gets nothing new — no node, no chime. The chime
+        // means "you made new spring". (Restores always lay their stamp.)
+        if record, fresh == 0 { return }
+
+        let stamp = SKSpriteNode(texture: MeadowScene.stampTexture)
+        stamp.size = CGSize(width: r * 2, height: r * 2)
+        stamp.position = p
+        springMask.addChild(stamp)
+        let edge = SKSpriteNode(texture: MeadowScene.featherTexture)
+        edge.size = CGSize(width: r * 2.4, height: r * 2.4)
+        edge.position = p
+        edge.color = springEdgeColor
+        edge.colorBlendFactor = 1
+        edge.alpha = 0.5
+        springFringe.addChild(edge)
         if record { paintedSpringPoints.append(p) }
-        springArea += .pi * r * r
+        springArea = CGFloat(paintedCells.count) * coverCell * coverCell
 
         if animated, !AmbientAnimator.reduceMotion {
-            disc.setScale(0.45); disc.alpha = 0.55
-            disc.run(.group([.scale(to: 1, duration: 0.34), .fadeAlpha(to: 1, duration: 0.3)]))
+            stamp.setScale(0.45)
+            let grow = SKAction.scale(to: 1, duration: 0.34); grow.timingMode = .easeOut
+            stamp.run(grow)
+            edge.alpha = 0
+            edge.run(.fadeAlpha(to: 0.5, duration: 0.4))
         }
         // The garden's confetti — a wildflower opens now and then in her wake.
         if animated, Int.random(in: 0..<7) == 0 {
@@ -802,13 +931,7 @@ final class MeadowScene: BaseToyScene {
                 HapticsManager.shared.impact(style: .light, intensity: 0.06)
             }
         }
-
-        let coverage = springArea / (worldSize.width * worldSize.height)
-        goldenVeil.alpha = min(0.16, coverage * 0.4)
-        if coverage > 0.4, !bloomMomentFired {
-            bloomMomentFired = true
-            fireBloomMoment()
-        }
+        updateSpringGlow(allowMoment: animated)
     }
 
     /// A petal (or now and then a tiny sparkle) lets go of her wake and drifts.
@@ -859,58 +982,37 @@ final class MeadowScene: BaseToyScene {
         ]))
     }
 
-    /// Spring base patches, used for the home garden and restored saved shapes.
+    /// Spring base patches, used for the home garden and restored saved shapes: the shape
+    /// opens the moss surface, with the same feathered felt edge as her painted path.
     private func addSpringPolygon(_ path: CGPath, area: CGFloat, sprinkle: Int, animated: Bool) {
-        // Pure fill — no drawn outline. The edge is two whispers added below: a wide
-        // feather that melts spring into winter, and a thin light aura that flares on
-        // the fill moment and settles to a faint shimmer (founder: never a highlighter).
-        let patch = SKShapeNode(path: path)
-        patch.fillColor = springColor
-        patch.strokeColor = .clear
-        patch.lineWidth = 0
-        patch.zPosition = 1   // every fill above every edge whisper — seams can't cross green
-        springLayer.addChild(patch)
-        if let tex = ToyArt.texture("meadow-spring-moss") {
-            patch.fillTexture = tex
-            // At night the spring sleeps too — the moss multiplies toward moonlit
-            // slate so painted ground never glows day-bright against the dark.
-            patch.fillColor = isNight ? UIColor(hex: 0x9AA0B8) : .white
-        } else {
-            let base = isNight ? UIColor(hex: 0x5E7361) : springColor
-            ProceduralTexture.applyClayFill(to: patch, base: base, size: path.boundingBox.size)
-        }
-
-        let edgeTone = isNight ? UIColor(hex: 0x8E94AC) : springColor
-        let feather = SKShapeNode(path: path)
-        feather.fillColor = .clear
-        feather.strokeColor = edgeTone.withAlpha(0.12)
-        feather.lineWidth = trailWidth * 1.3
-        feather.lineCap = .round
-        feather.lineJoin = .round
-        feather.zPosition = 0     // under all fills: only the half over winter survives
-        springLayer.addChild(feather)
-
-        let aura = SKShapeNode(path: path)
-        aura.fillColor = .clear
-        aura.strokeColor = WarmShelfPalette.paperHighlight.withAlpha(isNight ? 0.10 : 0.08)
-        aura.lineWidth = 9
-        aura.lineCap = .round
-        aura.lineJoin = .round
-        aura.blendMode = .add
-        aura.zPosition = 0.6      // also under fills — the flash lives on the outer edge only
-        springLayer.addChild(aura)
-        if animated, !AmbientAnimator.reduceMotion {
-            aura.strokeColor = WarmShelfPalette.paperHighlight.withAlpha(0.4)
-            aura.run(.customAction(withDuration: 1.4) { node, t in
-                let k = 0.4 - 0.32 * (t / 1.4)
-                (node as? SKShapeNode)?.strokeColor = WarmShelfPalette.paperHighlight.withAlpha(k)
-            })
-        }
+        let shape = SKShapeNode(path: path)
+        shape.fillColor = .white
+        shape.strokeColor = .clear
+        shape.lineWidth = 0
+        springMask.addChild(shape)
+        let box = path.boundingBox
+        let edge = SKSpriteNode(texture: MeadowScene.featherTexture)
+        edge.size = CGSize(width: box.width * 1.14, height: box.height * 1.14)
+        edge.position = CGPoint(x: box.midX, y: box.midY)
+        edge.color = springEdgeColor
+        edge.colorBlendFactor = 1
+        edge.alpha = 0.5
+        springFringe.addChild(edge)
         springPaths.append(path)
-        springArea += area
+
+        // Honest coverage for the patch.
+        let c = coverCell
+        if c > 0, box.width > 0, box.height > 0 {
+            for ix in Int(floor(box.minX / c))...Int(floor(box.maxX / c)) {
+                for iy in Int(floor(box.minY / c))...Int(floor(box.maxY / c)) {
+                    let centre = CGPoint(x: (CGFloat(ix) + 0.5) * c, y: (CGFloat(iy) + 0.5) * c)
+                    if path.contains(centre) { paintedCells.insert(coverKey(ix, iy)) }
+                }
+            }
+        }
+        springArea = CGFloat(paintedCells.count) * coverCell * coverCell
 
         // Wildflower sprinkles — top-down rosettes, the garden's confetti.
-        let box = path.boundingBox
         var placed = 0, attempts = 0
         while placed < sprinkle, attempts < sprinkle * 16 {
             attempts += 1
@@ -925,21 +1027,16 @@ final class MeadowScene: BaseToyScene {
 
         if animated {
             if !AmbientAnimator.reduceMotion {
-                patch.alpha = 0
-                let appear = SKAction.fadeAlpha(to: 1, duration: 0.4)
-                appear.timingMode = .easeOut
-                patch.run(appear)
+                shape.setScale(0.7)
+                let grow = SKAction.scale(to: 1, duration: 0.4); grow.timingMode = .easeOut
+                shape.run(grow)
+                edge.alpha = 0
+                edge.run(.fadeAlpha(to: 0.5, duration: 0.5))
             }
             tone(.arp([5, 9, 12], step: 0.07, .clay.with(body: 0.4, amplitude: 0.07)), key: "spring", minInterval: 0.3)
             HapticsManager.shared.impact(style: .soft, intensity: 0.3)
-
-            let coverage = springArea / (worldSize.width * worldSize.height)
-            goldenVeil.alpha = min(0.16, coverage * 0.4)
-            if coverage > 0.4, !bloomMomentFired {
-                bloomMomentFired = true
-                fireBloomMoment()
-            }
         }
+        updateSpringGlow(allowMoment: animated)
     }
 
     /// A wildflower seen from above: a ring of petals around a bright heart.
@@ -1143,13 +1240,21 @@ final class MeadowScene: BaseToyScene {
             ]))
         }
 
-        for (i, patch) in springLayer.children.enumerated() {
-            patch.run(.sequence([
-                .wait(forDuration: 0.4 + Double(i) * 0.1),
-                .fadeOut(withDuration: 2.0),
-                .removeFromParent()
-            ]))
-        }
+        // Winter tucks the spring surface back in as one, then the slate is wiped clean
+        // (coverage too, so ground painted during the fade can be painted again).
+        let tuck = SKAction.sequence([.wait(forDuration: 0.4), .fadeOut(withDuration: 2.0)])
+        springFringe.run(tuck)
+        springReveal.run(.sequence([tuck, .run { [weak self] in
+            guard let self else { return }
+            self.springMask.removeAllChildren()
+            self.springFringe.removeAllChildren()
+            self.paintedCells.removeAll()
+            self.paintedSpringPoints.removeAll()
+            self.lastPaintPoint = nil
+            self.springArea = 0
+            self.springReveal.alpha = 1
+            self.springFringe.alpha = 1
+        }]))
         springPaths.removeAll()
         paintedSpringPoints.removeAll()
         lastPaintPoint = nil
@@ -1294,6 +1399,14 @@ private final class MeadowLandmark: SKNode {
             case .pebbles: return 15
             }
         }
+        /// Drawn from directly above (can be rotated on the ground). The rock, mushroom and
+        /// pebbles art is still a side view until its top-down regeneration lands.
+        var isTopDown: Bool {
+            switch self {
+            case .stump, .pond: return true
+            case .rock, .mushroom, .pebbles: return false
+            }
+        }
         var fallbackTint: UIColor {
             switch self {
             case .rock: return UIColor(hex: 0x9AA08B)
@@ -1320,10 +1433,14 @@ private final class MeadowLandmark: SKNode {
     required init?(coder: NSCoder) { fatalError("MeadowLandmark is code-built") }
 
     private func build(night: Bool) {
-        let shadow = SKSpriteNode(texture: ProceduralTexture.softClayShadow(size: CGSize(width: 130, height: 110)))
-        shadow.zPosition = -1
-        shadow.alpha = night ? 0.5 : 0.8
-        addChild(shadow)
+        // Authored sleepers carry their own soft warm shadow (despilled from the teal key);
+        // a second procedural pad under them doubled it. Only the understudy gets one.
+        if ToyArt.texture(kind.slot) == nil {
+            let shadow = SKSpriteNode(texture: ProceduralTexture.softClayShadow(size: CGSize(width: 130, height: 110)))
+            shadow.zPosition = -1
+            shadow.alpha = night ? 0.5 : 0.8
+            addChild(shadow)
+        }
 
         // Every kind is slot-driven now (June 12 batch): one asleep plate, one
         // painted -awake plate with the real face. Procedural bodies are the

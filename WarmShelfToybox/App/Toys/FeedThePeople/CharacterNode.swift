@@ -441,6 +441,20 @@ final class CharacterNode: SKNode {
         addThoughtBubbleIfNeeded()
     }
 
+    /// For an authored friend: how far above a counter's far edge this node must stand so
+    /// the counter hides exactly the bottom `hiddenFraction` of the painted figure (its
+    /// round base and feet). nil for the procedural cast, which keeps its own staging.
+    func standHeight(hidingBottom hiddenFraction: CGFloat) -> CGFloat? {
+        guard let art = artSprite else { return nil }
+        return (art.anchorPoint.y - hiddenFraction) * art.size.height
+    }
+
+    /// How far the painted figure reaches above this node's origin (nil for the procedural cast).
+    var paintedHeadroom: CGFloat? {
+        guard let art = artSprite else { return nil }
+        return (1 - art.anchorPoint.y) * art.size.height
+    }
+
     private func buildProceduralRemainder(bodySize: CGSize) {
         addAccessory()
         addThoughtBubbleIfNeeded()

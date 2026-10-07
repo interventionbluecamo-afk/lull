@@ -30,3 +30,7 @@ Assets/Reference/
 
 # Old manual backup zips (pre-git habits) — kept on disk, never versioned
 Archive/
+
+# Python bytecode
+__pycache__/
+*.pyc

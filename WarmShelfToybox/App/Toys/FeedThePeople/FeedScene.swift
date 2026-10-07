@@ -3,6 +3,14 @@ import UIKit
 
 final class FeedScene: BaseToyScene {
     override var firstSessionHintKey: String? { "hint.feed" }
+    override func firstSessionHintPoint() -> CGPoint {
+        let homes = startingFoodPositions(count: availableFoodKinds.count)
+        if let want = characters.first?.desiredFood,
+           let index = availableFoodKinds.firstIndex(of: want), homes.indices.contains(index) {
+            return homes[index]
+        }
+        return homes.first ?? CGPoint(x: size.width / 2, y: size.height * 0.3)
+    }
     override var toyVoice: AudioManager.LullSoundVoice { .feed }
     private var worldLayer = SKNode()
     private var tableLayer = SKNode()
@@ -90,6 +98,39 @@ final class FeedScene: BaseToyScene {
     }
 
     private let availableFoodKinds: [FoodKind] = [.apple, .carrot, .banana, .egg]
+
+    /// The shopkeeper's counter, measured on `feed-counter.png` (y from the TOP): the plank's
+    /// top face runs 0.04…0.34 and its front edge 0.40…0.68; 6% at each end is the rounded
+    /// plank end, never shown. Board windows start at staggered offsets so the seams
+    /// between boards don't line up into a tiled floor.
+    private enum CounterArt {
+        static let topFaceTop: CGFloat = 0.04
+        static let topFaceBottom: CGFloat = 0.34
+        static let frontEdgeTop: CGFloat = 0.40
+        static let frontEdgeBottom: CGFloat = 0.68
+        static let insetX: CGFloat = 0.06
+        static let boardOffsets: [CGFloat] = [0.0, 0.42, 0.18, 0.55, 0.30, 0.08, 0.47, 0.24]
+        /// Share of a painted friend hidden behind the counter's far edge: the round base
+        /// and the feet. The friend is seen from the chest up, leaning on the counter.
+        static let hiddenFraction: CGFloat = 0.30
+    }
+
+    private var hasCounterArt: Bool { ToyArt.texture("feed-counter") != nil }
+    private var counterLipHeight: CGFloat { isPadLikeCanvas ? 64 : 44 }
+    /// Where the food plates stand on the countertop (y), a little nearer the child than
+    /// the middle of the counter.
+    private var counterPlateY: CGFloat {
+        counterLipHeight + max(60, tableTopY - counterLipHeight) * 0.42
+    }
+    private var counterFoodSpread: CGFloat {
+        min(size.width * (size.width > size.height ? 0.56 : 0.76), isPadLikeCanvas ? 620 : 330)
+    }
+    private var counterPlateSize: CGSize {
+        let slot = counterFoodSpread / CGFloat(max(1, availableFoodKinds.count - 1))
+        let widest = availableFoodKinds.map { $0.baseSize.width * foodScale }.max() ?? 80
+        let w = min(slot * 0.9, widest * 1.08)
+        return CGSize(width: w, height: w * 0.78)
+    }
 
     override func didMove(to view: SKView) {
         super.didMove(to: view)
@@ -226,7 +267,13 @@ final class FeedScene: BaseToyScene {
     private func tableTopY(for sceneSize: CGSize) -> CGFloat {
         // Sit the table higher so characters fill the upper-middle and the food
         // rests off the very bottom edge — no large empty void at the top.
-        let ratio: CGFloat = sceneSize.width > sceneSize.height ? 0.40 : 0.42
+        let landscape = sceneSize.width > sceneSize.height
+        if landscape, !isPadLikeCanvas(for: sceneSize) {
+            // A landscape phone needs a deeper counter (the food stands on it) and a
+            // smaller friend above it — see foodScale/characterBaseScale.
+            return max(140, min(sceneSize.height * 0.44, sceneSize.height - 200))
+        }
+        let ratio: CGFloat = landscape ? 0.40 : 0.42
         return max(140, min(sceneSize.height * ratio, sceneSize.height - 260))
     }
 
@@ -243,7 +290,8 @@ final class FeedScene: BaseToyScene {
         }
 
         if sceneSize.width > sceneSize.height {
-            return min(2.3, max(1.86, sceneSize.height / 205))
+            // Was up to 2.3 — an apple a third of the screen tall, overlapping the friend.
+            return min(1.35, max(1.0, sceneSize.height / 330))
         }
 
         return min(1.6, max(1.34, sceneSize.width / 300))
@@ -258,7 +306,9 @@ final class FeedScene: BaseToyScene {
         }
 
         if sceneSize.width > sceneSize.height {
-            return min(1.4, max(1.16, sceneSize.height / 300))
+            // Small enough that a friend standing behind the counter keeps the whole head
+            // on screen (the old 1.31 clipped the top of the head in landscape).
+            return min(1.3, max(0.98, sceneSize.height / 380))
         }
 
         return min(1.54, max(1.28, sceneSize.width / 300))
@@ -382,29 +432,8 @@ final class FeedScene: BaseToyScene {
     private func addTable() {
         let cx = size.width / 2
 
-        // The authored counter front: one wooden plank face, top edge on the table line.
         if let tex = ToyArt.texture("feed-counter") {
-            let counter = SKSpriteNode(texture: tex)
-            let ts = tex.size()
-            let counterScale = (size.width + 60) / max(1, ts.width)
-            counter.size = CGSize(width: ts.width * counterScale, height: ts.height * counterScale)
-            counter.anchorPoint = CGPoint(x: 0.5, y: 1)
-            counter.position = CGPoint(x: cx, y: tableTopY)
-            // The view uses ignoresSiblingOrder, so z is ACCUMULATED down the tree. A
-            // character's body accumulates to ~43 (world 18 + charLayer 12 + node ~10 +
-            // art 3); the food to ~92. The counter must sit BETWEEN them so the friends
-            // lean OVER it (lower body hidden) while the food still rests on top. In
-            // tableLayer (z0), local 33 → accumulated 51. (Was 15 → accumulated 33: it
-            // lost to the characters, so they stood ON the counter — the founder's bug.)
-            counter.zPosition = 33
-            tableLayer.addChild(counter)
-            // Warm shadow under the counter grounds it; the floor below is the plate's.
-            let shadow = SKShapeNode(ellipseOf: CGSize(width: size.width * 0.96, height: 40))
-            shadow.fillColor = WarmShelfPalette.cocoa.withAlpha(0.07)
-            shadow.strokeColor = .clear
-            shadow.position = CGPoint(x: cx, y: tableTopY - counter.size.height - 6)
-            shadow.zPosition = 32.5
-            tableLayer.addChild(shadow)
+            buildShopCounter(tex)
             return
         }
 
@@ -457,6 +486,110 @@ final class FeedScene: BaseToyScene {
         tableLayer.addChild(frontLip)
     }
 
+    /// The shopkeeper's counter, seen from the child's side of it. Its far edge is the table
+    /// line the friend stands behind, and it runs to the bottom of the screen, so a friend
+    /// is only ever seen from the chest up and the food rests ON a real surface. (It used
+    /// to be one thin plank floating mid-screen, with the friend's round bottom poking out
+    /// under it and the food hanging off its front face.) Built from the authored plank:
+    /// its top face, cut into board strips with staggered seams, makes a deep counter top;
+    /// its front edge becomes the near lip at the bottom of the screen.
+    private func buildShopCounter(_ tex: SKTexture) {
+        let ts = tex.size()
+        let cx = size.width / 2
+        let stripW = size.width + 40
+        let usable = 1 - CounterArt.insetX * 2
+        // About one screen-width of the plank per board keeps the wood near its painted
+        // resolution (wider screens take more of it).
+        let window = min(usable, max(0.35, stripW / max(1, ts.width)))
+        let faceH = CounterArt.topFaceBottom - CounterArt.topFaceTop
+        let boardNatH = faceH * ts.height * (stripW / max(1, window * ts.width))
+        let lipH = counterLipHeight
+        let farY = tableTopY
+        // Under the counter z (accumulated 51 in tableLayer): above the friends (≈43),
+        // below the food (≈92).
+        let counterZ: CGFloat = 33
+
+        // A soft shade on the friend where they lean in over the far edge.
+        let lean = SKSpriteNode(texture: ProceduralTexture.softClayShadow(size: CGSize(width: size.width * 0.8, height: 34)))
+        lean.position = CGPoint(x: cx, y: farY + 6)
+        lean.alpha = 0.32
+        lean.zPosition = counterZ - 0.2
+        tableLayer.addChild(lean)
+
+        // The top: boards from the far edge down to the lip, nearer boards a little taller
+        // (depth), each a different window of the plank so no seam lines up.
+        var y = farY
+        var board = 0
+        while y > lipH + 0.5 {
+            let nearness = 1 - (y - lipH) / max(1, farY - lipH)
+            let h = min(boardNatH * (1 + 0.25 * nearness), y - lipH + 1)
+            let offset = CounterArt.boardOffsets[board % CounterArt.boardOffsets.count] * max(0, usable - window)
+            let unit = CGRect(x: CounterArt.insetX + offset,
+                              y: 1 - CounterArt.topFaceBottom,
+                              width: window,
+                              height: faceH * min(1, h / max(1, boardNatH)))
+            let strip = SKSpriteNode(texture: SKTexture(rect: unit, in: tex))
+            strip.size = CGSize(width: stripW, height: h)
+            strip.anchorPoint = CGPoint(x: 0.5, y: 1)
+            strip.position = CGPoint(x: cx, y: y)
+            if board % 2 == 1 { strip.xScale = -1 }
+            // A touch of shade toward the child so the top reads as one lit surface.
+            strip.color = WarmShelfPalette.cocoa
+            strip.colorBlendFactor = min(0.12, CGFloat(board) * 0.02)
+            strip.zPosition = counterZ
+            tableLayer.addChild(strip)
+            y -= h
+            board += 1
+        }
+
+        // The near lip: the plank's own front edge, running off the bottom of the screen.
+        let lipUnit = CGRect(x: CounterArt.insetX, y: 1 - CounterArt.frontEdgeBottom,
+                             width: window, height: CounterArt.frontEdgeBottom - CounterArt.frontEdgeTop)
+        let lip = SKSpriteNode(texture: SKTexture(rect: lipUnit, in: tex))
+        lip.size = CGSize(width: stripW, height: lipH + 6)
+        lip.anchorPoint = CGPoint(x: 0.5, y: 1)
+        lip.position = CGPoint(x: cx, y: lipH)
+        lip.zPosition = counterZ + 0.1
+        tableLayer.addChild(lip)
+
+        // A thin lit rim on the far edge: the line the friend leans on.
+        let rim = SKSpriteNode(color: WarmShelfPalette.paperHighlight, size: CGSize(width: stripW, height: 2.5))
+        rim.alpha = 0.4
+        rim.position = CGPoint(x: cx, y: farY - 1.25)
+        rim.zPosition = counterZ + 0.1
+        tableLayer.addChild(rim)
+
+        // A wooden plate for every food: each food has a home it visibly goes back to.
+        let homes = counterFoodPositions(count: availableFoodKinds.count)
+        let plate = counterPlateSize
+        for home in homes {
+            let shade = SKSpriteNode(texture: ProceduralTexture.softClayShadow(size: CGSize(width: plate.width * 1.1, height: plate.height * 0.55)))
+            shade.position = CGPoint(x: home.x + plate.width * 0.03, y: counterPlateY - plate.height * 0.3)
+            shade.alpha = 0.45
+            shade.zPosition = counterZ + 0.3
+            tableLayer.addChild(shade)
+            if let pedestal = ToyArt.sprite("feed-pedestal", fit: plate) {
+                pedestal.position = CGPoint(x: home.x, y: counterPlateY)
+                pedestal.zPosition = counterZ + 0.5
+                tableLayer.addChild(pedestal)
+            }
+        }
+    }
+
+    /// Food homes on the counter: one row of plates across the top, each food standing on
+    /// its plate (its bottom on the plate's top face).
+    private func counterFoodPositions(count: Int) -> [CGPoint] {
+        let spread = counterFoodSpread
+        let startX = size.width / 2 - spread / 2
+        let plateTop = counterPlateY + counterPlateSize.height * 0.16
+        return (0..<count).map { index in
+            let t = count == 1 ? 0.5 : CGFloat(index) / CGFloat(count - 1)
+            let kind = availableFoodKinds.indices.contains(index) ? availableFoodKinds[index] : .apple
+            let h = kind.baseSize.height * foodScale
+            return CGPoint(x: startX + spread * t, y: plateTop + h * 0.40)
+        }
+    }
+
     /// A cheerful bunting banner fills the empty top (replaces the old cafeteria clutter).
     private func addBackdrop() {
         // The stand plate bakes its own bunting — never hang a second banner over it.
@@ -495,6 +628,9 @@ final class FeedScene: BaseToyScene {
     /// A woven round placemat the food is served on — clearly "here's the food", and it
     /// sits flat on the table (no confusing floating bowl).
     private func addFoodSource() {
+        // With the shopkeeper's counter, fresh food comes up from under the counter (see
+        // respawnFood); a basket behind the counter would never be seen.
+        guard !hasCounterArt else { return }
         let w = min(size.width * (isPadLikeCanvas ? 0.5 : 0.66), isPadLikeCanvas ? 460 : 320)
         let h = w * 0.42
         let p = foodSourcePosition
@@ -694,13 +830,25 @@ final class FeedScene: BaseToyScene {
             outfitStyle: spec.outfitStyle,
             castMember: spec.castMember
         )
+        // Behind the counter, a painted friend stands so the far edge hides exactly its
+        // round base and feet — chest up, leaning in, for every cast member's proportions.
+        var home = slot.position
+        if hasCounterArt, let stand = character.standHeight(hidingBottom: CounterArt.hiddenFraction) {
+            home.y = tableTopY + stand
+            // A tall friend (the knit hat) on a short landscape screen tucks a little
+            // further behind the counter rather than lose the top of their head.
+            if let headroom = character.paintedHeadroom {
+                let overshoot = home.y + headroom - (size.height - 6)
+                if overshoot > 0 { home.y -= min(overshoot, stand * 0.5) }
+            }
+        }
         if let arrivalSide {
             character.position = CGPoint(
                 x: arrivalSide < 0 ? -spec.radius * 2.6 : size.width + spec.radius * 2.6,
-                y: slot.position.y + CGFloat.random(in: -8...10)
+                y: home.y
             )
         } else {
-            character.position = slot.position
+            character.position = home
         }
         character.zPosition = slot.zPosition
         character.alpha = arrivalSide == nil ? 1 : 0
@@ -709,7 +857,7 @@ final class FeedScene: BaseToyScene {
 
         if let arrivalSide {
             character.resetForArrival()
-            let move = SKAction.move(to: slot.position, duration: Double.random(in: 1.45...1.85))
+            let move = SKAction.move(to: home, duration: Double.random(in: 1.45...1.85))
             let fade = SKAction.fadeAlpha(to: 1, duration: 0.40)
             let leanIn = SKAction.rotate(toAngle: -arrivalSide * 0.10, duration: 0.28, shortestUnitArc: true)
             let leanOut = SKAction.rotate(toAngle: arrivalSide * 0.07, duration: 0.34, shortestUnitArc: true)
@@ -930,6 +1078,7 @@ final class FeedScene: BaseToyScene {
     }
 
     private func startingFoodPositions(count: Int) -> [CGPoint] {
+        if hasCounterArt { return counterFoodPositions(count: count) }
         if !isPadLikeCanvas, size.height >= size.width, count > 4 {
             let columns = 4
             let spread = min(size.width * 0.76, 330)
@@ -1348,10 +1497,16 @@ final class FeedScene: BaseToyScene {
             let existingFoods = self.foodLayer.children.compactMap { $0 as? FoodNode }
             guard !existingFoods.contains(where: { $0.kind == kind && !$0.isServing }) else { return }
             let food = self.makeFood(kind: kind, index: existingFoods.count)
-            food.position = CGPoint(
-                x: self.foodSourcePosition.x + CGFloat.random(in: -28...28),
-                y: self.foodSourcePosition.y + food.foodSize.height * 0.10
-            )
+            if self.hasCounterArt {
+                // The shopkeeper's stock lives under the counter: the fresh food rises
+                // from below the near edge straight onto its own plate.
+                food.position = CGPoint(x: food.homePosition.x, y: -food.foodSize.height * 0.5)
+            } else {
+                food.position = CGPoint(
+                    x: self.foodSourcePosition.x + CGFloat.random(in: -28...28),
+                    y: self.foodSourcePosition.y + food.foodSize.height * 0.10
+                )
+            }
             food.alpha = 0
             food.setScale(0.78)
             self.foodLayer.addChild(food)

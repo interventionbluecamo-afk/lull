@@ -4,7 +4,7 @@ October 7, 2026. Continue on `claude/modest-bell-cjarqm` in `interventionbluecam
 
 ## Release status
 
-Version **1.0 (2)**, bundle `com.lull.toybox.a5ct5fk3sy`, team `A5CT5FK3SY`, App Store Connect app `6819919245` (Lull Quiet Toybox). Source/asset/docs push and TestFlight upload are being completed; the final result is recorded in `Docs/TestFlight-Release-2026-10-07.md`. Do not treat an archive as an uploaded/processed build.
+Version **1.0 (2)**, bundle `com.lull.toybox.a5ct5fk3sy`, team `A5CT5FK3SY`, App Store Connect app `6819919245` (Lull Quiet Toybox). App/source/assets/docs are pushed as **6f13733**. Final archive and upload succeeded after the founder refreshed Xcode accounts; Apple processing and Founder Testing assignment are being completed. The final result is recorded in `Docs/TestFlight-Release-2026-10-07.md`. Do not treat an archive as an uploaded/processed build.
 
 Founder explicitly confirmed: **“Device checks pass; sound works.”** This followed installation of the final Release app and a request to close/reopen it and check Sound On/Silent Mode, Sound Off, Hum/Bubbles/Feed, new Mix-Up parts/save, Stack refill, completed-round Sleepy Box shuffle and all nine toys opening. Founder then requested **all further testing be left to them to save tokens**. Honour that preference; do not claim agent-only physical coverage or repeat broad play-testing without a new request.
 

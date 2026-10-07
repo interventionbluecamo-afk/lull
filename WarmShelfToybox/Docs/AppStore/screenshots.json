@@ -1,0 +1,21 @@
+{
+  "_note": "Order = App Store order. The first three show in search results. Captions must stay true to the shipping build. Capture file names: <id>.png in captures/iphone and captures/ipad.",
+  "shots": [
+    {"id": "01-shelf", "caption": "Nine calm toys.\nNo ads, no tracking.",
+     "capture": "The shelf by day, all nine toys visible (LULL_DEBUG_FULL=1). Wren awake and centred. No adult gate or welcome on screen."},
+    {"id": "02-feed", "caption": "Feed each friend\nthe snack they want",
+     "capture": "Feed with grandmother asking (thought bubble showing the wanted food), food on its plates. Ideal: the happy or laughing frame right after a correct feed."},
+    {"id": "03-mixup", "caption": "Mix and match\nfelt friends",
+     "capture": "Mix-Up with a clearly mixed friend (for example rabbit head, bear body, frog legs) standing on the stand, controls visible."},
+    {"id": "04-meadow", "caption": "Wander a meadow\nthat wakes as you play",
+     "capture": "Meadow mid-walk: ladybug on a painted spring trail, one landmark awake (stump or pond face), butterflies. Daytime."},
+    {"id": "05-hum", "caption": "Make gentle music\nwith a touch",
+     "capture": "Hum with two or three notes glowing or singing (hold two fingers while capturing, or capture a frame just after a chord)."},
+    {"id": "06-sleepybox", "caption": "Post shapes and\nopen the drawer",
+     "capture": "Sleepy Box with two shapes posted and one mid-drag near its hole."},
+    {"id": "07-window", "caption": "Watch the day\ndrift into evening",
+     "capture": "Window at dusk with the dial part-way, lamp glowing, a guest object on the sill."},
+    {"id": "08-grownups", "caption": "Grown-ups set the pace.\nOne purchase, no subscription.",
+     "capture": "Grown-up area top: status card with the real App Store price, preview strip, play timer row. RELEASE build only (Debug shows a developer button)."}
+  ]
+}

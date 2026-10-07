@@ -285,7 +285,7 @@ final class ParentInfoViewController: UIViewController {
         if purchased {
             eyebrow.text = "FULL TOYBOX"
             title.text = "The whole shelf is open."
-            body.text = "Your full toybox is unlocked. Return to familiar toys whenever you like. Thank you for backing calm, handmade play."
+            body.text = "Your full toybox is unlocked. Return to familiar toys whenever you like. Thank you for backing calm, unhurried play."
         } else if state.isTrialActive {
             let d = state.trialDaysRemaining
             eyebrow.text = "FREE WEEK · \(d) DAY\(d == 1 ? "" : "S") LEFT"

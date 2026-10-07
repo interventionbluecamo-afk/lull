@@ -152,7 +152,7 @@ final class LullOnboardingViewController: UIViewController {
 
         let eyebrow = makeEyebrow("WELCOME TO LULL")
         let title = makeTitle("Little hands.\nRoom to explore.")
-        let body = makeBody("Nine handmade toys for ages 2–6. Build, sort, feed, make music, and wander through a meadow. Pictures and touch invite your child to choose, try, and repeat at their own pace.")
+        let body = makeBody("Nine felt-and-wood toys for ages 2–6. Build, sort, feed, make music, and wander through a meadow. Pictures and touch invite your child to choose, try, and repeat at their own pace.")
 
         let privacy = makeBody("No child account. Play and family settings are saved on this device.")
         privacy.font = .systemFont(ofSize: 13.5, weight: .medium)

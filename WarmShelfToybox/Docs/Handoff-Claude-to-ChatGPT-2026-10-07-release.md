@@ -6,6 +6,17 @@ checkout `~/Desktop/lull v.2`, project `WarmShelfToybox/Lull.xcodeproj`, scheme 
 toys stay; the Mix-Up redesign, the sound fixes and the $9.99 lifetime unlock are preserved.
 The founder owns all play-testing and purchase testing; do not repeat broad play-tests.
 
+## Coordination — Claude is working in parallel (read first)
+
+While you build, Claude is **rebuilding the sound system** and **adding Mix-Up characters**
+(robot, police officer, firefighter) on this same branch. To avoid conflicts:
+- Do not edit `App/Shared/AudioManager.swift`, `App/Shared/LullToneEngine.swift`,
+  `App/Resources/Audio/`, or anything in `App/Toys/MixUp/`. If a compile error is in one of
+  those files, make the smallest fix and say so in your commit message.
+- Skip step 6 below for every Mix-Up imageset (`mixup-*`, `robot*`, `officer*`,
+  `firefighter*` and the other old part sets): Claude may reuse them.
+- `git pull --rebase` before every push; if a conflict touches Claude's files, keep Claude's side.
+
 Read next: `Docs/AppStore/SubmissionKit.md` (what submission needs, who does it) and
 `Docs/AppStore/ArtReview-2026-10-07.md` (art findings and imagegen prompts).
 

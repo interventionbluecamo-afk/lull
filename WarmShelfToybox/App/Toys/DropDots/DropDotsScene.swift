@@ -276,6 +276,7 @@ final class DropDotsScene: BaseToyScene {
 
     override func didMove(to view: SKView) {
         super.didMove(to: view)
+        AudioManager.shared.prewarm(prefixes: ["dots."])
         ambientMoteInterval = 9999
         boardLayer.zPosition = 1; addChild(boardLayer)
         tokenLayer.zPosition = 2; addChild(tokenLayer)
@@ -834,7 +835,7 @@ final class DropDotsScene: BaseToyScene {
                     resetTab?.removeAction(forKey: "press")
                     resetTab?.run(.sequence([.scale(to: 0.95, duration: 0.07), .scale(to: 1.0, duration: 0.12)]),
                                   withKey: "press")
-                    tone(.single(5, .wood.with(body: 0.2, amplitude: 0.04, noiseGain: 0.3)), key: "tabTick", minInterval: 0.1)
+                    tone("dots.tab", minInterval: 0.1)
                     HapticsManager.shared.impact(style: .light, intensity: 0.14)
                 } else {
                     TouchFeedbackAnimator.emptyTap(in: self, at: p)
@@ -853,7 +854,7 @@ final class DropDotsScene: BaseToyScene {
                 dragTarget = token.position
                 token.zPosition = 30
                 token.setLifted(true)
-                tone(.single(8, .clay.with(body: 0.12, amplitude: 0.07, noiseGain: 0.2)), key: "pickup")
+                tone("dots.pickup")
                 HapticsManager.shared.impact(style: .light, intensity: 0.16)
                 continue
             }
@@ -931,7 +932,7 @@ final class DropDotsScene: BaseToyScene {
                 dropIntoColumn(token, col: col, fromSlot: slot)
             } else if let open = nearestOpenColumn(from: col) {
                 token.bob()
-                tone(.single(4, .wood.with(body: 0.14, amplitude: 0.05, noiseGain: 0.2)), key: "full", minInterval: 0.2)
+                tone("dots.full", minInterval: 0.2)
                 HapticsManager.shared.impact(style: .light, intensity: 0.12)
                 token.run(.sequence([.wait(forDuration: 0.18)])) { [weak self] in
                     self?.dropIntoColumn(token, col: open, fromSlot: slot)
@@ -999,8 +1000,7 @@ final class DropDotsScene: BaseToyScene {
     /// arpeggio up its dots, bottom to lid — naturally once, since only a landing
     /// can cross three-to-four.
     private func columnWave(_ col: Int) {
-        tone(.arp([2, 5, 7, 9], step: 0.09, .celeste.with(body: 0.7, amplitude: 0.045)),
-             key: "colwave", minInterval: 0.5)
+        tone("dots.wave", minInterval: 0.5)
         guard !AmbientAnimator.reduceMotion else { return }
         for r in stride(from: rows - 1, through: 0, by: -1) {        // row 3 = bottom
             grid[col][r]?.run(.sequence([
@@ -1059,7 +1059,7 @@ final class DropDotsScene: BaseToyScene {
         guard celebrate, !newly.isEmpty else { return }
         // The board quietly notices: matched tokens bloom + sparkle, then fade back to normal —
         // a transient magic moment, never a permanent lit state.
-        tone(.arp([7, 11, 14], step: 0.08, .celeste.with(body: 0.85, amplitude: 0.05)), key: "pattern", minInterval: 0.25)
+        tone("dots.pattern", minInterval: 0.25)
         HapticsManager.shared.impact(style: .soft, intensity: 0.2)
         for cell in matched {
             grid[cell.c][cell.r]?.celebrate()
@@ -1072,7 +1072,7 @@ final class DropDotsScene: BaseToyScene {
         let full = grid.allSatisfy { $0.allSatisfy { $0 != nil } }
         guard full, !boardWasFull else { if !full { boardWasFull = false }; return }
         boardWasFull = true
-        tone(.arp([0, 4, 7, 11], step: 0.12, .breath.with(body: 0.7, amplitude: 0.04)), key: "boardfull")
+        tone("dots.full.board")
         // a warm glow rolls left→right through the grid
         guard !AmbientAnimator.reduceMotion else { return }
         for c in 0..<cols {
@@ -1093,10 +1093,10 @@ final class DropDotsScene: BaseToyScene {
         guard dragToken == nil else { return }
         let tokens = grid.flatMap { $0 }.compactMap { $0 }
         resetTab?.run(.sequence([.scale(to: 0.94, duration: 0.08), .moveBy(x: 0, y: -10, duration: 0.12), .moveBy(x: 0, y: 10, duration: 0.18), .scale(to: 1, duration: 0.1)]))
-        tone(.single(3, .wood.with(body: 0.4, amplitude: 0.06, noiseGain: 0.3)), key: "lever")
+        tone("dots.tab")
         HapticsManager.shared.impact(style: .rigid, intensity: 0.26)
         guard !tokens.isEmpty else { return }
-        AudioManager.shared.playBoxOpen()
+        AudioManager.shared.play(cue: "dots.pour", delay: 0.05)
 
         grid = Array(repeating: Array(repeating: nil, count: rows), count: cols)
         glowingCells.removeAll(); boardWasFull = false
@@ -1195,7 +1195,7 @@ final class DropDotsScene: BaseToyScene {
             // existing stack jiggles a little
             for r in 0..<rows { grid[col][r]?.run(.sequence([.scale(to: 1.04, duration: 0.1), .scale(to: 1, duration: 0.14)])) }
             spawnMotes(at: CGPoint(x: cellX(col), y: mouthY), color: columnRimColors[col % columnRimColors.count], count: 2)
-            tone(.single(6, .felt.with(body: 0.1, amplitude: 0.035, noiseGain: 0.2)), key: "hover", minInterval: 0.3)
+            tone("dots.hover", minInterval: 0.3)
         }
     }
 
@@ -1295,7 +1295,7 @@ final class DropDotsScene: BaseToyScene {
                 token?.zPosition = 5; token?.squash(0.14); self?.playTumble()
             }
         ]))
-        tone(.single(10, .clay.with(body: 0.14, amplitude: 0.06, noiseGain: 0.2)), key: "return", minInterval: 0.08)
+        tone("dots.home", minInterval: 0.08)
         HapticsManager.shared.impact(style: .light, intensity: 0.18)
     }
 
@@ -1336,37 +1336,27 @@ final class DropDotsScene: BaseToyScene {
 
     // MARK: - Sound
 
-    private func tone(_ spec: LullToneEngine.Spec, key: String, minInterval: TimeInterval = 0) {
-        guard AudioManager.shared.isEnabled else { return }
+    private func tone(_ cue: String, minInterval: TimeInterval = 0) {
         if minInterval > 0 {
             let now = CACurrentMediaTime()
-            if let last = lastTone[key], now - last < minInterval { return }
-            lastTone[key] = now
+            if let last = lastTone[cue], now - last < minInterval { return }
+            lastTone[cue] = now
         }
-        LullToneEngine.shared.play(spec, cacheKey: "dropdots.\(key)")
+        AudioManager.shared.play(cue: cue)
     }
 
     private func playFallWhoosh() {
-        tone(.single(9, .breath.with(body: 0.2, amplitude: 0.035, noiseGain: 0.7)), key: "fall", minInterval: 0.05)
+        tone("dots.fall", minInterval: 0.05)
     }
     /// Approved delight: honest weight. The more dots already under it, the deeper the
-    /// thunk — physical truth in sound, a toddler's first bar chart for the ear.
-    /// A golden dot hums a true fifth above (pitch 1.5 — degree math can't reach it).
+    /// landing (four steps down the pentatonic, all within a phone speaker's range).
+    /// A golden dot adds a small bright sparkle on top.
     private func playLandThunk(fill: Int = 1, golden: Bool = false) {
-        guard AudioManager.shared.isEnabled else { return }
-        let clayDegree = max(0, 4 - fill)                          // 3,2,1,0 down the pentatonic
-        let pitch = golden ? 1.5 : 1.0
-        let woodPitch = pitch * (1.0 - Double(fill - 1) * 0.04)    // resonance keeps sinking below degree 0
-        // The engine caches rendered buffers by KEY — every fill/golden variant needs its own.
-        LullToneEngine.shared.playSequence([
-            (spec: .single(clayDegree, .clay.with(body: 0.26 + Double(fill) * 0.03, amplitude: 0.1), pitch: pitch),
-             delay: 0, cacheKey: "dropdots.land.t\(fill)\(golden ? ".g" : "")"),
-            (spec: .single(0, .wood.with(body: 0.44, amplitude: 0.05), pitch: woodPitch),
-             delay: 0.06, cacheKey: "dropdots.land.r\(fill)\(golden ? ".g" : "")")
-        ])
+        AudioManager.shared.play(cue: "dots.land.\(max(0, min(3, fill - 1)))")
+        if golden { AudioManager.shared.play(cue: "dots.golden", delay: 0.05) }
     }
     private func playTumble() {
-        tone(.single(Int.random(in: 1...5), .clay.with(body: 0.14, amplitude: 0.05)), key: "tumble", minInterval: 0.04)
+        tone("dots.home", minInterval: 0.04)
     }
 
     // MARK: - Accessibility

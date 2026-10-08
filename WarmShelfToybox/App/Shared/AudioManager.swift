@@ -164,13 +164,17 @@ final class AudioManager: LullTonePlayer {
     // MARK: - Held notes (Hum)
 
     /// Starts a note that rings while a finger stays down. Returns a token for release, or nil.
-    func startHeldNote(cue id: String, pan: Float = 0, volume: Float = 1) -> Int? {
+    func startHeldNote(cue id: String, pan: Float = 0, volume: Float = 1, fadeIn: TimeInterval = 0) -> Int? {
         guard prepareForPlayback(), startEngineIfNeeded(), let buffer = nextBuffer(for: id) else { return nil }
         heldTokens += 1
         let token = heldTokens
-        let voice = schedule(buffer, bus: .music, pan: pan, volume: volume, delay: 0)
-        voice?.heldToken = token
-        return voice == nil ? nil : token
+        guard let voice = schedule(buffer, bus: .music, pan: pan, volume: volume, delay: 0) else { return nil }
+        voice.heldToken = token
+        if fadeIn > 0.01 {
+            voice.node.volume = 0
+            fadeNode(voice.node, to: volume, duration: fadeIn, stopAtEnd: false)
+        }
+        return token
     }
 
     /// Lets a held note go with a soft fade. Struck instruments simply keep ringing out when
@@ -700,6 +704,7 @@ final class AudioManager: LullTonePlayer {
         case "stack.settle.soft", "stack.settle.medium", "stack.settle.hard": return 0.08
         case "ui.tap", "ui.empty", "mix.flip": return 0.05
         case "feed.chew.soft", "feed.chew.crunchy": return 0.4
+        case "window.cat": return 0.8
         default: return 0.03
         }
     }

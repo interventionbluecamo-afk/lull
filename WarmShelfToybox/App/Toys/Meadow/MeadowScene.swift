@@ -104,6 +104,11 @@ final class MeadowScene: BaseToyScene {
 
     override func didMove(to view: SKView) {
         super.didMove(to: view)
+        AudioManager.shared.prewarm(prefixes: ["meadow.", "bird"])
+        for degree in 12...19 {
+            AudioManager.shared.prewarm(cue: "note.kalimba.\(degree)")
+            AudioManager.shared.prewarm(cue: "note.glock.\(degree)")
+        }
         ambientMoteInterval = 8
         addChild(worldNode)
         worldNode.zPosition = 1
@@ -651,14 +656,12 @@ final class MeadowScene: BaseToyScene {
             if let lm = landmarks.first(where: { hypot(p.x - $0.position.x, p.y - $0.position.y) < 75 }) {
                 if lm.isAwake {
                     lm.delight()
-                    tone(.single(lm.kind.wakeDegree + 2, .celeste.with(body: 0.3, amplitude: 0.035)),
-                         key: "lmpoke", minInterval: 0.3)
+                    tone("note.glock.\(lm.kind.wakeDegree + 2)", minInterval: 0.3, volume: 0.55)
                 } else {
                     // Founder call (June 12): sleepy UNTIL tapped or run over — a tap
                     // wakes them now. Walking near them does the same.
                     lm.wake()
-                    tone(.single(lm.kind.wakeDegree, .celeste.with(body: 0.5, amplitude: 0.04)),
-                         key: "landmark", minInterval: 0.3)
+                    wakeSound(lm.kind)
                 }
                 HapticsManager.shared.impact(style: .soft, intensity: 0.14)
                 continue
@@ -669,7 +672,7 @@ final class MeadowScene: BaseToyScene {
                 removeAction(forKey: "trailRest")   // the journey resumes; the dew stays
                 snailTarget = p
                 setSnailAwake(true)
-                tone(.single(8, .felt.with(body: 0.12, amplitude: 0.05)), key: "wake", minInterval: 0.4)
+                tone("meadow.wake", minInterval: 0.4)
                 HapticsManager.shared.impact(style: .soft, intensity: 0.16)
             } else {
                 breeze(at: p)
@@ -752,7 +755,7 @@ final class MeadowScene: BaseToyScene {
                 .rotate(toAngle: 0, duration: 0.3)
             ]), withKey: "sway")
         }
-        tone(.single(10, .breath.with(body: 0.2, amplitude: 0.025, noiseGain: 0.8)), key: "breeze", minInterval: 0.5)
+        tone("meadow.breeze", minInterval: 0.5)
     }
 
     // MARK: - Update (glide, aura, trail)
@@ -832,7 +835,7 @@ final class MeadowScene: BaseToyScene {
         ])
         snail.run(.group([bob, spin]), withKey: "invite")
         flutterWanderer()   // a wing-clap if she's the ladybug (snail-era: a no-op)
-        tone(.single(9, .celeste.with(body: 0.4, amplitude: 0.03)), key: "meadowInvite", minInterval: 1.0)
+        tone("meadow.invite", minInterval: 1.0)
     }
 
     private func clampToWorld(_ p: CGPoint) -> CGPoint {
@@ -847,8 +850,7 @@ final class MeadowScene: BaseToyScene {
         for lm in landmarks where !lm.isAwake
             && hypot(p.x - lm.position.x, p.y - lm.position.y) < paintRadius + 28 {
             lm.wake()
-            tone(.single(lm.kind.wakeDegree, .celeste.with(body: 0.5, amplitude: 0.04)),
-                 key: "landmark", minInterval: 0.3)
+            wakeSound(lm.kind)
         }
 
         // Spring is PAINTED where she is led: a soft mossy bloom inside her aura, stamped
@@ -935,8 +937,7 @@ final class MeadowScene: BaseToyScene {
                                      y: p.y + .random(in: -r * 0.4...r * 0.4)))
         }
         if animated {
-            tone(.single(Int.random(in: 8...13), .celeste.with(body: 0.24, amplitude: 0.018)),
-                 key: "paint", minInterval: 0.42)
+            tone("meadow.paint", minInterval: 0.42)
             if paintedSpringPoints.count % 9 == 0 {
                 HapticsManager.shared.impact(style: .light, intensity: 0.06)
             }
@@ -1043,7 +1044,7 @@ final class MeadowScene: BaseToyScene {
                 edge.alpha = 0
                 edge.run(.fadeAlpha(to: 0.5, duration: 0.5))
             }
-            tone(.arp([5, 9, 12], step: 0.07, .clay.with(body: 0.4, amplitude: 0.07)), key: "spring", minInterval: 0.3)
+            tone("meadow.spring", minInterval: 0.3)
             HapticsManager.shared.impact(style: .soft, intensity: 0.3)
         }
         updateSpringGlow(allowMoment: animated)
@@ -1103,7 +1104,7 @@ final class MeadowScene: BaseToyScene {
             return
         }
         if AmbientAnimator.reduceMotion {
-            tone(.single(Int.random(in: 9...14), .celeste.with(body: 0.2, amplitude: 0.02)), key: "bloom", minInterval: 0.12)
+            tone("meadow.bloom", minInterval: 0.12)
             return
         }
         flower.setScale(0.05)
@@ -1111,14 +1112,14 @@ final class MeadowScene: BaseToyScene {
         let settle = SKAction.scale(to: 1.0, duration: 0.28); settle.timingMode = .easeInEaseOut
         flower.run(.sequence([up, settle]))
         flower.zRotation = .random(in: -0.4...0.4)
-        tone(.single(Int.random(in: 9...14), .celeste.with(body: 0.2, amplitude: 0.02)), key: "bloom", minInterval: 0.12)
+        tone("meadow.bloom", minInterval: 0.12)
         if flowers.count % 6 == 0 { HapticsManager.shared.impact(style: .light, intensity: 0.07) }
     }
 
     // MARK: - The full-spring moment & first frost
 
     private func fireBloomMoment() {
-        tone(.arp([9, 12, 16, 21], step: 0.16, .celeste.with(body: 0.7, amplitude: 0.035)), key: "moment")
+        tone("meadow.fullspring")
         HapticsManager.shared.impact(style: .soft, intensity: 0.3)
         goldenVeil.run(.fadeAlpha(to: 0.24, duration: 1.4))
         if !AmbientAnimator.reduceMotion {
@@ -1235,7 +1236,7 @@ final class MeadowScene: BaseToyScene {
         dandelion?.run(.sequence([.fadeOut(withDuration: 0.5), .removeFromParent()]))
         dandelion = nil
         removeAction(forKey: "meadow.dandelionOffer")
-        tone(.single(11, .breath.with(body: 0.8, amplitude: 0.05, noiseGain: 0.85)), key: "wind")
+        tone("meadow.frost")
         HapticsManager.shared.impact(style: .soft, intensity: 0.22)
 
         let flying = flowers
@@ -1353,14 +1354,19 @@ final class MeadowScene: BaseToyScene {
 
     // MARK: - Sound
 
-    private func tone(_ spec: LullToneEngine.Spec, key: String, minInterval: TimeInterval = 0) {
-        guard AudioManager.shared.isEnabled else { return }
+    private func tone(_ cue: String, minInterval: TimeInterval = 0, volume: Float = 1) {
         if minInterval > 0 {
             let now = CACurrentMediaTime()
-            if let last = lastTone[key], now - last < minInterval { return }
-            lastTone[key] = now
+            if let last = lastTone[cue], now - last < minInterval { return }
+            lastTone[cue] = now
         }
-        LullToneEngine.shared.play(spec, cacheKey: "meadow.\(key)")
+        AudioManager.shared.play(cue: cue, volume: volume)
+    }
+
+    /// Each sleeper wakes on its own kalimba note, with a small sleepy "oh".
+    private func wakeSound(_ kind: MeadowLandmark.Kind) {
+        tone("note.kalimba.\(kind.wakeDegree)", minInterval: 0.3)
+        AudioManager.shared.play(cue: "meadow.landmark.wake", volume: 0.7, delay: 0.04)
     }
 
     // MARK: - Accessibility

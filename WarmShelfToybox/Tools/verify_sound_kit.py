@@ -37,7 +37,7 @@ for id in LullSoundBook.cueIDs {
         dump("\(id)#\(v)", r.bus.rawValue, r.samples)
     }
 }
-for inst in ["kalimba", "marimba", "glock", "choir"] {
+for inst in ["kalimba", "marimba", "glock", "glass", "bell", "wood", "choir"] {
     for d in 0...19 {
         guard let r = LullSoundBook.render("note.\(inst).\(d)", variant: 0) else { print("MISSING note"); exit(1) }
         dump("note.\(inst).\(d)#0", r.bus.rawValue, r.samples)
@@ -96,8 +96,13 @@ with tempfile.TemporaryDirectory() as directory:
     # Every cue name used by the app exists in the book.
     used = set()
     for swift in (root / "App").rglob("*.swift"):
+        if swift.name == "LullToneEngine.swift":
+            continue
         used |= set(re.findall(r'play\(cue: "([a-z0-9.]+)"', swift.read_text()))
         used |= set(re.findall(r'prewarm\(cue: "([a-z0-9.]+)"', swift.read_text()))
+        used |= set(re.findall(r'\btone\("([a-z0-9.]+)"', swift.read_text()))
+        for a, b in re.findall(r'\? "([a-z0-9.]+)" : "([a-z0-9.]+)"', swift.read_text()):
+            used |= {a, b}
     book = {name.split("#")[0] for name in sounds}
     missing = sorted(u for u in used if u not in book)
     check(not missing, f"every cue the app plays exists ({missing})")
@@ -120,7 +125,7 @@ with tempfile.TemporaryDirectory() as directory:
 
     # Musical notes land on the C major pentatonic (degree 0 = C3), lifted to >= 196 Hz.
     pent = [0, 2, 4, 7, 9]
-    for inst in ["kalimba", "marimba", "glock", "choir"]:
+    for inst in ["kalimba", "marimba", "glock", "glass", "bell", "wood", "choir"]:
         for deg in range(20):
             x = sounds[f"note.{inst}.{deg}#0"][1][: SR]
             o, s = divmod(deg, 5)

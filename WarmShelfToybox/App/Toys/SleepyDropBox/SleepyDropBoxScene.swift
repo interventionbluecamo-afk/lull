@@ -83,6 +83,7 @@ final class SleepyDropBoxScene: BaseToyScene {
 
     override func didMove(to view: SKView) {
         super.didMove(to: view)
+        AudioManager.shared.prewarm(prefixes: ["sleepy.", "box."])
         ambientMoteInterval = 1.4
         boxLayer.zPosition = 5; addChild(boxLayer)
         frontLayer.zPosition = 8; addChild(frontLayer)
@@ -829,7 +830,7 @@ final class SleepyDropBoxScene: BaseToyScene {
                 piece.removeAllActions()
                 piece.setLifted(true)
                 piece.zPosition = 30
-                tone(.single(8, .felt.with(body: 0.12, amplitude: 0.06, noiseGain: 0.2)), key: "lift")
+                tone("sleepy.lift")
                 HapticsManager.shared.impact(style: .light, intensity: 0.16)
                 continue
             }
@@ -929,7 +930,7 @@ final class SleepyDropBoxScene: BaseToyScene {
         piece.setLifted(false)
         piece.zPosition = 12
         piece.bumpRim()
-        tone(.single(4, .wood.with(body: 0.14, amplitude: 0.05, noiseGain: 0.2)), key: "bump", minInterval: 0.2)
+        tone("sleepy.bump", minInterval: 0.2)
         HapticsManager.shared.impact(style: .light, intensity: 0.1)
         setBoxMood(.sleepy)
         let dest = nearestFreePlaySpot(to: piece.position, excluding: piece)
@@ -1214,7 +1215,7 @@ final class SleepyDropBoxScene: BaseToyScene {
                     setBoxMood(.curious)
                     boxBodyWobble(0.4)                                  // a tiny anticipation lean
                     spawnMotes(at: o.center, color: o.felt, count: 3)   // the hole welcomes the piece
-                    tone(.single(6, .felt.with(body: 0.1, amplitude: 0.04, noiseGain: 0.2)), key: "hover", minInterval: 0.3)
+                    tone("sleepy.hover", minInterval: 0.3)
                     HapticsManager.shared.impact(style: .light, intensity: 0.08)
                 }
             } else if hypot(piece.position.x - boxCenter.x, piece.position.y - boxCenter.y) < boxW * 0.8 {
@@ -1233,7 +1234,7 @@ final class SleepyDropBoxScene: BaseToyScene {
         if abs(dy) > 0.3 {
             drawer.position.y += dy * 0.28
             if drawerTouch != nil {
-                tone(.single(3, .wood.with(body: 0.16, amplitude: 0.035, noiseGain: 0.3)), key: "drawer", minInterval: 0.26)
+                tone("sleepy.drawer", minInterval: 0.26)
                 if !insideKinds.isEmpty { rattle() }
             }
             // Tumble once when pulled far enough.
@@ -1254,65 +1255,33 @@ final class SleepyDropBoxScene: BaseToyScene {
         let now = CACurrentMediaTime()
         guard now - lastRattle > 0.3 else { return }
         lastRattle = now
-        tone(.single(Int.random(in: 1...4), .clay.with(body: 0.1, amplitude: 0.03)), key: "rattle")
+        tone("sleepy.tumble")
     }
 
     private func tumbleBump() {
-        tone(.single(Int.random(in: 2...5), .clay.with(body: 0.14, amplitude: 0.055)), key: "tumble", minInterval: 0.09)
+        tone("sleepy.tumble", minInterval: 0.09)
     }
 
     // MARK: - Sound
 
-    private func tone(_ spec: LullToneEngine.Spec, key: String, minInterval: TimeInterval = 0) {
-        guard AudioManager.shared.isEnabled else { return }
+    private func tone(_ cue: String, minInterval: TimeInterval = 0) {
         if minInterval > 0 {
             let now = CACurrentMediaTime()
-            if let last = lastTone[key], now - last < minInterval { return }
-            lastTone[key] = now
+            if let last = lastTone[cue], now - last < minInterval { return }
+            lastTone[cue] = now
         }
-        LullToneEngine.shared.play(spec, cacheKey: "drop.\(key)")
+        AudioManager.shared.play(cue: cue)
     }
 
-    /// The signature: a soft rim whoosh, a muffled internal thunk, and a low box-body resonance —
-    /// it should sound like the treasure is now *inside* the wooden box.
+    /// Each shape has its own note (berry, triangle, cube, star climb the pentatonic).
+    private func shapeIndex(_ kind: DropTreasureNode.Kind) -> Int {
+        DropTreasureNode.Kind.allCases.firstIndex(of: kind) ?? 0
+    }
+
+    /// The signature: a hollow wooden-box answer with the shape's own kalimba note, so the
+    /// treasure sounds like it is now *inside* the box.
     private func playDropSound(kind: DropTreasureNode.Kind) {
-        guard AudioManager.shared.isEnabled else { return }
-        switch kind {
-        case .berry:   // soft rim whoosh → muffled thunk → low resonance
-            LullToneEngine.shared.playSequence([
-                (spec: .single(7, .breath.with(body: 0.18, amplitude: 0.05, noiseGain: 0.6)), delay: 0, cacheKey: "drop.berry.w"),
-                (spec: .single(2, .clay.with(body: 0.26, amplitude: 0.1)), delay: 0.07, cacheKey: "drop.berry.t"),
-                (spec: .single(0, .wood.with(body: 0.46, amplitude: 0.05)), delay: 0.13, cacheKey: "drop.berry.r")
-            ])
-        case .triangle:  // a light wooden tok as the wedge drops in
-            LullToneEngine.shared.playSequence([
-                (spec: .single(8, .breath.with(body: 0.16, amplitude: 0.04, noiseGain: 0.5)), delay: 0, cacheKey: "drop.tri.w"),
-                (spec: .single(4, .wood.with(body: 0.2, amplitude: 0.08)), delay: 0.06, cacheKey: "drop.tri.t"),
-                (spec: .single(0, .wood.with(body: 0.42, amplitude: 0.05)), delay: 0.13, cacheKey: "drop.tri.r")
-            ])
-        case .cube:    // a heavier soft clunk
-            LullToneEngine.shared.playSequence([
-                (spec: .single(5, .breath.with(body: 0.14, amplitude: 0.04, noiseGain: 0.5)), delay: 0, cacheKey: "drop.cube.w"),
-                (spec: .single(1, .clay.with(body: 0.32, amplitude: 0.12)), delay: 0.05, cacheKey: "drop.cube.c"),
-                (spec: .single(0, .wood.with(body: 0.5, amplitude: 0.06)), delay: 0.12, cacheKey: "drop.cube.r")
-            ])
-        case .star:    // a soft pof
-            LullToneEngine.shared.playSequence([
-                (spec: .single(9, .felt.with(body: 0.18, amplitude: 0.06, noiseGain: 0.3)), delay: 0, cacheKey: "drop.star.p"),
-                (spec: .single(3, .clay.with(body: 0.2, amplitude: 0.07)), delay: 0.08, cacheKey: "drop.star.t")
-            ])
-        }
-    }
-
-    /// Each treasure's signature drop-note — the middle "thunk" of its playDropSound
-    /// sequence — hummed soft and long instead of struck.
-    private func lullabyNote(for kind: DropTreasureNode.Kind) -> LullToneEngine.Spec {
-        switch kind {
-        case .berry:    return .single(2, .clay.with(body: 0.60, amplitude: 0.050, noiseGain: 0.05))
-        case .triangle: return .single(4, .wood.with(body: 0.60, amplitude: 0.050))
-        case .cube:     return .single(1, .clay.with(body: 0.65, amplitude: 0.055, noiseGain: 0.05))
-        case .star:     return .single(3, .clay.with(body: 0.60, amplitude: 0.050, noiseGain: 0.05))
-        }
+        AudioManager.shared.play(cue: "sleepy.drop.\(shapeIndex(kind))")
     }
 
     /// All four treasures are tucked in: the box smiles in its sleep and softly hums
@@ -1321,15 +1290,9 @@ final class SleepyDropBoxScene: BaseToyScene {
         guard insideKinds.count == 4 else { return }   // drawer pulled mid-wait — stay asleep
         setBoxMood(.happy)
         let step = 0.55
-        if AudioManager.shared.isEnabled {
-            // Direct playSequence (the scene's tone() helper is rate-limited), and FRESH
-            // cache keys — LullToneEngine caches rendered buffers by key alone, so reusing
-            // "drop.berry.t" would replay the original louder strike.
-            LullToneEngine.shared.playSequence(order.enumerated().map { i, kind in
-                (spec: lullabyNote(for: kind),
-                 delay: Double(i) * step,
-                 cacheKey: "drop.lullaby.\(kind)")
-            })
+        // The box hums each shape's own note back, in the order they went in.
+        for (i, kind) in order.enumerated() {
+            AudioManager.shared.play(cue: "sleepy.hum.\(shapeIndex(kind))", delay: Double(i) * step)
         }
         run(.sequence([.wait(forDuration: step * 3 + 1.0), .run { [weak self] in
             guard let self, self.dragPiece == nil else { return }

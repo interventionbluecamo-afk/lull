@@ -493,7 +493,8 @@ enum LullSynth {
 // MARK: - The sound book: every cue Lull plays
 
 enum LullSoundBook {
-    /// Every named cue (musical notes are parametric: "note.<kalimba|marimba|glock|choir>.<degree>").
+    /// Every named cue (musical notes are parametric:
+    /// "note.<kalimba|marimba|glock|glass|bell|wood|choir>.<degree>").
     static let cueIDs: [String] = [
         "ui.tap", "ui.empty",
         "ui.transition", "ui.settle", "ui.notice", "host.giggle", "bubble.small", "bubble.medium",
@@ -501,7 +502,7 @@ enum LullSoundBook {
         "feed.release", "feed.plop", "feed.receive", "feed.chew.soft", "feed.chew.crunchy", "feed.happy",
         "feed.success", "feed.decline", "stack.place", "stack.lift", "stack.settle.soft", "stack.settle.medium",
         "stack.settle.hard", "stack.knockover", "stack.wake", "sleepy.lift", "sleepy.bump", "sleepy.hover",
-        "sleepy.drop.0", "sleepy.drop.1", "sleepy.drop.2", "sleepy.drop.3", "sleepy.lullaby", "sleepy.drawer",
+        "sleepy.drop.0", "sleepy.drop.1", "sleepy.drop.2", "sleepy.drop.3", "sleepy.hum.0", "sleepy.hum.1", "sleepy.hum.2", "sleepy.hum.3", "sleepy.lullaby", "sleepy.drawer",
         "sleepy.tumble", "box.open", "window.dial", "window.toybox.open", "window.toybox.close", "window.nudge",
         "window.squish", "window.drop", "window.curtain", "window.cat", "window.cat.gift", "window.water",
         "window.grow", "window.guest", "window.lamp.on", "window.lamp.off", "window.sky.day", "window.sky.night",
@@ -569,6 +570,9 @@ enum LullSoundBook {
             case "kalimba": return (S.kalimba(f, duration: 2.2, hardness: 0.32, rng: &rng), .music, 0)
             case "marimba": return (S.marimba(f, duration: 1.8, hardness: 0.22, rng: &rng), .music, 0)
             case "glock": return (S.glock(f, duration: 2.4, hardness: 0.2, rng: &rng), .music, -1)
+            case "glass": return (S.glock(f, duration: 2.6, hardness: 0.5, rng: &rng), .music, -2)
+            case "bell": return (S.smallBell(f, duration: 2.4, rng: &rng), .music, -2)
+            case "wood": return (S.woodblock(f, duration: 0.5, hardness: 0.35, rng: &rng), .music, 0)
             case "choir":
                 var v = S.voice(f, duration: 9.0, vowel: .oo, depth: 0.004, breath: 0.035, attack: 0.09, release: 1.4, rng: &rng)
                 S.mix(S.voice(f * 2, duration: 9.0, vowel: .ah, depth: 0.003, breath: 0, attack: 0.2, release: 1.6, rng: &rng),
@@ -695,6 +699,11 @@ enum LullSoundBook {
             var x = S.hollowBox(rng.range(225, 260), rng: &rng)
             S.mix(S.kalimba(note(10 + shape), duration: 1.3, hardness: 0.25, rng: &rng), into: &x, at: 0.06, gain: 0.55)
             return (x, .effects, 1)
+        case "sleepy.hum.0", "sleepy.hum.1", "sleepy.hum.2", "sleepy.hum.3":
+            let shape = Int(id.split(separator: ".").last ?? "0") ?? 0
+            var x = S.voice(note(10 + shape), duration: 0.75, vowel: .oo, breath: 0.03, attack: 0.07, release: 0.4, rng: &rng)
+            S.mix(S.kalimba(note(10 + shape), duration: 1.0, hardness: 0.15, rng: &rng), into: &x, at: 0, gain: 0.4)
+            return (x, .music, -2)
         case "sleepy.lullaby":
             var x = [Float]()
             for (i, d) in [10, 12, 11, 13, 12, 10].enumerated() {
@@ -802,9 +811,9 @@ enum LullSoundBook {
         case "dots.fall":
             return (S.whoosh(duration: 0.24, from: 900, to: 1700, q: 1.2, rng: &rng), .effects, -9)
         case "dots.land.0", "dots.land.1", "dots.land.2", "dots.land.3":
-            // Each dot lands on the one below, one pentatonic step higher: a column fills as a little scale.
+            // Honest weight: each dot that lands on others sounds one pentatonic step deeper.
             let level = Int(id.split(separator: ".").last ?? "0") ?? 0
-            var x = S.woodblock(note(10 + level) * jitter, duration: 0.2, hardness: 0.3, rng: &rng)
+            var x = S.woodblock(note(13 - level) * jitter, duration: 0.2, hardness: 0.3, rng: &rng)
             S.mix(S.feltThump(250, duration: 0.12, rng: &rng), into: &x, at: 0, gain: 0.5)
             return (x, .effects, -1)
         case "dots.golden":

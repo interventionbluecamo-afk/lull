@@ -185,6 +185,7 @@ final class GlowWindowScene: BaseToyScene {
 
     override func didMove(to view: SKView) {
         super.didMove(to: view)
+        AudioManager.shared.prewarm(prefixes: ["window.", "bird"])
         ambientMoteInterval = 9999   // we author our own atmospheric particles
         roomLayer.zPosition = 0;        addChild(roomLayer)
         windowContent.zPosition = 1.0;  addChild(windowContent)
@@ -200,11 +201,15 @@ final class GlowWindowScene: BaseToyScene {
         if !hasSetClockPhase {
             hasSetClockPhase = true
             // LULL_DEBUG_PHASE=0…1 pins the room to a time of day (store screenshots, QA).
+            #if DEBUG
             if let forced = ProcessInfo.processInfo.environment["LULL_DEBUG_PHASE"].flatMap({ Double($0) }) {
                 dayPhase = CGFloat(min(max(forced, 0), 1))
             } else {
                 dayPhase = GlowWindowScene.phaseForClock()
             }
+            #else
+            dayPhase = GlowWindowScene.phaseForClock()
+            #endif
             // Arriving in any hour stays calm: the room is already "announced", so no
             // morning/night moment fires until the child actually turns the dial there.
             currentZone = phaseZone(dayPhase)
@@ -541,7 +546,7 @@ final class GlowWindowScene: BaseToyScene {
         } else {
             removeToyboxGlow()
             gatherToys()
-            tone(.single(5, .felt.with(body: 0.3, amplitude: 0.045, noiseGain: 0.5)), key: "toyboxClose", minInterval: 0.3)
+            tone("window.toybox.close", minInterval: 0.3)
         }
     }
 
@@ -788,7 +793,7 @@ final class GlowWindowScene: BaseToyScene {
             .rotate(toAngle: -dir * 0.07, duration: 0.18),
             .rotate(toAngle: 0, duration: 0.34)
         ]))
-        tone(.single(12, .felt.with(body: 0.16, amplitude: 0.05)), key: "wheelpoke", minInterval: 0.25)
+        tone("window.nudge", minInterval: 0.25)
         HapticsManager.shared.impact(style: .soft, intensity: 0.14)
     }
 
@@ -802,7 +807,7 @@ final class GlowWindowScene: BaseToyScene {
                     .rotate(toAngle: -0.03, duration: 0.14)]),
             .group([.scale(to: 1.0, duration: 0.20), .rotate(toAngle: 0, duration: 0.20)])
         ]))
-        tone(.single(9, .felt.with(body: 0.18, amplitude: 0.045)), key: "softpoke", minInterval: 0.3)
+        tone("window.squish", minInterval: 0.3)
         HapticsManager.shared.impact(style: .soft, intensity: 0.14)
     }
 
@@ -853,7 +858,7 @@ final class GlowWindowScene: BaseToyScene {
                 .removeFromParent()
             ]))
         }
-        tone(.arp([9, 12, 16], step: 0.1, .celeste.with(body: 0.5, amplitude: 0.04)), key: "potgrow")
+        tone("window.grow")
         HapticsManager.shared.impact(style: .soft, intensity: 0.2)
     }
 
@@ -883,7 +888,7 @@ final class GlowWindowScene: BaseToyScene {
                 .group([.fadeIn(withDuration: 0.6),
                         .moveBy(x: 0, y: -10, duration: 0.6)]),
                 .run { [weak self] in
-                    self?.tone(.single(13, .celeste.with(body: 0.4, amplitude: 0.03)), key: "guest")
+                    self?.tone("window.guest")
                 }
             ]))
         }
@@ -1616,7 +1621,6 @@ final class GlowWindowScene: BaseToyScene {
         if dayPhase < 0.58 {
             AudioManager.shared.playWindowCatHappy()
         } else {
-            tone(.single(1, .breath.with(body: 0.5, amplitude: 0.035, noiseGain: 0.45)), key: "cat.purr", minInterval: 0.6)
         }
         HapticsManager.shared.impact(style: .soft, intensity: 0.14)
 
@@ -1681,7 +1685,7 @@ final class GlowWindowScene: BaseToyScene {
                 .rotate(toAngle: 0, duration: 0.18)
             ]))
         }
-        tone(.arp([7, 11, 14], step: 0.08, .celeste.with(body: 0.35, amplitude: 0.035)), key: "cat.toy", minInterval: 0.5)
+        tone("window.cat.gift", minInterval: 0.5)
         HapticsManager.shared.impact(style: .soft, intensity: 0.18)
         return true
     }
@@ -2344,9 +2348,9 @@ final class GlowWindowScene: BaseToyScene {
             curtainSway(panel)
         }
         if armed {
-            tone(.single(3, .breath.with(body: 0.55, amplitude: 0.03, noiseGain: 0.85)), key: "curtain.whisper", minInterval: 2)
+            tone("window.curtain", key: "curtain.whisper", minInterval: 2, volume: 0.5)
         } else {
-            tone(.single(7, .breath.with(body: 0.3, amplitude: 0.02, noiseGain: 0.7)), key: "curtain.invite", minInterval: 2)
+            tone("window.curtain", key: "curtain.invite", minInterval: 2, volume: 0.4)
         }
     }
 
@@ -2585,8 +2589,7 @@ final class GlowWindowScene: BaseToyScene {
             .rotate(toAngle: -0.04, duration: 0.14),
             .rotate(toAngle: 0, duration: 0.14)
         ]))
-        tone(.single(6, .breath.with(body: 0.5, amplitude: 0.05, noiseGain: 0.9)), key: "water")
-        tone(.single(14, .celeste.with(body: 0.25, amplitude: 0.025)), key: "waterdrip", minInterval: 0.2)
+        tone("window.water", minInterval: 0.2)
         HapticsManager.shared.impact(style: .soft, intensity: 0.2)
         registerWatering()
     }
@@ -2671,10 +2674,10 @@ final class GlowWindowScene: BaseToyScene {
                 }
             case .curtainL, .curtainR:
                 applyCurtain(animated: true)
-                tone(.single(6, .breath.with(body: 0.4, amplitude: 0.04, noiseGain: 0.7)), key: "curtain.settle")
+                tone("window.curtain", key: "curtain.settle", volume: 0.6)
                 HapticsManager.shared.impact(style: .soft, intensity: 0.16)
             case .room:
-                tone(.single(5, .breath.with(body: 0.35, amplitude: 0.025, noiseGain: 0.6)), key: "room.settle", minInterval: 0.4)
+                tone("window.drop", key: "room.settle", minInterval: 0.4, volume: 0.6)
             case .can:
                 wateredThisHold = false
                 carriedNode = nil
@@ -2697,7 +2700,8 @@ final class GlowWindowScene: BaseToyScene {
                         LullDemoState.shared.windowCatPlace = self.normalized(dropped)
                         self.refreshRugGlow()
                         self.refreshCatRugComposite()   // dropped onto the rug at night → the composite
-                        AudioManager.shared.playSoftTap()
+                        AudioManager.shared.play(cue: "window.drop")
+                        HapticsManager.shared.softTap()
                     }
                 } else {
                     catStretch()
@@ -2726,7 +2730,8 @@ final class GlowWindowScene: BaseToyScene {
                         LullDemoState.shared.windowBallPlace = self.normalized(dropped)
                         self.ballSpin?.run(.rotate(toAngle: 0, duration: 0.5))
                         _ = self.catReceivesToy(self.ballNode)
-                        AudioManager.shared.playSoftTap()
+                        AudioManager.shared.play(cue: "window.drop")
+                        HapticsManager.shared.softTap()
                     }
                 } else {
                     nudgeWheeledToy()
@@ -2741,7 +2746,8 @@ final class GlowWindowScene: BaseToyScene {
                         self.blockCenter = dropped
                         LullDemoState.shared.windowBlockPlace = self.normalized(dropped)
                         _ = self.catReceivesToy(self.blockNode)
-                        AudioManager.shared.playSoftTap()
+                        AudioManager.shared.play(cue: "window.drop")
+                        HapticsManager.shared.softTap()
                     }
                 } else {
                     squishSoftToy()
@@ -2790,7 +2796,7 @@ final class GlowWindowScene: BaseToyScene {
         curtainL.position = CGPoint(x: windowCenter.x - off, y: curtainL.position.y); curtainL.xScale = ws
         curtainR.position = CGPoint(x: windowCenter.x + off, y: curtainR.position.y); curtainR.xScale = -ws
         applyPhase(animated: false)   // light spill scales with the curtain
-        tone(.single(4 + Int(curtainOpen * 6), .breath.with(body: 0.22, amplitude: 0.025, noiseGain: 0.7)), key: "curtain.drag", minInterval: 0.12)
+        tone("window.curtain", key: "curtain.drag", minInterval: 0.3, volume: 0.35)
         updatePeekABoo()
     }
 
@@ -2999,14 +3005,13 @@ final class GlowWindowScene: BaseToyScene {
         let slide = SKAction.moveBy(x: dx, y: dy, duration: 0.85)
         slide.timingMode = .easeIn
         streak.run(.sequence([.group([slide, .fadeOut(withDuration: 0.85)]), .removeFromParent()]))
-        tone(.single(16, .celeste.with(body: 0.5, amplitude: 0.028)), key: "starfall", minInterval: 2)
+        tone("window.star", minInterval: 2)
     }
 
     private func toggleLamp() {
         lampOn.toggle()
         applyLamp(animated: true)
-        tone(.single(lampOn ? 7 : 3, .clay.with(body: 0.18, amplitude: 0.08, noiseGain: 0.14)), key: "lamp")
-        if lampOn { tone(.single(0, .breath.with(body: 0.6, amplitude: 0.03, noiseGain: 0.4)), key: "lamp.hum") }
+        tone(lampOn ? "window.lamp.on" : "window.lamp.off", key: "lamp")
         HapticsManager.shared.impact(style: .soft, intensity: 0.2)
     }
 
@@ -3030,8 +3035,7 @@ final class GlowWindowScene: BaseToyScene {
         let now = CACurrentMediaTime()
         guard now - lastSkyFeedbackTime >= 0.18 else { return }
         lastSkyFeedbackTime = now
-        tone(.single(dayPhase <= 0.65 ? 15 : 19,
-                     .felt.with(body: 0.13, amplitude: 0.024)), key: "sky.touch", minInterval: 0.18)
+        tone(dayPhase <= 0.65 ? "window.sky.day" : "window.sky.night", key: "sky.touch", minInterval: 0.18)
         HapticsManager.shared.impact(style: .light, intensity: 0.08)
     }
 
@@ -3102,14 +3106,14 @@ final class GlowWindowScene: BaseToyScene {
             },
             .removeFromParent()
         ]))
-        tone(.arp([12, 19], step: 0.13, .glass.with(body: 0.32, amplitude: 0.026)), key: "shoot", minInterval: 1.6)
+        tone("window.comet", minInterval: 1.6)
     }
 
     private var lastBirdTime: TimeInterval = 0
 
     /// Every touchable thing is alive — the plant answers with a happy leaf shiver.
     private func plantShiver() {
-        tone(.single(9, .breath.with(body: 0.16, amplitude: 0.035, noiseGain: 0.75)), key: "plant", minInterval: 0.4)
+        tone("window.plant", minInterval: 0.4)
         HapticsManager.shared.impact(style: .light, intensity: 0.1)
         guard !AmbientAnimator.reduceMotion, let plant = plantNode else { return }
         plant.removeAction(forKey: "shiver")
@@ -3188,7 +3192,7 @@ final class GlowWindowScene: BaseToyScene {
 
     /// Morning wake: light blooms across the glass, a soft airy trill, dust drifts in the new beam.
     private func fireMorningWake() {
-        tone(.arp([12, 16, 19, 16], step: 0.14, .celeste.with(body: 0.6, amplitude: 0.028)), key: "morning")
+        tone("window.morning")
         guard !AmbientAnimator.reduceMotion else { return }
         let bloom = SKSpriteNode(color: UIColor(hex: 0xFFF6DC), size: windowInner.size)
         bloom.position = windowCenter; bloom.zPosition = 0.55; bloom.alpha = 0; bloom.blendMode = .add
@@ -3205,7 +3209,7 @@ final class GlowWindowScene: BaseToyScene {
 
     /// Night bloom: the stars twinkle awake one by one, the moon's glow swells, a soft hush settles.
     private func fireNightBloom() {
-        tone(.arp([7, 4, 0], step: 0.22, .breath.with(body: 0.7, amplitude: 0.03, noiseGain: 0.45)), key: "night")
+        tone("window.night")
         guard !AmbientAnimator.reduceMotion else { return }
         for (i, s) in stars.enumerated() {
             s.run(.sequence([.wait(forDuration: Double(i) * 0.045), .scale(to: 1.7, duration: 0.18), .scale(to: 1, duration: 0.34)]))
@@ -3367,18 +3371,18 @@ final class GlowWindowScene: BaseToyScene {
 
     // MARK: - Sound / haptics
 
-    private func tone(_ spec: LullToneEngine.Spec, key: String, minInterval: TimeInterval = 0) {
-        guard AudioManager.shared.isEnabled else { return }
+    private func tone(_ cue: String, key: String? = nil, minInterval: TimeInterval = 0, volume: Float = 1) {
+        let key = key ?? cue
         if minInterval > 0 {
             let now = CACurrentMediaTime()
             if let last = lastTone[key], now - last < minInterval { return }
             lastTone[key] = now
         }
-        LullToneEngine.shared.play(spec, cacheKey: "glowwin.\(key)")
+        AudioManager.shared.play(cue: cue, volume: volume)
     }
 
     private func dialTick() {
-        tone(.single(6 + Int(dayPhase * 8), .felt.with(body: 0.09, amplitude: 0.04)), key: "dial.tick", minInterval: 0.05)
+        tone("window.dial", minInterval: 0.05)
         if Int(dayPhase * 40) % 2 == 0 { HapticsManager.shared.impact(style: .light, intensity: 0.08) }
     }
 

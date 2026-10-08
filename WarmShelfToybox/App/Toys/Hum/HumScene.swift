@@ -62,7 +62,8 @@ final class HumScene: BaseToyScene {
     private var touchToObject: [UITouch: HumObjectNode] = [:]
     private var lastTouchPositions: [UITouch: CGPoint] = [:]
     private var trailAccumulators: [UITouch: CGFloat] = [:]
-    private var activeToneIDs: [ObjectIdentifier: String] = [:]
+    /// Held-note tokens from AudioManager.startHeldNote, per bar being held.
+    private var activeToneIDs: [ObjectIdentifier: Int] = [:]
     private var inactiveObserver: NSObjectProtocol?
     private var sustainStartTimes: [ObjectIdentifier: TimeInterval] = [:]
     private let maxSustainSeconds: TimeInterval = 9   // a held note can never outlive this, even if a touch-up is lost
@@ -134,16 +135,17 @@ final class HumScene: BaseToyScene {
     /// bloom in the shared room reverb, and any of them sound right on the pentatonic bars.
     private struct BarTone {
         let name: String
-        let voice: LullToneEngine.Voice
+        /// The physical instrument in LullSoundBook ("note.<instrument>.<degree>").
+        let instrument: String
         let gem: UIColor
     }
     private lazy var barTones: [BarTone] = [
-        BarTone(name: "musicbox",  voice: LullToneEngine.Voice.celeste.with(body: 0.95, amplitude: 0.115), gem: WarmShelfPalette.butter),
-        BarTone(name: "marimba",   voice: LullToneEngine.Voice.marimba.with(body: 0.58, amplitude: 0.15),  gem: WarmShelfPalette.terracotta),
-        BarTone(name: "glass",     voice: LullToneEngine.Voice.glass.with(body: 0.95, amplitude: 0.11),    gem: WarmShelfPalette.waterBlue),
-        BarTone(name: "bell",      voice: LullToneEngine.Voice.bell.with(body: 0.92, amplitude: 0.1),      gem: WarmShelfPalette.lavender),
-        BarTone(name: "woodblock", voice: LullToneEngine.Voice.wood.with(body: 0.5, amplitude: 0.14),      gem: WarmShelfPalette.sage),
-        BarTone(name: "pluck",     voice: LullToneEngine.Voice.clay.with(body: 0.44, amplitude: 0.13),     gem: WarmShelfPalette.petal)
+        BarTone(name: "musicbox",  instrument: "glock",   gem: WarmShelfPalette.butter),
+        BarTone(name: "marimba",   instrument: "marimba", gem: WarmShelfPalette.terracotta),
+        BarTone(name: "glass",     instrument: "glass",   gem: WarmShelfPalette.waterBlue),
+        BarTone(name: "bell",      instrument: "bell",    gem: WarmShelfPalette.lavender),
+        BarTone(name: "woodblock", instrument: "wood",    gem: WarmShelfPalette.sage),
+        BarTone(name: "pluck",     instrument: "kalimba", gem: WarmShelfPalette.petal)
     ]
     private var barToneIndex = 0
     private var currentBarTone: BarTone { barTones[barToneIndex % barTones.count] }
@@ -248,7 +250,7 @@ final class HumScene: BaseToyScene {
         objects.removeAll()
         touchToObject.removeAll()
         // Stop any still-ringing sustains before dropping their handles, so a rebuild can't orphan a note.
-        activeToneIDs.values.forEach { LullToneEngine.shared.stopAmbient(id: $0, fadeOut: 0.1) }
+        activeToneIDs.values.forEach { AudioManager.shared.releaseHeldNote($0, fade: 0.1) }
         activeToneIDs.removeAll()
         sustainStartTimes.removeAll()
         activePairs.removeAll()
@@ -298,21 +300,14 @@ final class HumScene: BaseToyScene {
         // Other voices and the sustain beds warm in the background a beat after the
         // scene is up; an unwarmed note still renders on demand via play()'s fallback.
         let activeTone = currentBarTone
-        for i in 0..<barCount {
-            let degree = min(5 + i, 19)
-            LullToneEngine.shared.prewarm(.single(degree, activeTone.voice), cacheKey: "hum.bar.\(activeTone.name).\(degree)")
-        }
+        let degrees = (0..<barCount).map { min(5 + $0, 19) }
+        for degree in degrees { AudioManager.shared.prewarm(cue: "note.\(activeTone.instrument).\(degree)") }
+        AudioManager.shared.prewarm(prefixes: ["hum."])
         let deferredTones = barTones.filter { $0.name != activeTone.name }
-        let sustainSpecs = objects.map { (id: "hum.sustain.\(toneDegree(for: $0))", spec: humSustainSpec(for: $0)) }
         run(.sequence([.wait(forDuration: 1.2), .run {
+            for degree in degrees { AudioManager.shared.prewarm(cue: "note.choir.\(degree)") }
             for tone in deferredTones {
-                for i in 0..<barCount {
-                    let degree = min(5 + i, 19)
-                    LullToneEngine.shared.prewarm(.single(degree, tone.voice), cacheKey: "hum.bar.\(tone.name).\(degree)")
-                }
-            }
-            for s in sustainSpecs {
-                LullToneEngine.shared.prewarmAmbient(id: s.id, spec: s.spec)
+                for degree in degrees { AudioManager.shared.prewarm(cue: "note.\(tone.instrument).\(degree)") }
             }
         }]), withKey: "deferredPrewarm")
     }
@@ -520,13 +515,8 @@ final class HumScene: BaseToyScene {
         ]), withKey: "gemPop")
 
         HapticsManager.shared.play(score: .toneSwitch)
-        if AudioManager.shared.isEnabled {
-            // A soft wooden "tok" for the press itself.
-            LullToneEngine.shared.play(
-                .single(2, LullToneEngine.Voice.clay.with(body: 0.18, amplitude: 0.13)),
-                cacheKey: "hum.knob.press"
-            )
-        }
+        // A soft wooden "tok" for the press itself.
+        AudioManager.shared.play(cue: "hum.knob")
 
         // The instrument answers in its new voice: bars pulse left→right and the middle one
         // sings a single soft preview note, so the child hears the change without a fanfare.
@@ -760,7 +750,7 @@ final class HumScene: BaseToyScene {
             if noTouchSince == 0 { noTouchSince = currentTime }
             if currentTime - noTouchSince > 2.0, currentTime - lastSilenceSweep > 2.0 {
                 lastSilenceSweep = currentTime
-                for degree in 5...19 { LullToneEngine.shared.stopAmbient(id: "hum.sustain.\(degree)", fadeOut: 0.4) }
+                AudioManager.shared.releaseAllHeldNotes(fade: 0.4)
             }
         } else {
             noTouchSince = 0
@@ -776,7 +766,7 @@ final class HumScene: BaseToyScene {
                 let held = heldIDs.contains(id)
                 let aged = currentTime - (sustainStartTimes[id] ?? currentTime) > maxSustainSeconds
                 guard !held || aged else { continue }
-                LullToneEngine.shared.stopAmbient(id: toneID, fadeOut: 0.3)
+                AudioManager.shared.releaseHeldNote(toneID, fade: 0.3)
                 activeToneIDs.removeValue(forKey: id)
                 sustainStartTimes.removeValue(forKey: id)
                 if aged {
@@ -789,9 +779,8 @@ final class HumScene: BaseToyScene {
 
     override func teardownToyAudio() {
         super.teardownToyAudio()
-        LullToneEngine.shared.stopAmbient(id: roomPadID, fadeOut: 0.4)
         // Called before the hosting view pauses, on scene removal, and when the app becomes inactive.
-        activeToneIDs.values.forEach { LullToneEngine.shared.stopAmbient(id: $0, fadeOut: 0.2) }
+        activeToneIDs.values.forEach { AudioManager.shared.releaseHeldNote($0, fade: 0.2) }
         activeToneIDs.removeAll()
         sustainStartTimes.removeAll()
         humHoldTimers.values.forEach { $0.invalidate() }
@@ -811,22 +800,9 @@ final class HumScene: BaseToyScene {
         padActive = false
     }
 
-    /// A warm root+fifth pad fades the whole room into harmony while anyone is held.
+    /// Held bars now sing on their own (see startSustainedTone); there is no room drone.
     private func updateRoomPad(heldCount: Int) {
-        if heldCount > 0 && !padActive {
-            padActive = true
-            guard AudioManager.shared.isEnabled else { return }
-            let pad = LullToneEngine.AmbientSpec(
-                frequency: 65.41,                                   // C2 root
-                partials: [(1, 0.6), (1.5, 0.4), (2, 0.32), (3, 0.12), (4, 0.05)],
-                noiseGain: 0.02, lfoHz: 0.07, lfoDepth: 0.22,
-                amplitude: 0.03, duration: 8
-            )
-            LullToneEngine.shared.playAmbient(id: roomPadID, spec: pad, volume: 0.5, fadeIn: 1.6)
-        } else if heldCount == 0 && padActive {
-            padActive = false
-            LullToneEngine.shared.stopAmbient(id: roomPadID, fadeOut: 2.2)
-        }
+        padActive = heldCount > 0
     }
 
     private func updateHarmonyGlow(heldCount: Int) {
@@ -1155,99 +1131,71 @@ final class HumScene: BaseToyScene {
 
     // MARK: - Tone playback
 
-    private func playHumOnset(for obj: HumObjectNode) {
-        guard AudioManager.shared.isEnabled else { return }
-        let degree = toneDegree(for: obj)
-        if obj.kind == .bar {
-            // One clean, pre-rendered note per strike in the chosen voice — lush in the reverb.
-            let tone = currentBarTone
-            LullToneEngine.shared.play(.single(degree, tone.voice), cacheKey: "hum.bar.\(tone.name).\(degree)")
-            return
+    private func pan(_ obj: HumObjectNode) -> Float { AudioManager.pan(x: obj.position.x, width: size.width) }
+
+    /// The physical instrument each non-bar kind plays.
+    private func instrument(for obj: HumObjectNode) -> String {
+        switch obj.kind {
+        case .bar: return currentBarTone.instrument
+        case .blob: return "kalimba"
+        case .column: return "glass"
+        case .disc: return "marimba"
+        case .pebble: return "glock"
         }
-        let upper = min(degree + 2, 19)
-        let spec = LullToneEngine.Spec.arp([degree, upper], step: 0.055, humAttackVoice(for: obj))
-        LullToneEngine.shared.play(spec, cacheKey: "hum.onset.\(humKindName(obj.kind)).\(obj.pitchIndex)")
+    }
+
+    private func playHumOnset(for obj: HumObjectNode) {
+        let degree = toneDegree(for: obj)
+        // One clean, pre-rendered strike in the chosen instrument; it rings out on its own.
+        AudioManager.shared.play(cue: "note.\(instrument(for: obj)).\(degree)", pan: pan(obj))
+        if obj.kind != .bar {
+            AudioManager.shared.play(cue: "note.\(instrument(for: obj)).\(min(degree + 2, 19))", pan: pan(obj),
+                                     volume: 0.6, delay: 0.055)
+        }
     }
 
     private func playHumNearMiss(for obj: HumObjectNode) {
-        guard AudioManager.shared.isEnabled else { return }
-        let degree = min(toneDegree(for: obj) + 1, 19)
-        let voice = LullToneEngine.Voice.breath.with(body: 0.20, amplitude: 0.060, noiseGain: 0.36)
-        LullToneEngine.shared.play(.single(degree, voice), cacheKey: "hum.near.\(obj.pitchIndex)")
+        AudioManager.shared.play(cue: "note.glock.\(min(toneDegree(for: obj) + 1, 19))", pan: pan(obj), volume: 0.3)
     }
 
     private func playHumDuet(_ a: HumObjectNode, _ b: HumObjectNode) {
-        guard AudioManager.shared.isEnabled else { return }
         let degrees = [toneDegree(for: a), toneDegree(for: b)].sorted()
-        let voice = LullToneEngine.Voice.choir.with(body: 0.85, amplitude: 0.12, noiseGain: 0.04)
-        let spec = LullToneEngine.Spec.chord(degrees, voice)
-        LullToneEngine.shared.play(spec, cacheKey: "hum.duet.\(degrees[0]).\(degrees[1])")
+        AudioManager.shared.play(cue: "note.glock.\(min(degrees[0] + 5, 19))", volume: 0.45, delay: 0.02)
+        AudioManager.shared.play(cue: "note.glock.\(min(degrees[1] + 5, 19))", volume: 0.45, delay: 0.07)
     }
 
     private func playHumChoir(_ trio: [HumObjectNode]) {
-        guard AudioManager.shared.isEnabled else { return }
-        let degrees = Array(Set(trio.map { toneDegree(for: $0) })).sorted()
-        let chordDegrees = Array(degrees.prefix(3))
-        // A full warm choir chord, answered by a rising music-box shimmer an octave up.
-        let chord = LullToneEngine.Spec.chord(
-            chordDegrees,
-            LullToneEngine.Voice.choir.with(body: 1.0, amplitude: 0.12, noiseGain: 0.04)
-        )
-        let sparkleDegrees = chordDegrees.map { min($0 + 5, 19) }   // +1 octave in the pentatonic
-        let exhale = LullToneEngine.Spec.arp(
-            sparkleDegrees,
-            step: 0.085,
-            LullToneEngine.Voice.celeste.with(body: 0.9, amplitude: 0.07)
-        )
-        let key = chordDegrees.map(String.init).joined(separator: ".")
-        LullToneEngine.shared.playSequence([
-            (spec: chord, delay: 0, cacheKey: "hum.choir.\(key).chord"),
-            (spec: exhale, delay: 0.34, cacheKey: "hum.choir.\(key).sparkle")
-        ])
+        let degrees = Array(Array(Set(trio.map { toneDegree(for: $0) })).sorted().prefix(3))
+        // A soft chord, answered by a rising music-box shimmer an octave up.
+        for (i, degree) in degrees.enumerated() {
+            AudioManager.shared.play(cue: "note.kalimba.\(degree)", volume: 0.55, delay: 0.02 * Double(i))
+            AudioManager.shared.play(cue: "note.glock.\(min(degree + 5, 19))", volume: 0.45, delay: 0.34 + 0.085 * Double(i))
+        }
     }
 
     private func playHumRelease(for obj: HumObjectNode) {
-        guard AudioManager.shared.isEnabled else { return }
-        if obj.kind == .bar { return }   // a struck bar simply rings out in the reverb
+        if obj.kind == .bar { return }   // a struck bar simply rings out
         let degree = toneDegree(for: obj)
-        let lower = max(0, degree - 2)
-        let voice = LullToneEngine.Voice.breath.with(body: 0.46, amplitude: 0.052, noiseGain: 0.34)
-        let spec = LullToneEngine.Spec.arp([degree, lower], step: 0.085, voice)
-        LullToneEngine.shared.play(spec, cacheKey: "hum.release.\(obj.pitchIndex)")
+        AudioManager.shared.play(cue: "note.kalimba.\(max(0, degree - 2))", pan: pan(obj), volume: 0.4, delay: 0.085)
     }
 
+    /// Holding a bar lets it sing: a soft hummed "oo" at the bar's pitch swells in under the
+    /// strike and fades when the finger lifts. A quick tap is just the struck note. The hum is a
+    /// finite 9 s sound, so even a lost touch can never leave it droning.
     private func startSustainedTone(for obj: HumObjectNode) {
-        guard AudioManager.shared.isEnabled else { return }
         let id = ObjectIdentifier(obj)
         stopSustainedTone(for: obj)
-        let toneID = "hum.sustain.\(toneDegree(for: obj))"   // per-pitch so it can be pre-rendered
-        activeToneIDs[id] = toneID
+        guard let token = AudioManager.shared.startHeldNote(cue: "note.choir.\(toneDegree(for: obj))", pan: pan(obj),
+                                                            volume: 0.55, fadeIn: 0.35) else { return }
+        activeToneIDs[id] = token
         sustainStartTimes[id] = CACurrentMediaTime()
-        // A clearly present sustain: leaning on a bar keeps the note singing under the strike,
-        // so a child can hold a note down (the playtest wish) — still soft, never droning loud.
-        // loopCount 2 ≈ 9.6 s ceiling: the sustain is finite AT THE AUDIO LAYER, so a lost touch
-        // can never leave a note droning — it always dies on its own even with zero bookkeeping.
-        LullToneEngine.shared.playAmbient(id: toneID, spec: humSustainSpec(for: obj), volume: 0.62, fadeIn: 0.07, loopCount: 2)
-        AudioManager.shared.updateSoundPosition(nodeID: toneID, screenPoint: obj.position, sceneSize: size)
-    }
-
-    private func humSustainSpec(for obj: HumObjectNode) -> LullToneEngine.AmbientSpec {
-        LullToneEngine.AmbientSpec(
-            frequency: LullToneEngine.shared.pitchHz(forDegree: toneDegree(for: obj)),
-            partials: humPartials(for: obj),
-            noiseGain: obj.kind == .column ? 0.075 : 0.016,
-            lfoHz: obj.kind == .pebble ? 0.42 : 0.18,
-            lfoDepth: obj.kind == .pebble ? 0.12 : 0.07,
-            amplitude: sustainedAmplitude(for: obj),
-            duration: 4.8
-        )
     }
 
     private func stopSustainedTone(for obj: HumObjectNode) {
         let id = ObjectIdentifier(obj)
         sustainStartTimes.removeValue(forKey: id)
-        guard let toneID = activeToneIDs.removeValue(forKey: id) else { return }
-        LullToneEngine.shared.stopAmbient(id: toneID, fadeOut: obj.toneDecay)
+        guard let token = activeToneIDs.removeValue(forKey: id) else { return }
+        AudioManager.shared.releaseHeldNote(token, fade: obj.toneDecay)
     }
 
     private func humPartials(for obj: HumObjectNode) -> [(ratio: Double, gain: Double)] {
@@ -1281,16 +1229,6 @@ final class HumScene: BaseToyScene {
         return min(5 + obj.pitchIndex, 19)
     }
 
-    private func humAttackVoice(for obj: HumObjectNode) -> LullToneEngine.Voice {
-        // Each kind sings with its own beautiful timbre; all bloom in the shared reverb.
-        switch obj.kind {
-        case .blob:   return .choir.with(body: 0.62, amplitude: 0.13, noiseGain: 0.05)   // warm "aah"
-        case .column: return .glass.with(body: 0.95, amplitude: 0.11)                    // crystalline
-        case .disc:   return .marimba.with(body: 0.52, amplitude: 0.15)                  // soft wood
-        case .pebble: return .celeste.with(body: 0.95, amplitude: 0.115)                 // music box
-        case .bar:    return .marimba.with(body: 0.58, amplitude: 0.15)                  // xylophone wood
-        }
-    }
 
     private func humKindName(_ kind: HumObjectNode.ObjectKind) -> String {
         switch kind {

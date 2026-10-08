@@ -80,7 +80,7 @@ need no attribution).
 >
 > THE TOYS
 > • Feed: each friend asks for a snack. Give it, and watch them chew and smile.
-> • Mix-Up: swap heads, tops and legs to make 216 felt friends.
+> • Mix-Up: swap heads, tops and legs across nine friends, including a robot, a police officer and a firefighter: 729 combinations.
 > • Meadow: lead a ladybug through a meadow that wakes as it passes.
 > • Hum: touch the singers to make gentle music, alone or in chords.
 > • Window: turn the day into evening and see who visits.

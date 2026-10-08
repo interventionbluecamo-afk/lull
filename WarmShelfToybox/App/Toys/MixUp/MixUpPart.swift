@@ -53,12 +53,19 @@ enum MixUpLibrary {
     private static let clayWidthKey = "mix.clay.width"
     private static let clayHeightKey = "mix.clay.height"
 
+    /// The art pools never change while the app runs; build each zone's once.
+    private static var artPoolCache: [MixUpZone: [MixUpPart]] = [:]
+
     static func parts(for zone: MixUpZone) -> [MixUpPart] {
         // Once the authored cast exists it IS the library — the procedural era retires
         // (playtest 2026-06-10: mixed eras read as broken, seams don't agree). The
         // procedural pools remain only as the fallback when no art has landed.
+        if let cached = artPoolCache[zone] { return cached }
         let art = artCharacterParts(for: zone)
-        if !art.isEmpty { return art }
+        if !art.isEmpty {
+            artPoolCache[zone] = art
+            return art
+        }
         switch zone {
         case .head: return expandedHeads
         case .body: return expandedBodies

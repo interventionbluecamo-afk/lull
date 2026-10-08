@@ -469,12 +469,14 @@ final class MixUpScene: BaseToyScene {
         frameNode.run(.sequence([.scale(to: 0.88, duration: 0.08), .scale(to: 1.0, duration: 0.2)]))
         let target: [MixUpZone: Int] = [.head: recipe.head, .body: recipe.body, .legs: recipe.legs]
         var changedAny = false
+        var arrivingHead: String?
         for (zone, rawIndex) in target {
             let parts = MixUpLibrary.parts(for: zone)
             guard !parts.isEmpty else { continue }
             let idx = ((rawIndex % parts.count) + parts.count) % parts.count
             guard indices[zone] != idx, !flipping.contains(zone), let slot = slots[zone] else { continue }
             changedAny = true
+            if zone == .head { arrivingHead = parts[idx].name }
             flipping.insert(zone)
             indices[zone] = idx
             let close = SKAction.scaleY(to: 0.04, duration: 0.13); close.timingMode = .easeIn
@@ -491,6 +493,10 @@ final class MixUpScene: BaseToyScene {
             removeAction(forKey: Self.wholeFriendShowKey)
             transformationFlourish(zone: .body)
             AudioManager.shared.playMixFlip()
+            if let arrivingHead {
+                // The returning friend says hello once its head has landed.
+                run(.sequence([.wait(forDuration: 0.4), .run { [weak self] in self?.voiceArrival(of: arrivingHead) }]))
+            }
         } else {
             hop(height: 10 * mixScale, squash: true)   // already wearing this look — a happy little hop
         }
@@ -1053,7 +1059,7 @@ final class MixUpScene: BaseToyScene {
                 eased(.moveTo(y: baseY + 12 * m, duration: 0.55), .easeOut), .wait(forDuration: 0.2),
                 eased(.moveTo(y: baseY, duration: 0.6))
             ]), withKey: "hop")
-            return 1.4
+            return 1.45   // outlasts the 1.40 s flap so a bow can't catch a wing mid-beat
         case "fox":
             // A proud little tiptoe strut, one way and back, head tipped to match.
             root.run(.sequence([

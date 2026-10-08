@@ -193,7 +193,15 @@ final class LullDemoState {
     var trialStartDate: Date? {
         get {
             let stored = defaults.double(forKey: Key.trialStartDate)
-            return stored > 0 ? Date(timeIntervalSinceReferenceDate: stored) : nil
+            guard stored > 0 else { return nil }
+            // A start in the future means the clock was turned back after the week began:
+            // count from now instead, so moving the clock can't stretch the free week.
+            let now = Date().timeIntervalSinceReferenceDate
+            if stored > now + 60 {
+                defaults.set(now, forKey: Key.trialStartDate)
+                return Date(timeIntervalSinceReferenceDate: now)
+            }
+            return Date(timeIntervalSinceReferenceDate: stored)
         }
         set {
             if let date = newValue {
@@ -215,7 +223,7 @@ final class LullDemoState {
     var trialDaysRemaining: Int {
         guard let start = trialStartDate else { return 0 }
         let remaining = start.addingTimeInterval(trialDuration).timeIntervalSinceNow
-        return max(0, Int(ceil(remaining / 86_400)))
+        return min(7, max(0, Int(ceil(remaining / 86_400))))
     }
 
     /// True once a grown-up has opened the parent area after the trial lapsed — clears the

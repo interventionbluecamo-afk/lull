@@ -1,1 +1,15 @@
 .DS_Store
+# Apple signing material and secrets never belong in the repository.
+*.p8
+AuthKey_*.p8
+*.p12
+*.cer
+*.certSigningRequest
+*.mobileprovision
+*.provisionprofile
+*.xcarchive
+*.ipa
+.env
+.env.*
+# Local agent workspace
+.claude/

@@ -75,6 +75,9 @@ section.cards {
 .card { background: var(--paper); border: 1px solid var(--line); border-radius: 24px; padding: 22px 22px 18px; }
 .card h2 { font: 600 21px/1.25 var(--serif); margin: 0 0 6px; }
 .card p { margin: 0; color: var(--cocoa); font-size: 16px; }
+.dot-clay { background: #C96F50; }
+.dot-sage { background: #829B82; }
+.dot-butter { background: #D9B452; }
 .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; vertical-align: 1px; }
 
 .band { background: var(--paper); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 36px 0; margin: 24px 0 0; text-align: center; }

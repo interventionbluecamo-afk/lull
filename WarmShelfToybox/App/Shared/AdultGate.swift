@@ -44,7 +44,20 @@ final class AdultGateViewController: UIViewController {
 
     /// Misses survive closing and reopening the check, so tapping "Not now" can't reset the rest.
     private static var consecutiveMisses = 0
-    private static var restingUntil: Date?
+    /// Kept across launches, so force-quitting can't skip the rest.
+    private static var restingUntil: Date? {
+        get {
+            let stored = UserDefaults.standard.double(forKey: "lull.adultGate.restUntil")
+            return stored > 0 ? Date(timeIntervalSinceReferenceDate: stored) : nil
+        }
+        set {
+            if let date = newValue {
+                UserDefaults.standard.set(date.timeIntervalSinceReferenceDate, forKey: "lull.adultGate.restUntil")
+            } else {
+                UserDefaults.standard.removeObject(forKey: "lull.adultGate.restUntil")
+            }
+        }
+    }
     private var restTimer: Timer?
 
     private let card = UIView()

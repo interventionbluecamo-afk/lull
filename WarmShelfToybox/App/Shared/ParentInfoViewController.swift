@@ -1011,7 +1011,7 @@ final class LullPrivacyViewController: UIViewController {
             ("The short version",
              "Lull does not collect, store on a server, share, or sell any information about you or your child. There are no accounts, ads, analytics, or tracking, and no third-party code that could do these things."),
             ("What stays on this device",
-             "Your family settings (sound, haptics, calmer motion, play timer, wind-down hour, which toys are on the shelf), the date the free week began, which hints were shown, and Mix-Up creations are saved only in Lull's storage on this device. They are not sent anywhere. Deleting Lull deletes them."),
+             "Your family settings (sound, haptics, calmer motion, play timer, wind-down hour, which toys are on the shelf), the date the free week began, which hints were shown, and Mix-Up creations are saved only in Lull's storage on this device. They are not sent anywhere, apart from your own iCloud or computer backups of this device. Deleting Lull deletes them."),
             ("Purchases",
              "The full toybox is a one-time In-App Purchase handled entirely by Apple. Lull never sees your name, Apple Account, or payment details; Apple tells the app only whether the full toybox is unlocked. Apple's privacy policy covers the purchase itself."),
             ("Device features",

@@ -12,7 +12,7 @@ October 8, 2026. Branch `claude/modest-bell-cjarqm` in `interventionbluecamo-afk
 
 ## Installation and release status
 
-**Installation pending:** first devicectl attempt could not establish the iPhone connection (CoreDevice 4000, control-channel reset by peer). Founder asked to unlock the iPhone, connect USB and accept Trust if shown; awaiting connection. The signed app is ready at the path below. Do not claim it installed until devicectl reports App installed.
+**Release 1.0 (4) installed successfully on the paired iPhone 17 Pro.** The first devicectl attempt hit CoreDevice 4000 (control-channel reset); a bounded retry connected and returned `App installed` with the expected bundle ID. Founder advised to fully close/reopen Lull before listening. Phone connection is no longer blocking; listening acceptance and explicit upload approval remain pending.
 
 **No build 4 archive or upload performed.** Founder owns listening/play/purchase testing and must explicitly approve this build before upload. Build 3's separate approval applies only to its recorded commit; it is not approval for build 4. Build 2 remains the last TestFlight build distributed by this Mac pass. No external beta review, public App Review submission, repository visibility change or account/credential change was performed.
 
@@ -20,7 +20,7 @@ No simulator play-tests, visual pass, sound listening or purchase tests were per
 
 ## Next action
 
-1. With the founder's iPhone unlocked and connected, install the signed Release build below. Paired UDID: `00008150-001019AA3623C01C` (iPhone 17 Pro).
+1. Installed build is ready on the founder's iPhone 17 Pro. Paired UDID: `00008150-001019AA3623C01C`. Do not reinstall or perform broad agent play-tests unless requested.
 2. Founder fully closes/reopens Lull and listens using `Handoff-Claude-to-ChatGPT-2026-10-08-sound.md` → Listening guide. Check all nine toys, taps vs held notes, Sound Off, Silent Mode, headphones/interruptions and background/return. Do not repeat broad agent tests.
 3. Only after explicit approval, archive/upload the matching **1.0 (4)** source to Founder Testing. If production changes meanwhile, rebuild/install that matching source and obtain approval for it; never upload an older archive under the new handoff.
 4. Record actual install/approval/upload/processing/group assignment separately. Preserve ongoing Claude sound and Mix-Up work and all nine toys. Keep work/handoffs in GitHub.
@@ -31,5 +31,6 @@ No simulator play-tests, visual pass, sound listening or purchase tests were per
 - Simulator app: `/private/tmp/lull-build4-20261008/simulator/Build/Products/Debug-iphonesimulator/Lull.app`
 - Full build logs: `/private/tmp/lull-build4-device.log`, `/private/tmp/lull-build4-simulator.log`
 - First install attempt: `/private/tmp/lull-build4-device-install.log`
+- Successful retry: `/private/tmp/lull-build4-device-install-retry.log` (`App installed`, exit 0)
 
 Signed binaries, credentials and derived data are not committed. Cloud Claude can read the production source, corrected verifier and all evidence in Git; it cannot use the Mac-local signed app.

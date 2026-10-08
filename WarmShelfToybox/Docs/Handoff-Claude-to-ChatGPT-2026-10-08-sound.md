@@ -107,3 +107,27 @@ See the Mix-Up section at the end; it lands in a separate commit.
 Tuning knobs if something is off (one place each): bus loudness `LullSoundBus.targetRMS`,
 room `room.wetDryMix`, per-sound gain in each `LullSoundBook.recipe` case, cooldowns in
 `AudioManager.cooldown(for:)`.
+
+## Update after build 4: Mix-Up friends → build 1.0 (5)
+
+Build 4 (sound only, from `6873084`) is installed on the founder's iPhone for listening
+(`Handoff-ChatGPT-to-Claude-2026-10-08-build4.md`). Newer production code has landed since, so
+the next build is **1.0 (5)** (`CURRENT_PROJECT_VERSION` = 5):
+
+- `a0e388f` + `35d65a3` — **the robot, police officer and firefighter are back in Mix-Up** as
+  friends 6–8 (nine friends, 729 combinations), using the legacy part art that the founder's son
+  knew (robot2, officer with cleaned legs, firefighter), cropped and registered to the new cast
+  (`Docs/MixUp-Friends-9.png`). Each of the nine friends has its own gentle arrival move and a
+  whole-friend signature (robot glow and two-step, officer salute, firefighter hop and wave…),
+  rare idle habits, its own voice from the sound book, and VoiceOver names ("police officer").
+  Reduce Motion keeps one slow tilt only. Saves move to cast version 4 without shifting the six
+  animals; robot/officer/firefighter saves from the build-1 era map back to them where the device
+  has not already migrated them. A future felt atlas `mixup-friends-c` is wired but off until it
+  exists: prompt and steps in `Docs/MixUp-Friends-Prompt.md`, measured by
+  `Tools/Art/measure_atlas.py`.
+- Verified here: Mix-Up/Stack 274 and layout 280 checks; Swift parse; an adversarial review
+  (approve, no blockers; its nits are fixed).
+
+Mac steps: pull, build Debug and Release, run all `Tools/verify_*.py`, install 1.0 (5) on the
+founder's iPhone so they can hear the new sound **and** meet the returning friends. Upload only
+with the founder's explicit approval of build 5.

@@ -34,11 +34,17 @@ func spin(_ seconds: Double = 0.05) {
     RunLoop.main.run(until: Date().addingTimeInterval(0.02))
 }
 func spinReal(_ seconds: Double) {
-    let end = Date().addingTimeInterval(seconds)
-    while Date() < end {
-        stubClock += 0.02
+    // A run-loop cycle can take longer than 20 ms on macOS. Advance the stub
+    // clock by elapsed monotonic time so a wall-time wait also completes its fades.
+    let start = ProcessInfo.processInfo.systemUptime
+    let startClock = stubClock
+    while ProcessInfo.processInfo.systemUptime - start < seconds {
+        stubClock = startClock + ProcessInfo.processInfo.systemUptime - start
         RunLoop.main.run(until: Date().addingTimeInterval(0.02))
     }
+    stubClock = startClock + seconds
+    // Let the 60 Hz production fade timer observe the final clock value.
+    RunLoop.main.run(until: Date().addingTimeInterval(0.02))
 }
 func post(_ name: Notification.Name, _ info: [AnyHashable: Any]? = nil, object: Any? = nil) {
     NotificationCenter.default.post(name: name, object: object, userInfo: info)

@@ -1,0 +1,10 @@
+Script: Tools/verify_world_interactions.py
+Revision: 6873084d11be2a36b6796acfbf522a144a190d13
+Python: /Users/User2/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3
+Started UTC: 2026-10-08T15:59:35.346455+00:00
+Finished UTC: 2026-10-08T15:59:36.867662+00:00
+Elapsed seconds: 1.507
+Exit code: 0
+Production files changed during execution: []
+
+PASS: 268 handle-departure, reachable-puff, unique-round and socket-fit checks using production helpers

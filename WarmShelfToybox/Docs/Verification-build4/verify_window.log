@@ -1,0 +1,11 @@
+Script: Tools/verify_window.py
+Revision: 6873084d11be2a36b6796acfbf522a144a190d13
+Python: /Users/User2/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3
+Started UTC: 2026-10-08T15:59:32.492353+00:00
+Finished UTC: 2026-10-08T15:59:35.330015+00:00
+Elapsed seconds: 2.814
+Exit code: 0
+Production files changed during execution: []
+
+PASS active paths: pan inactive; sky acknowledgment precedes cooldown and works in Reduce Motion; one guarded comet; real lamp required for motes
+PASS 176 native checks: safe control bounds, tap/jitter/cancel, hub exit, angular cap, drag ownership, night wrap

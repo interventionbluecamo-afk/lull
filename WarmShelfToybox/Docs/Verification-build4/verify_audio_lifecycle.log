@@ -1,0 +1,11 @@
+Script: Tools/verify_audio_lifecycle.py
+Revision: 6873084d11be2a36b6796acfbf522a144a190d13
+Working-tree change: verification-only spinReal clock correction; no production changes
+Python: /Users/User2/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3
+Started UTC: 2026-10-08T16:01:55.441814+00:00
+Finished UTC: 2026-10-08T16:02:14.215901+00:00
+Elapsed seconds: 18.741
+Exit code: 0
+Production files changed during execution: []
+
+PASS: 53 sound engine lifecycle, gating, scheduling and bed checks; audibility still needs an iPhone

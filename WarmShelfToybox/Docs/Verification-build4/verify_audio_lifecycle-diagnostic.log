@@ -1,0 +1,30 @@
+Diagnostic harness: original lifecycle check with timing/failure prints only; no production changes.
+UTC: 2026-10-08T16:00:34.635839+00:00
+Exit code: 0
+
+DIAGNOSTIC spinReal target 0.06: stub advanced 0.05999999999994543
+DIAGNOSTIC spinReal target 0.06: stub advanced 0.05999999999994543
+DIAGNOSTIC spinReal target 0.06: stub advanced 0.05999999999994543
+DIAGNOSTIC spinReal target 0.06: stub advanced 0.05999999999994543
+DIAGNOSTIC spinReal target 0.06: stub advanced 0.05999999999994543
+DIAGNOSTIC spinReal target 0.06: stub advanced 0.05999999999994543
+DIAGNOSTIC spinReal target 0.06: stub advanced 0.05999999999994543
+DIAGNOSTIC spinReal target 0.06: stub advanced 0.05999999999994543
+DIAGNOSTIC spinReal target 0.06: stub advanced 0.05999999999994543
+DIAGNOSTIC spinReal target 0.06: stub advanced 0.05999999999994543
+DIAGNOSTIC spinReal target 0.06: stub advanced 0.05999999999994543
+DIAGNOSTIC spinReal target 0.06: stub advanced 0.05999999999994543
+DIAGNOSTIC spinReal target 0.4: stub advanced 0.3599999999996726
+DIAGNOSTIC spinReal target 0.1: stub advanced 0.09999999999990905
+DIAGNOSTIC spinReal target 0.1: stub advanced 0.09999999999990905
+DIAGNOSTIC spinReal target 1.8: stub advanced 1.5999999999985448
+DIAGNOSTIC loops after waking: 1, volumes: [0.80723304]
+DIAGNOSTIC spinReal target 0.1: stub advanced 0.09999999999990905
+DIAGNOSTIC spinReal target 0.1: stub advanced 0.09999999999990905
+DIAGNOSTIC spinReal target 0.1: stub advanced 0.09999999999990905
+DIAGNOSTIC spinReal target 0.1: stub advanced 0.09999999999990905
+DIAGNOSTIC spinReal target 1.7: stub advanced 1.4199999999987085
+DIAGNOSTIC spinReal target 1.5: stub advanced 1.2199999999988904
+DIAGNOSTIC spinReal target 1.0: stub advanced 0.8199999999992542
+DIAGNOSTIC spinReal target 0.5: stub advanced 0.419999999999618
+PASS: 53 sound engine lifecycle, gating, scheduling and bed checks; audibility still needs an iPhone

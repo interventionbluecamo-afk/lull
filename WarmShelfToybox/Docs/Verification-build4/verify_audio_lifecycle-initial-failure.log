@@ -1,0 +1,16 @@
+Script: Tools/verify_audio_lifecycle.py
+Revision: 6873084d11be2a36b6796acfbf522a144a190d13
+Python: /Users/User2/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3
+Started UTC: 2026-10-08T15:58:39.724149+00:00
+Finished UTC: 2026-10-08T15:59:03.925086+00:00
+Elapsed seconds: 24.174
+Exit code: 1
+Production files changed during execution: []
+
+lifecycle/main.swift:6: Precondition failed: FAIL: Waking fades the breathing bed out
+Traceback (most recent call last):
+  File "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Tools/verify_audio_lifecycle.py", line 215, in <module>
+    subprocess.run([str(exe)], check=True)
+  File "/Users/User2/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['/var/folders/cc/yvglw42j0gs48_wtzv6t5gdw0000gp/T/tmpoh44kffj/lifecycle']' died with <Signals.SIGTRAP: 5>.

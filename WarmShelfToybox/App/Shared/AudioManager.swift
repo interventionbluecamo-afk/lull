@@ -1,97 +1,24 @@
 import AVFoundation
-import QuartzCore
+import AudioToolbox
 import UIKit
 
-final class AudioManager {
+/// Lull's sound system: one engine, one room, one loudness standard.
+///
+/// Every sound is a cue from `LullSoundBook` (rendered once from physical models, then cached),
+/// played on a small pool of voices that feed per-bus mixers, a shared small room, a gentle
+/// speaker EQ and a peak limiter, so no combination of toys can ever get loud or harsh.
+///
+/// - Cues: `play(cue:)` with optional pan, volume and a sample-accurate delay.
+/// - Variation: most cues render several variants that rotate without immediate repeats.
+/// - Held notes (Hum): `startHeldNote` / `releaseHeldNote` with smooth fades.
+/// - Room beds: quiet generative loops per toy, dimmed and put to sleep by idle time.
+/// - Lifecycle: Sound Off, backgrounding and interruptions stop every voice, loop, held note and
+///   queued note; returning resumes only the room bed. The parent's Sound control is the gate,
+///   including on a phone in Silent Mode (category .playback, mixing with other audio).
+final class AudioManager: LullTonePlayer {
     static let shared = AudioManager()
 
-    private enum SoundProfile: String {
-        case bubbleSmall
-        case bubbleMedium
-        case bubbleLarge
-        case bubbleRare
-        case emptyTap
-        case softTap
-        case blockPickup
-        case blockRelease
-        case blockSettle
-        case mysteryShape
-        case shelfTransition
-        case toyNotice
-        case toySettle
-        case bubbleNotice
-        case bubbleBreath
-        case foodPickup
-        case foodRelease
-        case foodPlop
-        case feedReceive
-        case feedHappy
-        case feedDecline
-        case feedChewSoft
-        case feedChewCrunch
-        case stackLift
-        case stackPlace
-        case stackSettle
-        case stackWake
-        case bloomPlant
-        case bloomStretch
-        case bloomFlourish
-        case bloomSettle
-        case bloomCritter
-        case mixFlip
-        case mixCelebrate
-        case mixSettle
-        case bird
-        case boxOpen
-        case windowCatHappy
-        case windowToyboxOpen
-    }
-
-    private enum WindowAmbienceChannel: Hashable {
-        case morning
-        case night
-    }
-
-    private struct SoundTuning {
-        let resourceNames: [String]
-        let fallbackResourceName: String?
-        let volume: Float
-        let rate: Float
-        let rateJitter: ClosedRange<Float>
-        let volumeJitter: ClosedRange<Float>
-        let cooldown: TimeInterval
-
-        init(
-            resourceNames: [String],
-            fallbackResourceName: String?,
-            volume: Float,
-            rate: Float,
-            rateJitter: ClosedRange<Float> = -0.025...0.025,
-            volumeJitter: ClosedRange<Float> = 0.92...1.04,
-            cooldown: TimeInterval = 0
-        ) {
-            self.resourceNames = resourceNames
-            self.fallbackResourceName = fallbackResourceName
-            self.volume = volume
-            self.rate = rate
-            self.rateJitter = rateJitter
-            self.volumeJitter = volumeJitter
-            self.cooldown = cooldown
-        }
-    }
-
-    private var players: [SoundProfile: [AVAudioPlayer]] = [:]
-    private var nextPlayerIndex: [SoundProfile: Int] = [:]
-    private var lastPlayTime: [SoundProfile: TimeInterval] = [:]
-    private var windowAmbiencePlayers: [WindowAmbienceChannel: AVAudioPlayer] = [:]
-    private var windowAmbienceTargets: [WindowAmbienceChannel: Float] = [:]
-    private var windowAmbienceFadeGen: [WindowAmbienceChannel: Int] = [:]
-    private var windowAmbienceActive = false
-    private var windowDayPhase: CGFloat?
-    private var sessionIsActive = false
-    private var applicationIsActive = UIApplication.shared.applicationState == .active
-    private var audioIsInterrupted = false
-    private var audioObservers: [NSObjectProtocol] = []
+    // MARK: - Preferences and lifecycle state
 
     var isEnabled: Bool {
         get { LullDemoState.shared.isSoundEnabled }
@@ -106,221 +33,389 @@ final class AudioManager {
         }
     }
 
+    var currentToyVoice: LullSoundVoice = .none
+
+    private var sessionIsActive = false
+    private var applicationIsActive = UIApplication.shared.applicationState == .active
+    private var audioIsInterrupted = false
+    private var audioObservers: [NSObjectProtocol] = []
+
+    // MARK: - Engine graph
+
+    private let engine = AVAudioEngine()
+    private let monoFormat = AVAudioFormat(standardFormatWithSampleRate: LullSynth.sampleRate, channels: 1)!
+    private let stereoFormat = AVAudioFormat(standardFormatWithSampleRate: LullSynth.sampleRate, channels: 2)!
+    private let submix = AVAudioMixerNode()
+    private let room = AVAudioUnitReverb()
+    private let speakerEQ = AVAudioUnitEQ(numberOfBands: 2)
+    private let limiter = AVAudioUnitEffect(audioComponentDescription: AudioComponentDescription(
+        componentType: kAudioUnitType_Effect,
+        componentSubType: kAudioUnitSubType_PeakLimiter,
+        componentManufacturer: kAudioUnitManufacturer_Apple,
+        componentFlags: 0,
+        componentFlagsMask: 0))
+    private var busMixers: [LullSoundBus: AVAudioMixerNode] = [:]
+    private var graphBuilt = false
+
+    private final class Voice {
+        let node = AVAudioPlayerNode()
+        let bus: LullSoundBus
+        var startedAt: CFTimeInterval = 0
+        var endsAt: CFTimeInterval = 0
+        var heldToken: Int?
+        init(bus: LullSoundBus) { self.bus = bus }
+    }
+
+    private final class LoopSlot {
+        let node = AVAudioPlayerNode()
+        var id: String?
+        var level: Float = 0
+    }
+
+    private static let voicesPerBus: [LullSoundBus: Int] = [.ui: 4, .effects: 12, .music: 12, .voices: 6]
+    private var voices: [LullSoundBus: [Voice]] = [:]
+    private var loopSlots: [LoopSlot] = (0..<6).map { _ in LoopSlot() }
+
+    // MARK: - Sound cache
+
+    private var cache: [String: [AVAudioPCMBuffer]] = [:]
+    private var cacheBus: [String: LullSoundBus] = [:]
+    private var rendering: Set<String> = []
+    private var lastVariant: [String: Int] = [:]
+    private var lastPlayTime: [String: CFTimeInterval] = [:]
+    private let renderQueue = DispatchQueue(label: "com.lull.sound.render", qos: .utility)
+
+    // MARK: - Fades
+
+    private struct Fade {
+        let node: AVAudioPlayerNode
+        let from: Float
+        let to: Float
+        let start: CFTimeInterval
+        let duration: CFTimeInterval
+        let stopAtEnd: Bool
+        let onStop: (() -> Void)?
+    }
+
+    private var fades: [ObjectIdentifier: Fade] = [:]
+    private var fadeTimer: Timer?
+    private var heldTokens = 0
+    private var sprinkleTimer: Timer?
+
     private init() {
-        loadPlayers()
+        LullToneEngine.shared.player = self
         observeAudioLifecycle()
     }
 
-    func playBubblePop(size: CGFloat, isRare: Bool = false) {
-        let profile: SoundProfile
-        if isRare {
-            profile = .bubbleRare
-        } else if size < 50 {
-            profile = .bubbleSmall
-        } else if size < 82 {
-            profile = .bubbleMedium
-        } else {
-            profile = .bubbleLarge
-        }
+    // MARK: - Cues
 
-        play(profile)
+    /// Plays one cue. `pan` is -1 (left) ... 1 (right); it is kept subtle. `delay` schedules the
+    /// cue sample-accurately; every queued cue is cancelled by Sound Off, backgrounding or an
+    /// interruption. Returns false when sound is off or the cue does not exist.
+    @discardableResult
+    func play(cue id: String, pan: Float = 0, volume: Float = 1, delay: TimeInterval = 0) -> Bool {
+        guard prepareForPlayback(), startEngineIfNeeded() else { return false }
+        let now = CACurrentMediaTime()
+        let cooldown = Self.cooldown(for: id)
+        if let last = lastPlayTime[id], now - last < cooldown { return false }
+        guard let buffer = nextBuffer(for: id) else { return false }
+        lastPlayTime[id] = now
+        schedule(buffer, bus: cacheBus[id] ?? .effects, pan: pan, volume: volume, delay: delay)
+        return true
+    }
+
+    /// Subtle stereo position for a point in a scene (phones in landscape and headphones).
+    static func pan(x: CGFloat, width: CGFloat) -> Float {
+        guard width > 0 else { return 0 }
+        return Float(max(-0.35, min(0.35, (x / width * 2 - 1) * 0.35)))
+    }
+
+    /// Renders a toy's cues ahead of time on a background queue, so the first touch is instant.
+    func prewarm(prefixes: [String]) {
+        let ids = LullSoundBook.cueIDs.filter { id in prefixes.contains { id.hasPrefix($0) } }
+        for id in ids { prewarm(cue: id) }
+    }
+
+    func prewarm(cue id: String) {
+        guard cache[id] == nil, !rendering.contains(id) else { return }
+        rendering.insert(id)
+        let count = LullSoundBook.variants(for: id)
+        let format = monoFormat
+        renderQueue.async {
+            let rendered = (0..<count).compactMap { LullSoundBook.render(id, variant: $0) }
+            let buffers = rendered.compactMap { AudioManager.makeBuffer($0.samples, format: format) }
+            let bus = rendered.first?.bus ?? .effects
+            DispatchQueue.main.async { AudioManager.shared.store(id, buffers: buffers, bus: bus, replace: false) }
+        }
+    }
+
+    /// Main-thread landing for buffers rendered in the background.
+    private func store(_ id: String, buffers: [AVAudioPCMBuffer], bus: LullSoundBus, replace: Bool) {
+        rendering.remove(id)
+        guard !buffers.isEmpty else { return }
+        if cache[id] == nil || replace {
+            cache[id] = buffers
+            cacheBus[id] = bus
+        } else {
+            cache[id, default: []].append(contentsOf: buffers)
+        }
+    }
+
+    // MARK: - Held notes (Hum)
+
+    /// Starts a note that rings while a finger stays down. Returns a token for release, or nil.
+    func startHeldNote(cue id: String, pan: Float = 0, volume: Float = 1) -> Int? {
+        guard prepareForPlayback(), startEngineIfNeeded(), let buffer = nextBuffer(for: id) else { return nil }
+        heldTokens += 1
+        let token = heldTokens
+        let voice = schedule(buffer, bus: .music, pan: pan, volume: volume, delay: 0)
+        voice?.heldToken = token
+        return voice == nil ? nil : token
+    }
+
+    /// Lets a held note go with a soft fade. Struck instruments simply keep ringing out when
+    /// `fade` is nil.
+    func releaseHeldNote(_ token: Int, fade: TimeInterval? = 0.35) {
+        for pool in voices.values {
+            for voice in pool where voice.heldToken == token {
+                voice.heldToken = nil
+                if let fade { fadeNode(voice.node, to: 0, duration: fade, stopAtEnd: true) }
+            }
+        }
+    }
+
+    func releaseAllHeldNotes(fade: TimeInterval = 0.3) {
+        for pool in voices.values {
+            for voice in pool where voice.heldToken != nil {
+                voice.heldToken = nil
+                fadeNode(voice.node, to: 0, duration: fade, stopAtEnd: true)
+            }
+        }
+    }
+
+    // MARK: - Named sounds (the toys' vocabulary)
+
+    func playBubblePop(size: CGFloat, isRare: Bool = false) {
+        if isRare {
+            play(cue: "bubble.rare")
+        } else if size < 50 {
+            play(cue: "bubble.small")
+        } else if size < 82 {
+            play(cue: "bubble.medium")
+        } else {
+            play(cue: "bubble.large")
+        }
     }
 
     func playSoftTap() {
-        play(.softTap)
+        play(cue: "ui.tap")
         HapticsManager.shared.softTap()
     }
 
     func playEmptyTap() {
-        play(.emptyTap)
+        play(cue: "ui.empty")
         HapticsManager.shared.emptyTap()
     }
 
-    func playBlockPickup() {
-        play(.blockPickup)
-    }
-
-    func playBlockRelease() {
-        play(.blockRelease)
-    }
-
-    func playBlockSettle() {
-        play(.blockSettle)
-    }
-
-    func playMysteryShape() {
-        play(.mysteryShape)
-    }
-
-    func playShelfTransition() {
-        play(.shelfTransition)
-    }
-
-    func playToyNotice() {
-        play(.toyNotice)
-    }
-
-    func playToySettle() {
-        play(.toySettle)
-    }
-
-    func playBubbleNotice() {
-        play(.bubbleNotice)
-    }
-
-    func playBubbleBreath() {
-        play(.bubbleBreath)
-    }
-
-    func playFoodPickup() {
-        if !play(.foodPickup) {
-            play(.softTap)
-        }
-    }
-
-    func playFoodRelease() {
-        if !play(.foodRelease) {
-            play(.softTap)
-        }
-    }
-
-    func playFoodPlop() {
-        if !play(.foodPlop) {
-            play(.foodRelease)
-        }
-    }
-
-    func playFeedReceive() {
-        if !play(.feedReceive) {
-            play(.feedChewSoft)
-        }
-    }
+    func playBlockPickup() { play(cue: "stack.lift") }
+    func playBlockRelease() { play(cue: "stack.place") }
+    func playBlockSettle() { play(cue: "stack.settle.medium") }
+    func playMysteryShape() { play(cue: "stack.wake") }
+    func playShelfTransition() { play(cue: "ui.transition") }
+    func playToyNotice() { play(cue: "ui.notice") }
+    func playToySettle() { play(cue: "ui.settle") }
+    func playBubbleNotice() { play(cue: "bubble.notice") }
+    func playBubbleBreath() { play(cue: "bubble.breath") }
+    func playFoodPickup() { play(cue: "feed.pickup") }
+    func playFoodRelease() { play(cue: "feed.release") }
+    func playFoodPlop() { play(cue: "feed.plop") }
+    func playFeedReceive() { play(cue: "feed.receive") }
 
     func playFeedHappy() {
-        play(.feedHappy)
+        play(cue: "feed.happy")
         HapticsManager.shared.softTap()
     }
 
-    func playFeedDecline() {
-        if !play(.feedDecline) {
-            play(.emptyTap)
-        }
+    func playFeedDecline() { play(cue: "feed.decline") }
+
+    /// Three bites, timed to the friend's chewing frames.
+    func playFeedChew(isCrunchy: Bool) {
+        play(cue: isCrunchy ? "feed.chew.crunchy" : "feed.chew.soft")
     }
 
-    func playFeedChew(isCrunchy: Bool) {
-        play(isCrunchy ? .feedChewCrunch : .feedChewSoft)
+    func playFeedSuccess() {
+        play(cue: "feed.success")
+        HapticsManager.shared.celebration()
     }
 
     func playStackPlace() {
-        if !play(.stackPlace) { play(.blockRelease) }
+        play(cue: "stack.place")
         HapticsManager.shared.blockRelease()
     }
 
     func playStackLift() {
-        if !play(.stackLift) { play(.blockPickup) }
+        play(cue: "stack.lift")
         HapticsManager.shared.blockPickup()
     }
 
-    /// A soft clay settle. `hardness` (0…1) scales how present it is, so gentle micro-landings
-    /// stay almost silent and only a firmer landing has real weight — never a constant chime.
+    /// `hardness` 0...1 from the impact speed: softer landings are quieter and rounder.
     func playStackSettle(hardness: Float = 1.0) {
-        let h = hardness.clamped(to: 0...1)
-        let volumeScale = 0.5 + 0.5 * h
-        let rateOffset = Float.random(in: -0.07...0.05)   // each landing sits a little differently
-        if !play(.stackSettle, rateOffset: rateOffset, volumeScale: volumeScale) {
-            play(.blockSettle, rateOffset: rateOffset, volumeScale: volumeScale)
-        }
+        let cue = hardness < 0.35 ? "stack.settle.soft" : (hardness < 0.7 ? "stack.settle.medium" : "stack.settle.hard")
+        play(cue: cue, volume: 0.75 + 0.25 * max(0, min(1, hardness)))
         HapticsManager.shared.blockSettle()
     }
 
     func playStackWake() {
-        if !play(.stackWake) { play(.feedHappy) }
+        play(cue: "stack.wake")
         HapticsManager.shared.mysteryShape()
     }
 
+    func playStackKnockover() { play(cue: "stack.knockover") }
+
+    // Parked Bloom toy (kept compiling; not on the shelf).
     func playBloomPlant() {
-        if !play(.bloomPlant) { play(.softTap) }
+        play(cue: "meadow.bloom")
         HapticsManager.shared.softTap()
     }
-
-    func playBloomStretch() {
-        if !play(.bloomStretch) { play(.bloomPlant) }
-    }
-
+    func playBloomStretch() { play(cue: "meadow.paint") }
     func playBloomFlourish() {
-        if !play(.bloomFlourish) { play(.feedHappy) }
+        play(cue: "meadow.spring")
         HapticsManager.shared.mysteryShape()
     }
-
-    func playBloomSettle() {
-        if !play(.bloomSettle) { play(.toySettle) }
-    }
-
+    func playBloomSettle() { play(cue: "ui.settle") }
     func playBloomCritter() {
-        if !play(.bloomCritter) { play(.toyNotice) }
+        play(cue: "bird")
         HapticsManager.shared.softTap()
     }
+    func playBloomSeasonChime(for season: LullToneEngine.BloomSeason) { play(cue: "ui.notice") }
 
     func playMixFlip() {
-        if !play(.mixFlip) { play(.stackPlace) }
+        play(cue: "mix.flip")
         HapticsManager.shared.softTap()
     }
 
     func playMixCelebrate() {
-        if !play(.mixCelebrate) { play(.bloomFlourish) }
+        play(cue: "mix.celebrate")
         HapticsManager.shared.softTap()
     }
 
-    func playMixSettle() {
-        if !play(.mixSettle) { play(.toySettle) }
-    }
+    func playMixSettle() { play(cue: "mix.settle") }
+
+    func playMixCelebrationCombo() { play(cue: "mix.save") }
 
     /// A Mix-Up friend's own voice. `name` is the friend's cast name (bunny, bear, songbird,
     /// fox, mouse, frog, robot, officer, firefighter). `.arrive` plays when that friend's head
     /// lands; `.wholeFriend` when head, body and legs all belong to the same friend.
-    /// (Placeholder until the sound rebuild gives each friend its own voice.)
     enum MixFriendMoment { case arrive, wholeFriend }
 
     func playMixFriend(_ name: String, moment: MixFriendMoment) {
-        switch moment {
-        case .arrive: play(.mixSettle)
-        case .wholeFriend: play(.mixCelebrate)
+        let id = "friend.\(name)" + (moment == .wholeFriend ? ".whole" : "")
+        guard LullSoundBook.cueIDs.contains(id) else {
+            play(cue: moment == .wholeFriend ? "mix.celebrate" : "mix.settle")
+            return
         }
+        play(cue: id, delay: moment == .arrive ? 0.05 : 0)
     }
 
-    func playBird() {
-        if !play(.bird) {
-            play(.bubbleNotice)
+    func playBird() { play(cue: "bird") }
+    func playBoxOpen() { play(cue: "box.open") }
+    func playWindowCatHappy() { play(cue: "window.cat") }
+    func playWindowToyboxOpen() { play(cue: "window.toybox.open") }
+
+    func updateSoundPosition(nodeID: String, screenPoint: CGPoint, sceneSize: CGSize) {}
+
+    // MARK: - Room beds
+
+    enum LullSoundVoice: Equatable {
+        case none
+        case bubbles
+        case bloom
+        case hum
+        case stack
+        case mixUp
+        case feed
+        case glowboard   // Meadow
+        case rollway
+
+        var pitchMultiplier: Double { 1.0 }
+
+        var ambientID: String? {
+            switch self {
+            case .none, .hum: return nil
+            case .bubbles: return "bed.airy"
+            case .glowboard, .bloom: return "bed.breeze"
+            case .stack, .mixUp, .feed, .rollway: return "bed.room"
+            }
         }
-    }
 
-    func playBoxOpen() {
-        if !play(.boxOpen) {
-            play(.blockSettle)
+        /// Loop level for the room bed (the bed itself is mastered quiet).
+        var baseAmbientVolume: Float {
+            switch self {
+            case .none, .hum: return 0
+            case .bubbles: return 0.9
+            case .glowboard, .bloom: return 1.0
+            case .stack, .mixUp, .feed, .rollway: return 0.7
+            }
         }
+
+        /// Occasional creatures in the bed (outdoor rooms only).
+        var hasBirds: Bool { self == .glowboard || self == .bloom }
     }
 
-    func playWindowCatHappy() {
-        if !play(.windowCatHappy) {
-            play(.feedHappy)
-        }
+    func startToyAmbient(_ voice: LullSoundVoice) {
+        guard let id = voice.ambientID, prepareForPlayback(), startEngineIfNeeded() else { return }
+        guard let buffer = bedBuffer(id) else { return }
+        playLoop(id: id, buffer: buffer, volume: voice.baseAmbientVolume, fadeIn: 1.8)
+        if voice.hasBirds { startSprinkles() }
     }
 
-    func playWindowToyboxOpen() {
-        if !play(.windowToyboxOpen) {
-            play(.toyNotice)
-        }
+    func stopToyAmbient(_ voice: LullSoundVoice) {
+        if let id = voice.ambientID { stopLoop(id: id, fadeOut: 1.5) }
+        stopLoop(id: "bed.sleep", fadeOut: 1.0)
+        stopSprinkles()
     }
 
-    /// Play a synthesized buffer exactly once at the given volume. Used for one-off sounds
-    /// like Wren's first breath that are not cached or pooled.
-    func playOnceBuffer(_ buffer: AVAudioPCMBuffer, volume: Float) {
-        guard isEnabled else { return }
-        LullToneEngine.shared.playOnceBuffer(buffer, volume: volume)
+    func wakeAmbient(_ voice: LullSoundVoice) {
+        if let id = voice.ambientID { setLoopVolume(id: id, voice.baseAmbientVolume, duration: 2.0) }
+        stopLoop(id: "bed.sleep", fadeOut: 1.5)
     }
 
-    /// All recorded and synthesized playback shares this live gate. Failed activation is
-    /// retried on the next interaction rather than leaving the toybox silent until relaunch.
+    func dimAmbient(_ voice: LullSoundVoice) {
+        if let id = voice.ambientID { setLoopVolume(id: id, voice.baseAmbientVolume * 0.6, duration: 3.0) }
+    }
+
+    func sleepAmbient(_ voice: LullSoundVoice) {
+        if let id = voice.ambientID { setLoopVolume(id: id, 0, duration: 4.0) }
+        stopSprinkles()
+        guard prepareForPlayback(), startEngineIfNeeded(), let buffer = bedBuffer("bed.sleep") else { return }
+        playLoop(id: "bed.sleep", buffer: buffer, volume: 0.8, fadeIn: 3.0)
+    }
+
+    // MARK: Window day/night beds
+
+    private var windowDayPhase: CGFloat?
+
+    func setWindowAmbience(dayPhase: CGFloat, animated: Bool) {
+        windowDayPhase = dayPhase
+        guard prepareForPlayback(), startEngineIfNeeded(),
+              let day = bedBuffer("bed.room"), let night = bedBuffer("bed.night") else { return }
+        let n = smoothstep(0.58, 0.86, dayPhase)
+        let wasActive = loopSlots.contains { $0.id == "window.day" || $0.id == "window.night" }
+        let duration: TimeInterval = wasActive ? (animated ? 0.85 : 0.28) : 1.35
+        playLoop(id: "window.day", buffer: day, volume: Float(1 - n) * 0.9, fadeIn: duration)
+        playLoop(id: "window.night", buffer: night, volume: Float(n) * 0.9, fadeIn: duration)
+    }
+
+    func stopWindowAmbience(fadeOut: TimeInterval = 1.2) {
+        windowDayPhase = nil
+        stopLoop(id: "window.day", fadeOut: fadeOut)
+        stopLoop(id: "window.night", fadeOut: fadeOut)
+    }
+
+    // MARK: - Session and lifecycle
+
+    /// All playback shares this live gate. Failed activation is retried on the next interaction
+    /// rather than leaving the toybox silent until relaunch.
     @discardableResult
     func prepareForPlayback() -> Bool {
         guard isEnabled, applicationIsActive, !audioIsInterrupted else { return false }
@@ -329,6 +424,8 @@ final class AudioManager {
             // Toy sound follows the parent's Sound control, including on a phone in Silent Mode.
             // Mixing lets a family's music continue; the app has no background-audio entitlement.
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            try? AVAudioSession.sharedInstance().setPreferredSampleRate(LullSynth.sampleRate)
+            try? AVAudioSession.sharedInstance().setPreferredIOBufferDuration(0.005)
             try AVAudioSession.sharedInstance().setActive(true)
             sessionIsActive = true
             return true
@@ -376,6 +473,21 @@ final class AudioManager {
                 break
             }
         })
+        // A route or sample-rate change (headphones, Bluetooth) stops the engine; rebuild the
+        // connections at the new hardware format and carry on with the room bed.
+        audioObservers.append(center.addObserver(forName: .AVAudioEngineConfigurationChange,
+                                                object: engine, queue: .main) { [weak self] _ in
+            guard let self else { return }
+            self.stopAllVoicesAndLoops()
+            self.resumeRoomAudio()
+        })
+        audioObservers.append(center.addObserver(forName: AVAudioSession.mediaServicesWereResetNotification,
+                                                object: nil, queue: .main) { [weak self] _ in
+            guard let self else { return }
+            self.sessionIsActive = false
+            self.stopAllVoicesAndLoops()
+            self.resumeRoomAudio()
+        })
     }
 
     private func deactivateAudioSession() {
@@ -387,27 +499,12 @@ final class AudioManager {
         }
     }
 
+    /// Stops every voice, held note, queued note and loop, and pauses the engine.
     private func suspendPlayback() {
-        for profilePlayers in players.values {
-            for player in profilePlayers {
-                player.stop()
-                player.currentTime = 0
-            }
-        }
+        stopAllVoicesAndLoops()
         lastPlayTime.removeAll()
-        silenceWindowAmbience()
-        LullToneEngine.shared.stopAllPlayback()
-    }
-
-    private func silenceWindowAmbience() {
-        windowAmbienceActive = false
-        for (channel, player) in windowAmbiencePlayers {
-            windowAmbienceFadeGen[channel, default: 0] += 1
-            windowAmbienceTargets[channel] = 0
-            player.volume = 0
-            player.stop()
-            player.currentTime = 0
-        }
+        stopSprinkles()
+        if engine.isRunning { engine.pause() }
     }
 
     private func resumeRoomAudio() {
@@ -419,841 +516,342 @@ final class AudioManager {
         }
     }
 
-    private func loadPlayers() {
-        soundTunings.forEach { profile, tuning in
-            let hasSynthVoice = toneSpecs[profile]?.isEmpty == false
-            players[profile] = makePlayers(for: tuning, allowsFallbackResource: !hasSynthVoice)
+    private func stopAllVoicesAndLoops() {
+        fades.removeAll()
+        fadeTimer?.invalidate()
+        fadeTimer = nil
+        for pool in voices.values {
+            for voice in pool {
+                voice.node.stop()
+                voice.heldToken = nil
+                voice.endsAt = 0
+            }
+        }
+        for slot in loopSlots {
+            slot.node.stop()
+            slot.id = nil
+            slot.level = 0
         }
     }
 
-    private func makePlayers(for tuning: SoundTuning, allowsFallbackResource: Bool) -> [AVAudioPlayer] {
-        guard let url = firstAvailableURL(named: tuning.resourceNames)
-            ?? (allowsFallbackResource ? tuning.fallbackResourceName.flatMap { firstAvailableURL(named: [$0]) } : nil)
-        else {
-            return []
-        }
+    // MARK: - Engine
 
-        return (0..<3).compactMap { _ in
-            do {
-                let player = try AVAudioPlayer(contentsOf: url)
-                player.enableRate = true
-                player.volume = tuning.volume
-                player.rate = tuning.rate
-                player.prepareToPlay()
-                return player
-            } catch {
-                return nil
+    private func buildGraphIfNeeded() {
+        guard !graphBuilt else { return }
+        graphBuilt = true
+
+        engine.attach(submix)
+        engine.attach(room)
+        engine.attach(speakerEQ)
+        engine.attach(limiter)
+
+        room.loadFactoryPreset(.smallRoom)
+        room.wetDryMix = 9
+
+        // Phone speakers can't move air below ~110 Hz; removing it keeps headroom for what they can.
+        let lowCut = speakerEQ.bands[0]
+        lowCut.filterType = .highPass
+        lowCut.frequency = 110
+        lowCut.bypass = false
+        let soften = speakerEQ.bands[1]
+        soften.filterType = .highShelf
+        soften.frequency = 9000
+        soften.gain = -2
+        soften.bypass = false
+
+        for bus in LullSoundBus.allCases {
+            let mixer = AVAudioMixerNode()
+            engine.attach(mixer)
+            engine.connect(mixer, to: submix, fromBus: 0, toBus: submix.nextAvailableInputBus, format: stereoFormat)
+            busMixers[bus] = mixer
+        }
+        for (bus, count) in Self.voicesPerBus {
+            guard let mixer = busMixers[bus] else { continue }
+            voices[bus] = (0..<count).map { _ in
+                let voice = Voice(bus: bus)
+                engine.attach(voice.node)
+                engine.connect(voice.node, to: mixer, fromBus: 0, toBus: mixer.nextAvailableInputBus, format: monoFormat)
+                return voice
             }
         }
+        if let ambience = busMixers[.ambience] {
+            for slot in loopSlots {
+                engine.attach(slot.node)
+                engine.connect(slot.node, to: ambience, fromBus: 0, toBus: ambience.nextAvailableInputBus, format: monoFormat)
+            }
+        }
+
+        engine.connect(submix, to: room, format: stereoFormat)
+        engine.connect(room, to: speakerEQ, format: stereoFormat)
+        engine.connect(speakerEQ, to: limiter, format: stereoFormat)
+        engine.connect(limiter, to: engine.mainMixerNode, format: stereoFormat)
+
+        let unit = limiter.audioUnit
+        AudioUnitSetParameter(unit, AudioUnitParameterID(kLimiterParam_AttackTime), AudioUnitScope(kAudioUnitScope_Global), 0, 0.003, 0)
+        AudioUnitSetParameter(unit, AudioUnitParameterID(kLimiterParam_DecayTime), AudioUnitScope(kAudioUnitScope_Global), 0, 0.08, 0)
+        AudioUnitSetParameter(unit, AudioUnitParameterID(kLimiterParam_PreGain), AudioUnitScope(kAudioUnitScope_Global), 0, 0, 0)
+        engine.prepare()
     }
 
-    private func firstAvailableURL(named resourceNames: [String]) -> URL? {
-        for name in resourceNames {
-            if let mp3 = Bundle.main.url(forResource: name, withExtension: "mp3") {
-                return mp3
-            }
-
-            if let wav = Bundle.main.url(forResource: name, withExtension: "wav") {
-                return wav
-            }
-
-            if let m4a = Bundle.main.url(forResource: name, withExtension: "m4a") {
-                return m4a
-            }
-        }
-
-        return nil
-    }
-
-    @discardableResult
-    private func play(_ profile: SoundProfile, rateOffset: Float = 0, volumeScale: Float = 1) -> Bool {
-        guard prepareForPlayback() else { return false }
-        let tuning = soundTunings[profile]
-        let now = CACurrentMediaTime()
-        if let tuning, tuning.cooldown > 0 {
-            let last = lastPlayTime[profile] ?? -Double.greatestFiniteMagnitude
-            if now - last < tuning.cooldown {
-                return true
-            }
-            lastPlayTime[profile] = now
-        }
-
-        guard let profilePlayers = players[profile], !profilePlayers.isEmpty else {
-            // No recorded foley for this one — sing it with the built-in voice instead.
-            return playSynth(profile)
-        }
-
-        let index = nextPlayerIndex[profile, default: 0]
-        let player = profilePlayers[index]
-        nextPlayerIndex[profile] = (index + 1) % profilePlayers.count
-
-        player.stop()
-        player.currentTime = 0
-        if let tuning {
-            let rate = tuning.rate + rateOffset + Float.random(in: tuning.rateJitter)
-            player.rate = rate.clamped(to: 0.62...1.42)
-            let volume = tuning.volume * volumeScale * Float.random(in: tuning.volumeJitter)
-            player.volume = volume.clamped(to: 0...0.55)
-        }
-        player.play()
-        return true
-    }
-
-    // MARK: - Synthesized voice (used whenever no recorded file exists)
-
-    private typealias ToneSpec = LullToneEngine.Spec
-    private typealias ToneVoice = LullToneEngine.Voice
-    private var toneRotation: [SoundProfile: Int] = [:]
-
-    @discardableResult
-    private func playSynth(_ profile: SoundProfile) -> Bool {
-        guard let variants = toneSpecs[profile], !variants.isEmpty else {
+    private func startEngineIfNeeded() -> Bool {
+        buildGraphIfNeeded()
+        if engine.isRunning { return true }
+        do {
+            try engine.start()
+            return true
+        } catch {
             #if DEBUG
-            print("AudioManager: no audio or tone for \(profile.rawValue)")
+            print("AudioManager: engine could not start: \(error)")
             #endif
             return false
         }
-        let index = toneRotation[profile, default: 0]
-        toneRotation[profile] = (index + 1) % variants.count
-        LullToneEngine.shared.play(variants[index], cacheKey: "\(profile.rawValue)#\(index)")
-        return true
     }
 
-    /// Every interaction's voice, drawn from one warm pentatonic scale (degree 0 = low C,
-    /// mid-register ≈ 5–14). Sounds that have recorded foley keep a tone here only as a
-    /// safety net for a failed file load. `bloomPlant` rotates a gentle pentatonic noodle.
-    private lazy var toneSpecs: [SoundProfile: [ToneSpec]] = [
-        // Shared / UI
-        .softTap: [.single(8, ToneVoice.felt.with(body: 0.18, amplitude: 0.10))],
-        .emptyTap: [.single(6, ToneVoice.breath.with(body: 0.18, amplitude: 0.055, noiseGain: 0.40))],
-        .shelfTransition: [ToneSpec.arp([6, 9], step: 0.06, ToneVoice.breath.with(body: 0.5, amplitude: 0.10))],
-        .toyNotice: [ToneSpec.arp([8, 10], step: 0.045, ToneVoice.felt.with(body: 0.18, amplitude: 0.09))],
-        .toySettle: [ToneSpec.arp([7, 5, 3], step: 0.08, ToneVoice.breath.with(body: 0.54, amplitude: 0.065))],
-
-        // Bubbles (recorded — tones are a safety net)
-        .bubbleSmall: [.single(13, ToneVoice.water.with(body: 0.13, amplitude: 0.10))],
-        .bubbleMedium: [.single(10, ToneVoice.water.with(body: 0.18, amplitude: 0.12))],
-        .bubbleLarge: [.single(5, ToneVoice.water.with(body: 0.24, amplitude: 0.13))],
-        .bubbleRare: [ToneSpec.chord([7, 12], ToneVoice.bell.with(amplitude: 0.11))],
-        .bubbleNotice: [.single(12, ToneVoice.water.with(body: 0.12, amplitude: 0.075))],
-        .bubbleBreath: [ToneSpec.arp([7, 9, 12], step: 0.095, ToneVoice.breath.with(body: 0.46, amplitude: 0.07))],
-
-        // Blocks / Clay
-        .blockPickup: [.single(7, ToneVoice.clay.with(body: 0.16, amplitude: 0.12))],
-        .blockRelease: [.single(5, ToneVoice.clay.with(body: 0.20))],
-        .blockSettle: [.single(3, ToneVoice.clay.with(body: 0.25, amplitude: 0.12))],
-        .mysteryShape: [.single(9, ToneVoice.warm.with(body: 0.4))],
-
-        // Feed the People
-        .foodPickup: [.single(10, ToneVoice.felt.with(body: 0.13, amplitude: 0.10))],
-        .foodRelease: [.single(8, ToneVoice.felt.with(body: 0.15, amplitude: 0.10))],
-        .foodPlop: [.single(6, ToneVoice.clay.with(body: 0.17, amplitude: 0.11))],
-        .feedReceive: [ToneSpec.arp([7, 10], ToneVoice.voiceLike.with(amplitude: 0.13))],
-        .feedHappy: [ToneSpec.arp([5, 7, 9, 10], step: 0.085, ToneVoice.warm.with(amplitude: 0.14))],
-        .feedDecline: [ToneSpec.arp([9, 7], step: 0.09, ToneVoice.breath.with(body: 0.32, amplitude: 0.065))],
-
-        // Stack
-        .stackLift: [ToneSpec.arp([7, 10], step: 0.045, ToneVoice.clay.with(body: 0.10, amplitude: 0.085))],
-        .stackPlace: [.single(8, ToneVoice.clay.with(body: 0.14, amplitude: 0.06))],
-        .stackSettle: [.single(5, ToneVoice.clay.with(body: 0.17, amplitude: 0.045))],
-        .stackWake: [ToneSpec.arp([8, 10, 13], step: 0.07, ToneVoice.bell.with(amplitude: 0.105))],
-
-        // Bloom (plant rotates a gentle pentatonic noodle while drawing)
-        .bloomPlant: [
-            .single(7, ToneVoice.felt.with(body: 0.18, amplitude: 0.095)),
-            .single(8, ToneVoice.felt.with(body: 0.18, amplitude: 0.095)),
-            .single(9, ToneVoice.felt.with(body: 0.18, amplitude: 0.095)),
-            .single(10, ToneVoice.felt.with(body: 0.18, amplitude: 0.095)),
-            .single(8, ToneVoice.felt.with(body: 0.18, amplitude: 0.095)),
-            .single(7, ToneVoice.felt.with(body: 0.18, amplitude: 0.095))
-        ],
-        .bloomStretch: [
-            .single(8, ToneVoice.water.with(body: 0.16, amplitude: 0.080)),
-            .single(9, ToneVoice.water.with(body: 0.16, amplitude: 0.080)),
-            .single(10, ToneVoice.water.with(body: 0.16, amplitude: 0.080)),
-            .single(12, ToneVoice.water.with(body: 0.16, amplitude: 0.080))
-        ],
-        .bloomFlourish: [ToneSpec.chord([5, 8, 12], ToneVoice.warm.with(amplitude: 0.13))],
-        .bloomSettle: [ToneSpec.arp([10, 8, 7], step: 0.08, ToneVoice.breath.with(body: 0.48, amplitude: 0.06))],
-        .bloomCritter: [ToneSpec.arp([12, 10, 12], step: 0.07, ToneVoice.voiceLike.with(amplitude: 0.10))],
-
-        // Mix-Up
-        .mixFlip: [ToneSpec.arp([7, 10], step: 0.045, ToneVoice.felt.with(body: 0.13, amplitude: 0.08))],
-        .mixCelebrate: [ToneSpec.arp([8, 10, 13], step: 0.07, ToneVoice.warm.with(amplitude: 0.12))],
-        .mixSettle: [.single(5, ToneVoice.breath.with(body: 0.44, amplitude: 0.055))],
-
-        // Recorded shared/window foley
-        .bird: [ToneSpec.arp([14, 17], step: 0.09, ToneVoice.celeste.with(body: 0.24, amplitude: 0.055))],
-        .boxOpen: [.single(3, ToneVoice.wood.with(body: 0.42, amplitude: 0.070, noiseGain: 0.28))],
-        .windowCatHappy: [ToneSpec.arp([8, 10], step: 0.08, ToneVoice.voiceLike.with(body: 0.38, amplitude: 0.080))],
-        .windowToyboxOpen: [ToneSpec.arp([4, 7, 9, 12], step: 0.07, ToneVoice.celeste.with(body: 0.6, amplitude: 0.040))],
-
-        // Feed chews (recorded — tones are a safety net)
-        .feedChewSoft: [.single(4, ToneVoice.clay.with(body: 0.10, amplitude: 0.075))],
-        .feedChewCrunch: [.single(11, ToneVoice.clay.with(body: 0.09, amplitude: 0.070))]
-    ]
-
-    // MARK: - Per-toy voice identity
-
-    /// Each toy has a voice character: a slight pitch shift and amplitude flavour that colours
-    /// every synthesised sound it plays. Scenes set `AudioManager.shared.currentToyVoice` in
-    /// their `didMove(to:)` so the shift is applied transparently to all toneSpec playback.
-    enum LullSoundVoice: Equatable {
-        case none
-        case bubbles   // wetter, higher
-        case bloom     // breathier, slightly up
-        case hum       // near-silence, just the clay breathing
-        case stack     // lower, resonant
-        case mixUp     // warm and round
-        case feed      // bright outdoor air
-        case glowboard // a hushed, warm bedroom at night
-        case rollway   // a warm wooden playroom
-
-        var pitchMultiplier: Double {
-            switch self {
-            case .none:      return 1.00
-            case .bubbles:   return 1.06
-            case .bloom:     return 1.02
-            case .hum:       return 1.00
-            case .stack:     return 0.94
-            case .mixUp:     return 1.01
-            case .feed:      return 1.03
-            case .glowboard: return 0.99
-            case .rollway:   return 0.97
-            }
+    @discardableResult
+    private func schedule(_ buffer: AVAudioPCMBuffer, bus: LullSoundBus, pan: Float, volume: Float,
+                          delay: TimeInterval) -> Voice? {
+        let poolBus: LullSoundBus = bus == .ambience ? .effects : bus
+        guard let voice = takeVoice(poolBus) else { return nil }
+        let node = voice.node
+        fades.removeValue(forKey: ObjectIdentifier(node))
+        if node.isPlaying { node.stop() }
+        node.volume = max(0, min(1.5, volume))
+        node.pan = max(-1, min(1, pan))
+        var when: AVAudioTime?
+        if delay > 0.001 {
+            when = AVAudioTime(hostTime: mach_absolute_time() + AVAudioTime.hostTime(forSeconds: delay))
         }
+        node.scheduleBuffer(buffer, at: when, options: [], completionHandler: nil)
+        node.play()
+        let now = CACurrentMediaTime()
+        voice.startedAt = now + delay
+        voice.endsAt = now + delay + Double(buffer.frameLength) / LullSynth.sampleRate
+        voice.heldToken = nil
+        return voice
+    }
 
-        var ambientID: String? {
-            switch self {
-            case .none:      return nil
-            case .bubbles:   return "ambient.bubbles"
-            case .bloom:     return "ambient.bloom"
-            case .hum:       return "ambient.hum"
-            case .stack:     return "ambient.stack"
-            case .mixUp:     return "ambient.mixup"
-            case .feed:      return "ambient.feed"
-            case .glowboard: return "ambient.glowboard"
-            case .rollway:   return "ambient.rollway"
-            }
+    /// An idle voice, else the one that started longest ago (mostly decayed). Held notes are
+    /// stolen only when every voice on the bus is held.
+    private func takeVoice(_ bus: LullSoundBus) -> Voice? {
+        guard let pool = voices[bus], !pool.isEmpty else { return nil }
+        let now = CACurrentMediaTime()
+        if let idle = pool.first(where: { $0.heldToken == nil && $0.endsAt <= now }) { return idle }
+        let free = pool.filter { $0.heldToken == nil }
+        return (free.isEmpty ? pool : free).min { $0.startedAt < $1.startedAt }
+    }
+
+    // MARK: Buffers
+
+    private func nextBuffer(for id: String) -> AVAudioPCMBuffer? {
+        if cache[id] == nil {
+            // Not prewarmed: render one variant now (a few milliseconds) and the rest later.
+            guard let first = LullSoundBook.render(id, variant: 0),
+                  let buffer = Self.makeBuffer(first.samples, format: monoFormat) else { return nil }
+            cache[id] = [buffer]
+            cacheBus[id] = first.bus
+            if LullSoundBook.variants(for: id) > 1 { refillVariants(id) }
+            return buffer
         }
+        guard let buffers = cache[id], !buffers.isEmpty else { return nil }
+        var index = Int.random(in: 0..<buffers.count)
+        if buffers.count > 1, index == lastVariant[id] { index = (index + 1) % buffers.count }
+        lastVariant[id] = index
+        return buffers[index]
+    }
 
-        var baseAmbientVolume: Float {
-            switch self {
-            case .none:      return 0
-            case .bubbles:   return 0.030
-            case .bloom:     return 0.022
-            case .hum:       return 0.005
-            case .stack:     return 0.024
-            case .mixUp:     return 0.016
-            case .feed:      return 0.018
-            case .glowboard: return 0.012
-            case .rollway:   return 0.016
-            }
+    private func refillVariants(_ id: String) {
+        guard !rendering.contains(id) else { return }
+        rendering.insert(id)
+        let count = LullSoundBook.variants(for: id)
+        let format = monoFormat
+        let bus = cacheBus[id] ?? .effects
+        renderQueue.async {
+            let more = (1..<count).compactMap { LullSoundBook.render(id, variant: $0) }
+                .compactMap { AudioManager.makeBuffer($0.samples, format: format) }
+            DispatchQueue.main.async { AudioManager.shared.store(id, buffers: more, bus: bus, replace: false) }
         }
     }
 
-    var currentToyVoice: LullSoundVoice = .none
-
-    // MARK: - Layered sound architecture
-
-    /// One component of a multi-layer composite sound. Stack 2–3 of these and fire them
-    /// simultaneously with `playLayered(_:baseCacheKey:)` for sounds with weight and texture.
-    struct LullSoundLayer {
-        let spec: LullToneEngine.Spec
-        /// Multiplied into the voice's amplitude before rendering.
-        let volumeScale: Double
-        let cacheKeySuffix: String
+    private func bedBuffer(_ id: String) -> AVAudioPCMBuffer? {
+        if let cached = cache[id]?.first { return cached }
+        let room = String(id.dropFirst("bed.".count))
+        guard let samples = LullSoundBook.bed(room), let buffer = Self.makeBuffer(samples, format: monoFormat) else { return nil }
+        cache[id] = [buffer]
+        cacheBus[id] = .ambience
+        return buffer
     }
 
-    /// Play two or three simultaneous tone layers at once. Each layer is rendered/cached
-    /// independently, keeping the pool-based playback responsive.
-    func playLayered(_ layers: [LullSoundLayer], baseCacheKey: String) {
-        guard isEnabled else { return }
-        let pitch = currentToyVoice.pitchMultiplier
-        for layer in layers {
-            let scaledVoice = layer.spec.voice.with(amplitude: layer.spec.voice.amplitude * layer.volumeScale)
-            let scaledSpec = LullToneEngine.Spec(
-                notes: layer.spec.notes,
-                voice: scaledVoice,
-                pitchMultiplier: layer.spec.pitchMultiplier * pitch
-            )
-            LullToneEngine.shared.play(scaledSpec, cacheKey: "\(baseCacheKey)_\(layer.cacheKeySuffix)")
+    static func makeBuffer(_ samples: [Float], format: AVAudioFormat) -> AVAudioPCMBuffer? {
+        guard !samples.isEmpty,
+              let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(samples.count)),
+              let channel = buffer.floatChannelData?[0] else { return nil }
+        buffer.frameLength = AVAudioFrameCount(samples.count)
+        for i in 0..<samples.count { channel[i] = samples[i] }
+        return buffer
+    }
+
+    /// Minimum seconds between two plays of the same cue (keeps rapid taps from stacking).
+    private static func cooldown(for id: String) -> TimeInterval {
+        if id.hasPrefix("bubble.") { return 0.035 }
+        if id.hasPrefix("note.") { return 0.02 }
+        switch id {
+        case "meadow.paint": return 0.14
+        case "dots.fall", "dots.hover", "sleepy.hover", "window.dial": return 0.06
+        case "stack.settle.soft", "stack.settle.medium", "stack.settle.hard": return 0.08
+        case "ui.tap", "ui.empty", "mix.flip": return 0.05
+        case "feed.chew.soft", "feed.chew.crunchy": return 0.4
+        default: return 0.03
         }
     }
 
-    // MARK: - Ambient room tone
+    // MARK: Loops
 
-    /// Begin the ambient room tone for the given toy voice, fading in over 1.8 s.
-    func startToyAmbient(_ voice: LullSoundVoice) {
-        guard isEnabled, let id = voice.ambientID,
-              let spec = AudioManager.ambientSpecs[voice] else { return }
-        LullToneEngine.shared.playAmbient(id: id, spec: spec, volume: voice.baseAmbientVolume, fadeIn: 1.8)
-    }
-
-    /// Recorded daytime/nighttime Window room beds. Both players are kept prepared and only
-    /// their volumes move, so a child scrubbing the day dial never restarts or clicks the bed.
-    func setWindowAmbience(dayPhase: CGFloat, animated: Bool) {
-        windowDayPhase = dayPhase
-        guard prepareForPlayback() else {
-            silenceWindowAmbience()
+    private func playLoop(id: String, buffer: AVAudioPCMBuffer, volume: Float, fadeIn: TimeInterval) {
+        if let slot = loopSlots.first(where: { $0.id == id }), slot.node.isPlaying {
+            slot.level = volume
+            fadeNode(slot.node, to: volume, duration: fadeIn, stopAtEnd: false)
             return
         }
-        ensureWindowAmbiencePlayers()
-        guard !windowAmbiencePlayers.isEmpty else { return }
-
-        let night = smoothstep(0.58, 0.86, dayPhase)
-        let morningTarget = Float((1 - night) * 0.078)
-        let nightTarget = Float(night * 0.070)
-        let duration: TimeInterval
-        if windowAmbienceActive {
-            duration = animated ? 0.85 : 0.28
-        } else {
-            duration = 1.35
-        }
-        windowAmbienceActive = true
-
-        rampWindowAmbience(.morning, to: morningTarget, duration: duration, stopWhenSilent: morningTarget <= 0.001)
-        rampWindowAmbience(.night, to: nightTarget, duration: duration, stopWhenSilent: nightTarget <= 0.001)
+        guard volume > 0.001 else { return }
+        guard let slot = loopSlots.first(where: { $0.id == nil || !$0.node.isPlaying }) else { return }
+        slot.id = id
+        slot.level = volume
+        let node = slot.node
+        fades.removeValue(forKey: ObjectIdentifier(node))
+        if node.isPlaying { node.stop() }
+        node.volume = 0
+        node.scheduleBuffer(buffer, at: nil, options: [.loops], completionHandler: nil)
+        node.play()
+        fadeNode(node, to: volume, duration: fadeIn, stopAtEnd: false)
     }
 
-    func stopWindowAmbience(fadeOut: TimeInterval = 1.2) {
-        windowDayPhase = nil
-        windowAmbienceActive = false
-        rampWindowAmbience(.morning, to: 0, duration: fadeOut, stopWhenSilent: true)
-        rampWindowAmbience(.night, to: 0, duration: fadeOut, stopWhenSilent: true)
-    }
-
-    /// Fade out and tear down the ambient for this voice over 1.5 s.
-    func stopToyAmbient(_ voice: LullSoundVoice) {
-        guard let id = voice.ambientID else { return }
-        LullToneEngine.shared.stopAmbient(id: id, fadeOut: 1.5)
-        LullToneEngine.shared.stopAmbient(id: AudioManager.sleepBreathID, fadeOut: 1.0)
-    }
-
-    /// The child is active again — restore ambient to its awake level over 2 s.
-    func wakeAmbient(_ voice: LullSoundVoice) {
-        guard let id = voice.ambientID else { return }
-        LullToneEngine.shared.setAmbientVolume(voice.baseAmbientVolume, for: id, animated: 2.0)
-        LullToneEngine.shared.stopAmbient(id: AudioManager.sleepBreathID, fadeOut: 1.5)
-    }
-
-    /// Update the 3D position of a sustained ambient node. No-op if spatial hardware is absent.
-    func updateSoundPosition(nodeID: String, screenPoint: CGPoint, sceneSize: CGSize) {
-        guard LullToneEngine.shared.isSpatialEnabled else { return }
-        LullToneEngine.shared.setSoundPosition(screenPoint, sceneSize: sceneSize, nodeID: nodeID)
-    }
-
-    /// Single gentle chime announcing a Bloom season change — the only audible cue.
-    func playBloomSeasonChime(for season: LullToneEngine.BloomSeason) {
-        guard isEnabled else { return }
-        let degree: Int
-        let key: String
-        switch season {
-        case .spring: degree = 7;  key = "bloom.season_chime.spring"
-        case .summer: degree = 8;  key = "bloom.season_chime.summer"
-        case .autumn: degree = 6;  key = "bloom.season_chime.autumn"
-        case .winter: degree = 4;  key = "bloom.season_chime.winter"
-        }
-        let voice = LullToneEngine.Voice.bell.with(body: 2.8, amplitude: 0.35)
-        LullToneEngine.shared.play(.single(degree, voice), cacheKey: key)
-    }
-
-    /// Idle for 20 s — dim the ambient to 60 % of its normal level over 3 s.
-    func dimAmbient(_ voice: LullSoundVoice) {
-        guard let id = voice.ambientID else { return }
-        LullToneEngine.shared.setAmbientVolume(voice.baseAmbientVolume * 0.6, for: id, animated: 3.0)
-    }
-
-    /// Idle for 60 s — fade toy ambient to silence and bring in the single slow breath tone.
-    func sleepAmbient(_ voice: LullSoundVoice) {
-        guard let id = voice.ambientID else { return }
-        LullToneEngine.shared.setAmbientVolume(0, for: id, animated: 4.0)
-        LullToneEngine.shared.playAmbient(
-            id: AudioManager.sleepBreathID,
-            spec: AudioManager.sleepBreathSpec,
-            volume: 0.04,
-            fadeIn: 3.0
-        )
-    }
-
-    private static let sleepBreathID = "ambient.sleep_breath"
-
-    private func ensureWindowAmbiencePlayers() {
-        guard windowAmbiencePlayers.isEmpty else { return }
-        if let morning = makeLoopingPlayer(named: "window-morning-ambience") {
-            windowAmbiencePlayers[.morning] = morning
-        }
-        if let night = makeLoopingPlayer(named: "window-night-ambience") {
-            windowAmbiencePlayers[.night] = night
+    private func stopLoop(id: String, fadeOut: TimeInterval) {
+        for slot in loopSlots where slot.id == id {
+            slot.level = 0
+            fadeNode(slot.node, to: 0, duration: fadeOut, stopAtEnd: true) { [weak slot] in slot?.id = nil }
         }
     }
 
-    private func makeLoopingPlayer(named resourceName: String) -> AVAudioPlayer? {
-        guard let url = firstAvailableURL(named: [resourceName]) else { return nil }
-        do {
-            let player = try AVAudioPlayer(contentsOf: url)
-            player.numberOfLoops = -1
-            player.volume = 0
-            player.prepareToPlay()
-            return player
-        } catch {
-            return nil
+    private func setLoopVolume(id: String, _ volume: Float, duration: TimeInterval) {
+        for slot in loopSlots where slot.id == id {
+            slot.level = volume
+            fadeNode(slot.node, to: volume, duration: duration, stopAtEnd: false)
         }
     }
 
-    private func rampWindowAmbience(_ channel: WindowAmbienceChannel,
-                                    to target: Float,
-                                    duration: TimeInterval,
-                                    stopWhenSilent: Bool) {
-        guard let player = windowAmbiencePlayers[channel] else { return }
-        let target = target.clamped(to: 0...0.14)
-        let lastTarget = windowAmbienceTargets[channel] ?? player.volume
-        if abs(lastTarget - target) < 0.004, (player.isPlaying || target <= 0.001) {
-            if target <= 0.001, stopWhenSilent, player.isPlaying {
-                player.stop()
-            }
+    // MARK: Fades
+
+    private func fadeNode(_ node: AVAudioPlayerNode, to target: Float, duration: TimeInterval, stopAtEnd: Bool,
+                          onStop: (() -> Void)? = nil) {
+        guard duration > 0.01 else {
+            node.volume = target
+            if stopAtEnd { node.stop(); onStop?() }
             return
         }
-        windowAmbienceTargets[channel] = target
-        windowAmbienceFadeGen[channel, default: 0] += 1
-        let generation = windowAmbienceFadeGen[channel, default: 0]
-        let start = player.volume
-        let clampedDuration = max(0.05, duration)
-        let steps = max(4, min(28, Int(clampedDuration * 24)))
-
-        if target > 0.001, !player.isPlaying {
-            player.play()
+        fades[ObjectIdentifier(node)] = Fade(node: node, from: node.volume, to: target, start: CACurrentMediaTime(),
+                                             duration: duration, stopAtEnd: stopAtEnd, onStop: onStop)
+        if fadeTimer == nil {
+            let timer = Timer(timeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in self?.stepFades() }
+            RunLoop.main.add(timer, forMode: .common)
+            fadeTimer = timer
         }
+    }
 
-        for step in 1...steps {
-            let delay = clampedDuration * Double(step) / Double(steps)
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self, weak player] in
-                guard let self, let player, self.windowAmbienceFadeGen[channel] == generation else { return }
-                let t = Float(step) / Float(steps)
-                let eased = t * t * (3 - 2 * t)
-                player.volume = start + (target - start) * eased
-                if step == steps, target <= 0.001, stopWhenSilent {
-                    player.stop()
-                    player.currentTime = 0
+    private func stepFades() {
+        let now = CACurrentMediaTime()
+        for (key, fade) in fades {
+            let p = Float(min(1, (now - fade.start) / fade.duration))
+            let eased = p * p * (3 - 2 * p)
+            fade.node.volume = fade.from + (fade.to - fade.from) * eased
+            if p >= 1 {
+                fades.removeValue(forKey: key)
+                if fade.stopAtEnd {
+                    fade.node.stop()
+                    fade.onStop?()
                 }
             }
         }
+        if fades.isEmpty {
+            fadeTimer?.invalidate()
+            fadeTimer = nil
+        }
     }
 
-    private func smoothstep(_ a: CGFloat, _ b: CGFloat, _ x: CGFloat) -> CGFloat {
-        let t = ((x - a) / max(0.0001, b - a)).clamped(to: 0...1)
+    // MARK: Outdoor sprinkles (a bird now and then)
+
+    private func startSprinkles() {
+        guard sprinkleTimer == nil else { return }
+        scheduleNextSprinkle()
+    }
+
+    private func scheduleNextSprinkle() {
+        sprinkleTimer = Timer.scheduledTimer(withTimeInterval: Double.random(in: 9...20), repeats: false) { [weak self] _ in
+            guard let self else { return }
+            self.sprinkleTimer = nil
+            guard self.currentToyVoice.hasBirds else { return }
+            self.play(cue: "bird", pan: Float.random(in: -0.3...0.3), volume: 0.35)
+            self.scheduleNextSprinkle()
+        }
+    }
+
+    private func stopSprinkles() {
+        sprinkleTimer?.invalidate()
+        sprinkleTimer = nil
+    }
+
+    private func smoothstep(_ edge0: CGFloat, _ edge1: CGFloat, _ x: CGFloat) -> CGFloat {
+        let t = max(0, min(1, (x - edge0) / (edge1 - edge0)))
         return t * t * (3 - 2 * t)
     }
 
-    // MARK: - Celebration sound sequences
+    // MARK: - LullTonePlayer (the older note-and-preset interface)
 
-    /// Mix-Up full outfit combo: a 3-note rising clay chime with slightly imperfect intervals
-    /// (not a scale — warm, handmade-feeling). Haptic score (.mixUpCombo) is fired by MixUpScene.
-    func playMixCelebrationCombo() {
-        guard isEnabled else { return }
-        LullToneEngine.shared.playSequence([
-            (spec: ToneSpec(notes: [(degree: 7, delay: 0)],
-                            voice: ToneVoice.clay.with(body: 0.44, amplitude: 0.13),
-                            pitchMultiplier: 0.972),
-             delay: 0.00, cacheKey: "mix_combo_0"),
-            (spec: ToneSpec(notes: [(degree: 10, delay: 0)],
-                            voice: ToneVoice.warm.with(body: 0.48, amplitude: 0.115),
-                            pitchMultiplier: 1.008),
-             delay: 0.11, cacheKey: "mix_combo_1"),
-            (spec: ToneSpec(notes: [(degree: 14, delay: 0)],
-                            voice: ToneVoice.bell.with(body: 0.64, amplitude: 0.10),
-                            pitchMultiplier: 0.988),
-             delay: 0.24, cacheKey: "mix_combo_2"),
-        ])
+    func playRendered(_ key: String, render: @escaping () -> LullRenderedSound) {
+        guard prepareForPlayback(), startEngineIfNeeded() else { return }
+        guard let buffer = legacyBuffer(key, render: render) else { return }
+        schedule(buffer, bus: cacheBus[key] ?? .music, pan: 0, volume: 1, delay: 0)
     }
 
-    /// Stack knockover: tumble rush → low felt thud → tiny stone-skip tail.
-    /// Haptic score (.stackKnockover) is fired by StackScene so the timing is physics-driven.
-    func playStackKnockover() {
-        guard isEnabled else { return }
-        LullToneEngine.shared.playSequence([
-            (spec: ToneSpec(notes: [(degree: 8, delay: 0)],
-                            voice: ToneVoice.breath.with(body: 0.24, amplitude: 0.11, noiseGain: 0.68)),
-             delay: 0.00, cacheKey: "stack_knock_0"),
-            (spec: ToneSpec(notes: [(degree: 3, delay: 0)],
-                            voice: ToneVoice.clay.with(body: 0.30, amplitude: 0.14)),
-             delay: 0.08, cacheKey: "stack_knock_1"),
-            (spec: ToneSpec(notes: [(degree: 13, delay: 0)],
-                            voice: ToneVoice.water.with(body: 0.16, amplitude: 0.065)),
-             delay: 0.21, cacheKey: "stack_knock_2"),
-        ])
+    func prewarmRendered(_ key: String, render: @escaping () -> LullRenderedSound) {
+        guard cache[key] == nil, !rendering.contains(key) else { return }
+        rendering.insert(key)
+        let format = monoFormat
+        renderQueue.async {
+            let rendered = render()
+            let buffers = AudioManager.makeBuffer(rendered.samples, format: format).map { [$0] } ?? []
+            let bus = rendered.bus
+            DispatchQueue.main.async { AudioManager.shared.store(key, buffers: buffers, bus: bus, replace: false) }
+        }
     }
 
-    /// Feed success: two-tone soft bell → warm breath exhale → character voice echo.
-    func playFeedSuccess() {
-        guard isEnabled else { return }
-        LullToneEngine.shared.playSequence([
-            (spec: ToneSpec(notes: [(degree: 8, delay: 0)],
-                            voice: ToneVoice.bell.with(body: 0.58, amplitude: 0.115)),
-             delay: 0.00, cacheKey: "feed_success_0"),
-            (spec: ToneSpec(notes: [(degree: 11, delay: 0)],
-                            voice: ToneVoice.bell.with(body: 0.62, amplitude: 0.10)),
-             delay: 0.14, cacheKey: "feed_success_1"),
-            (spec: ToneSpec(notes: [(degree: 6, delay: 0)],
-                            voice: ToneVoice.breath.with(body: 0.56, amplitude: 0.072)),
-             delay: 0.32, cacheKey: "feed_success_2"),
-            (spec: ToneSpec(notes: [(degree: 4, delay: 0)],
-                            voice: ToneVoice.voiceLike.with(body: 0.40, amplitude: 0.055)),
-             delay: 0.50, cacheKey: "feed_success_3"),
-        ])
-        HapticsManager.shared.celebration()
+    func playLegacySequence(_ steps: [(key: String, delay: Double, render: () -> LullRenderedSound)]) {
+        guard prepareForPlayback(), startEngineIfNeeded() else { return }
+        for step in steps {
+            guard let buffer = legacyBuffer(step.key, render: step.render) else { continue }
+            schedule(buffer, bus: cacheBus[step.key] ?? .music, pan: 0, volume: 1, delay: step.delay)
+        }
     }
 
-    // MARK: - Ambient specs (static — built once, shared across sessions)
-
-    private static let ambientSpecs: [LullSoundVoice: LullToneEngine.AmbientSpec] = [
-        .bubbles: .init(
-            frequency: 62,
-            partials: [(1, 1.0), (2.01, 0.18), (3.0, 0.06)],
-            noiseGain: 0.08,
-            lfoHz: 0.18, lfoDepth: 0.22,
-            amplitude: 0.022, duration: 8
-        ),
-        .bloom: .init(
-            frequency: 180,
-            partials: [(1, 0.3)],
-            noiseGain: 0.85,
-            lfoHz: 0.12, lfoDepth: 0.35,
-            amplitude: 0.016, duration: 8
-        ),
-        .hum: .init(
-            frequency: 60,
-            partials: [(1, 0.15)],
-            noiseGain: 0.20,
-            lfoHz: 0.06, lfoDepth: 0.12,
-            amplitude: 0.005, duration: 8
-        ),
-        .stack: .init(
-            frequency: 44,
-            partials: [(1, 1.0), (2.0, 0.12), (4.0, 0.04)],
-            noiseGain: 0.06,
-            lfoHz: 0.10, lfoDepth: 0.18,
-            amplitude: 0.018, duration: 8
-        ),
-        .mixUp: .init(
-            frequency: 120,
-            partials: [(1, 0.4)],
-            noiseGain: 0.72,
-            lfoHz: 0.22, lfoDepth: 0.28,
-            amplitude: 0.012, duration: 6
-        ),
-        .feed: .init(
-            frequency: 220,
-            partials: [(1, 0.25)],
-            noiseGain: 0.88,
-            lfoHz: 0.14, lfoDepth: 0.20,
-            amplitude: 0.014, duration: 8
-        ),
-        // A hushed bedroom: a low, warm pad that breathes very slowly, like a night light's hum.
-        .glowboard: .init(
-            frequency: 58,
-            partials: [(1, 1.0), (2, 0.10), (3, 0.035)],
-            noiseGain: 0.05,
-            lfoHz: 0.06, lfoDepth: 0.20,
-            amplitude: 0.011, duration: 8
-        ),
-        // A warm wooden playroom: a soft low room tone with a little woody body.
-        .rollway: .init(
-            frequency: 49,
-            partials: [(1, 1.0), (2, 0.12), (4, 0.04)],
-            noiseGain: 0.06,
-            lfoHz: 0.09, lfoDepth: 0.16,
-            amplitude: 0.014, duration: 8
-        ),
-    ]
-
-    private static let sleepBreathSpec = LullToneEngine.AmbientSpec(
-        frequency: 52,
-        partials: [(1, 0.6), (2, 0.08)],
-        noiseGain: 0.42,
-        lfoHz: 0.08, lfoDepth: 0.45,
-        amplitude: 0.04, duration: 8
-    )
-
-    private var soundTunings: [SoundProfile: SoundTuning] {
-        [
-            .bubbleSmall: SoundTuning(
-                resourceNames: ["bubble-pop-small-1", "bubble-pop-small", "bubble-pop-medium-1"],
-                fallbackResourceName: "bubble-pop",
-                volume: 0.18,
-                rate: 1.12,
-                cooldown: 0.025
-            ),
-            .bubbleMedium: SoundTuning(
-                resourceNames: ["bubble-pop-medium-1", "bubble-pop-medium"],
-                fallbackResourceName: "bubble-pop",
-                volume: 0.24,
-                rate: 1.00,
-                cooldown: 0.025
-            ),
-            .bubbleLarge: SoundTuning(
-                resourceNames: ["bubble-pop-large-1", "bubble-pop-large", "bubble-pop-medium-1"],
-                fallbackResourceName: "bubble-pop",
-                volume: 0.29,
-                rate: 0.84,
-                cooldown: 0.035
-            ),
-            .bubbleRare: SoundTuning(
-                resourceNames: ["bubble-pop-rare-1", "bubble-pop-rare", "bubble-pop-small-1"],
-                fallbackResourceName: "bubble-pop-medium-1",
-                volume: 0.20,
-                rate: 0.78,
-                cooldown: 0.18
-            ),
-            .emptyTap: SoundTuning(
-                resourceNames: ["empty-tap", "soft-ripple"],
-                fallbackResourceName: "bubble-pop-small-1",
-                volume: 0.10,
-                rate: 1.06,
-                cooldown: 0.08
-            ),
-            .softTap: SoundTuning(
-                resourceNames: ["soft-tap", "felt-tap"],
-                fallbackResourceName: "bubble-pop-small-1",
-                volume: 0.12,
-                rate: 0.96,
-                cooldown: 0.035
-            ),
-            .toyNotice: SoundTuning(
-                resourceNames: ["toy-notice", "soft-perk"],
-                fallbackResourceName: nil,
-                volume: 0.08,
-                rate: 1.0,
-                cooldown: 0.16
-            ),
-            .toySettle: SoundTuning(
-                resourceNames: ["toy-settle", "soft-exhale"],
-                fallbackResourceName: nil,
-                volume: 0.07,
-                rate: 0.92,
-                cooldown: 0.24
-            ),
-            .bubbleNotice: SoundTuning(
-                resourceNames: ["bubble-notice", "soft-water-perk"],
-                fallbackResourceName: nil,
-                volume: 0.07,
-                rate: 1.08,
-                cooldown: 0.14
-            ),
-            .bubbleBreath: SoundTuning(
-                resourceNames: ["bubble-breath", "soft-bubble-swell"],
-                fallbackResourceName: nil,
-                volume: 0.08,
-                rate: 0.96,
-                cooldown: 0.30
-            ),
-            .blockPickup: SoundTuning(
-                resourceNames: ["block-pickup", "soft-block-pickup"],
-                fallbackResourceName: "block-release-1",
-                volume: 0.14,
-                rate: 1.02
-            ),
-            .blockRelease: SoundTuning(
-                resourceNames: ["block-release-1", "block-release", "soft-block-release"],
-                fallbackResourceName: nil,
-                volume: 0.13,
-                rate: 0.98
-            ),
-            .blockSettle: SoundTuning(
-                resourceNames: ["block-settle-1", "block-settle", "clay-block-settle"],
-                fallbackResourceName: nil,
-                volume: 0.11,
-                rate: 0.90
-            ),
-            .mysteryShape: SoundTuning(
-                resourceNames: ["mystery-shape", "shape-source"],
-                fallbackResourceName: "block-release-1",
-                volume: 0.14,
-                rate: 1.0
-            ),
-            .shelfTransition: SoundTuning(
-                resourceNames: ["shelf-transition", "soft-whoosh"],
-                fallbackResourceName: "bubble-pop-small-1",
-                volume: 0.12,
-                rate: 0.94
-            ),
-            .foodPickup: SoundTuning(
-                resourceNames: ["food-pickup", "fruit-pickup", "soft-food-pickup"],
-                fallbackResourceName: "feed-chew-soft-1",
-                volume: 0.12,
-                rate: 1.04
-            ),
-            .foodRelease: SoundTuning(
-                resourceNames: ["food-release", "fruit-release", "soft-food-release"],
-                fallbackResourceName: "feed-chew-soft-1",
-                volume: 0.12,
-                rate: 0.98
-            ),
-            .foodPlop: SoundTuning(
-                resourceNames: ["food-plop", "fruit-plop", "soft-food-plop"],
-                fallbackResourceName: "feed-chew-soft-1",
-                volume: 0.13,
-                rate: 0.96
-            ),
-            .feedReceive: SoundTuning(
-                resourceNames: ["feed-receive", "soft-mmm", "food-receive"],
-                fallbackResourceName: "feed-chew-soft-1",
-                volume: 0.18,
-                rate: 1.0,
-                cooldown: 0.14
-            ),
-            .feedHappy: SoundTuning(
-                resourceNames: ["feed-happy", "soft-exhale", "happy-hum"],
-                fallbackResourceName: "feed-chew-soft-1",
-                volume: 0.16,
-                rate: 0.96,
-                cooldown: 0.30
-            ),
-            .feedDecline: SoundTuning(
-                resourceNames: ["feed-decline", "soft-no-thanks", "decline-soft"],
-                fallbackResourceName: "empty-tap",
-                volume: 0.10,
-                rate: 0.98
-            ),
-            .feedChewSoft: SoundTuning(
-                resourceNames: ["feed-chew-soft-1", "feed-chew-soft"],
-                fallbackResourceName: nil,
-                volume: 0.11,
-                rate: 1.03,
-                cooldown: 0.055
-            ),
-            .feedChewCrunch: SoundTuning(
-                resourceNames: ["feed-chew-crunch-1", "feed-chew-crunch"],
-                fallbackResourceName: nil,
-                volume: 0.09,
-                rate: 1.08,
-                cooldown: 0.055
-            ),
-            .stackLift: SoundTuning(
-                resourceNames: ["stack-lift", "stack-pickup"],
-                fallbackResourceName: "block-pickup-1",
-                volume: 0.10,
-                rate: 1.08
-            ),
-            .stackPlace: SoundTuning(
-                resourceNames: ["stack-place", "stack-appear"],
-                fallbackResourceName: "block-release-1",
-                volume: 0.14,
-                rate: 1.04
-            ),
-            .stackSettle: SoundTuning(
-                resourceNames: ["stack-settle", "stack-land"],
-                fallbackResourceName: "block-settle-1",
-                volume: 0.085,
-                rate: 0.92,
-                rateJitter: -0.05...0.05,
-                cooldown: 0.08
-            ),
-            .stackWake: SoundTuning(
-                resourceNames: ["stack-wake", "stack-chime"],
-                fallbackResourceName: "bubble-pop-medium-1",
-                volume: 0.16,
-                rate: 1.12,
-                cooldown: 0.80
-            ),
-            .bloomPlant: SoundTuning(
-                resourceNames: ["bloom-plant", "bloom-pop"],
-                fallbackResourceName: "bubble-pop-small-1",
-                volume: 0.13,
-                rate: 1.10,
-                cooldown: 0.08
-            ),
-            .bloomStretch: SoundTuning(
-                resourceNames: ["bloom-stretch", "stem-stretch"],
-                fallbackResourceName: nil,
-                volume: 0.08,
-                rate: 1.0,
-                cooldown: 0.13
-            ),
-            .bloomFlourish: SoundTuning(
-                resourceNames: ["bloom-flourish", "bloom-chime"],
-                fallbackResourceName: "bubble-pop-medium-1",
-                volume: 0.16,
-                rate: 1.05,
-                cooldown: 0.42
-            ),
-            .bloomSettle: SoundTuning(
-                resourceNames: ["bloom-settle", "leaf-settle"],
-                fallbackResourceName: nil,
-                volume: 0.07,
-                rate: 0.94,
-                cooldown: 0.22
-            ),
-            .bloomCritter: SoundTuning(
-                resourceNames: ["bloom-critter", "garden-critter"],
-                fallbackResourceName: nil,
-                volume: 0.08,
-                rate: 1.02,
-                cooldown: 0.16
-            ),
-            .mixFlip: SoundTuning(
-                resourceNames: ["mix-flip", "soft-page-flip"],
-                fallbackResourceName: nil,
-                volume: 0.08,
-                rate: 1.0,
-                cooldown: 0.07
-            ),
-            .mixCelebrate: SoundTuning(
-                resourceNames: ["mix-celebrate", "soft-ta-da"],
-                fallbackResourceName: nil,
-                volume: 0.12,
-                rate: 1.02,
-                cooldown: 0.34
-            ),
-            .mixSettle: SoundTuning(
-                resourceNames: ["mix-settle", "soft-page-settle"],
-                fallbackResourceName: nil,
-                volume: 0.07,
-                rate: 0.92,
-                cooldown: 0.18
-            ),
-            .bird: SoundTuning(
-                resourceNames: ["bird"],
-                fallbackResourceName: nil,
-                volume: 0.16,
-                rate: 1.0,
-                rateJitter: -0.012...0.012,
-                volumeJitter: 0.92...1.0,
-                cooldown: 0.45
-            ),
-            .boxOpen: SoundTuning(
-                resourceNames: ["box-open"],
-                fallbackResourceName: "block-settle-1",
-                volume: 0.16,
-                rate: 1.0,
-                rateJitter: -0.010...0.010,
-                volumeJitter: 0.94...1.0,
-                cooldown: 0.34
-            ),
-            .windowCatHappy: SoundTuning(
-                resourceNames: ["cat-happy"],
-                fallbackResourceName: nil,
-                volume: 0.15,
-                rate: 1.0,
-                rateJitter: -0.008...0.008,
-                volumeJitter: 0.94...1.0,
-                cooldown: 0.55
-            ),
-            .windowToyboxOpen: SoundTuning(
-                resourceNames: ["window-toybox-open"],
-                fallbackResourceName: "block-release-1",
-                volume: 0.17,
-                rate: 1.0,
-                rateJitter: -0.010...0.010,
-                volumeJitter: 0.94...1.0,
-                cooldown: 0.45
-            )
-        ]
+    func playLegacyAmbient(id: String, volume: Float, fadeIn: TimeInterval, render: @escaping () -> LullRenderedSound) {
+        guard prepareForPlayback(), startEngineIfNeeded(),
+              let buffer = legacyBuffer("ambient." + id, render: render) else { return }
+        playLoop(id: id, buffer: buffer, volume: min(1, volume * 12), fadeIn: fadeIn)
     }
-}
 
-private extension Comparable {
-    func clamped(to limits: ClosedRange<Self>) -> Self {
-        min(max(self, limits.lowerBound), limits.upperBound)
+    func stopLegacyAmbient(id: String, fadeOut: TimeInterval) { stopLoop(id: id, fadeOut: fadeOut) }
+
+    func setLegacyAmbientVolume(_ volume: Float, for id: String, duration: TimeInterval) {
+        setLoopVolume(id: id, min(1, volume * 12), duration: duration)
+    }
+
+    func stopEverything() { stopAllVoicesAndLoops() }
+
+    private func legacyBuffer(_ key: String, render: () -> LullRenderedSound) -> AVAudioPCMBuffer? {
+        if let cached = cache[key]?.first { return cached }
+        let rendered = render()
+        guard let buffer = Self.makeBuffer(rendered.samples, format: monoFormat) else { return nil }
+        cache[key] = [buffer]
+        cacheBus[key] = rendered.bus
+        return buffer
     }
 }

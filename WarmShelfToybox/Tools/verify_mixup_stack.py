@@ -1,26 +1,43 @@
 #!/usr/bin/env python3
 """Check production Mix-Up registration/legacy recipes and Stack supply fit.
 
-Needs Pillow (also used by Tools/Art); no images are changed. Gameplay and touch
-behaviour still need the simulator/device checklist in Docs/MixUp-Stack-Build2.md.
+Needs Pillow (also used by Tools/Art) and a Swift toolchain: `xcrun swift` on a Mac,
+or set SWIFT to a swift binary (e.g. a Linux toolchain). No images are changed.
+Gameplay and touch behaviour still need the simulator/device checklist in
+Docs/MixUp-Stack-Build2.md.
 """
 from pathlib import Path
 from PIL import Image
 import hashlib
+import os
 import re
 import subprocess
+import sys
 import tempfile
 
 root = Path(__file__).resolve().parents[1]
+sys.dont_write_bytecode = True     # no __pycache__ next to the art tools
+sys.path.insert(0, str(root / 'Tools/Art'))
+from measure_atlas import measure   # noqa: E402  (the same measurer that wires atlas C)
+
 source = (root / 'App/Toys/MixUp/MixUpPart.swift').read_text()
 scene = (root / 'App/Toys/MixUp/MixUpScene.swift').read_text()
 stack = (root / 'App/Toys/Stack/StackScene.swift').read_text()
+assets = root / 'App/Resources/Assets.xcassets'
 checks = 0
+SWIFT = [os.environ['SWIFT']] if os.environ.get('SWIFT') else ['xcrun', 'swift']
+SWIFT_PRELUDE = 'import Foundation\n#if canImport(CoreGraphics)\nimport CoreGraphics\n#endif\n'
 
 def check(condition, message):
     global checks
     assert condition, message
     checks += 1
+
+def run_swift(code, prefix):
+    with tempfile.TemporaryDirectory(prefix=prefix) as tmp:
+        p = Path(tmp) / 'verify.swift'
+        p.write_text(code)
+        subprocess.run(SWIFT + ['-module-cache-path', str(Path(tmp) / 'cache'), str(p)], check=True)
 
 def block(text, start):
     pos = text.index(start)
@@ -32,58 +49,170 @@ def block(text, start):
         i += 1
     return text[pos:i]
 
-names_block = re.search(r'private static let artCharacterNames = \[(.*?)\n    \]', source, re.S).group(1)
-names = re.findall(r'"([a-z0-9]+)"', names_block)
-check(len(names) == len(set(names)) == 6, 'Expected six distinct felt friends')
-atlas_names = {'bunny':'a', 'bear':'a', 'songbird':'a', 'fox':'b', 'mouse':'b', 'frog':'b'}
-for zone in ['head', 'body', 'legs']:
+def table(name):
+    return re.search(r'private static let ' + name + r'(?:: [^=]*)? = \[(.*?)\n    \]', source, re.S).group(1)
+
+def pixels(image):
+    flat = getattr(image, 'get_flattened_data', None)
+    return list(flat() if flat else image.getdata())
+
+RECT = r'CGRect\(x: (\d+), y: (\d+), width: (\d+), height: (\d+)\)'
+ZONES = ['head', 'body', 'legs']
+ANIMALS = ['bunny', 'bear', 'songbird', 'fox', 'mouse', 'frog']
+RETURNING = ['robot', 'officer', 'firefighter']
+
+# --- Cast order: appended only, so saved indices 0-5 keep their friend. ---
+names = re.findall(r'"([a-z0-9]+)"', table('artCharacterNames'))
+check(len(names) == len(set(names)) == 9, 'Expected nine distinct friends')
+check(names[:6] == ANIMALS, 'The six felt animals must keep indices 0-5')
+check(names[6:] == RETURNING, 'robot, officer, firefighter are appended as 6, 7, 8')
+
+# --- Where every part comes from, parsed from the production tables. ---
+atlas_for = dict(re.findall(r'"([a-z]+)": "(mixup-friends-[a-z])"', table('atlasForCharacter')))
+check(atlas_for == {n: 'mixup-friends-' + ('a' if i < 3 else 'b') for i, n in enumerate(ANIMALS)},
+      'Animals stay in atlases a (bunny, bear, songbird) and b (fox, mouse, frog)')
+atlas_canvas = tuple(map(int, re.search(r'private static let atlasCanvas = CGSize\(width: (\d+), height: (\d+)\)', source).groups()))
+check('CGSize(width: 1536, height: 1024)\n' not in block(source, 'private static func artPart'),
+      'artPart must take its pixel size from the source, not a hard-coded 1536x1024')
+sources = {}   # (name, zone) -> (image, (w, h), (x, y, w, h))
+painted = table('paintedBounds')
+for name, atlas in atlas_for.items():
+    row = re.search(r'"' + name + r'": \[(.*?)\],', painted).group(1)
+    for zone in ZONES:
+        rect = tuple(map(int, re.search(r'\.' + zone + r': ' + RECT, row).groups()))
+        sources[(name, zone)] = (atlas, atlas_canvas, rect)
+single = table('singleImageParts')
+for friend_block in re.finditer(r'"([a-z]+)": \[\n(.*?)\n        \],', single, re.S):
+    for m in re.finditer(r'\.(head|body|legs): MixUpArtSource\(image: "([a-z0-9-]+)", pixelSize: CGSize\(width: (\d+), '
+                         r'height: (\d+)\), rect: ' + RECT, friend_block.group(2)):
+        sources[(friend_block.group(1), m.group(1))] = (m.group(2), (int(m.group(3)), int(m.group(4))),
+                                                         tuple(map(int, m.groups()[4:])))
+check(sorted({n for n, _ in sources} - set(ANIMALS)) == sorted(RETURNING)
+      and all((n, z) in sources for n in RETURNING for z in ZONES),
+      'Each returning friend needs a single-image source for head, body and legs')
+check({sources[('robot', z)][0] for z in ZONES} == {'robot2-head', 'robot2-body', 'robot2-legs'},
+      'The interim robot is the clean robot2 set')
+
+# Atlas C stays off until measure_atlas.py has produced its rects.
+c_rects = table('friendsCBounds') if re.search(r'friendsCBounds: [^=]* = \[\n', source) else ''
+c_canvas = tuple(map(int, re.search(r'private static let friendsCCanvas = CGSize\(width: (\d+), height: (\d+)\)', source).groups()))
+c_path = block(source, 'private static func artSource')
+check('friendsCBounds[name], rects.count == MixUpZone.allCases.count' in c_path
+      and 'ToyArt.texture("mixup-friends-c") != nil' in c_path,
+      'Atlas C is used only with all three rects measured and its imageset present')
+c_png = assets / 'mixup-friends-c.imageset/mixup-friends-c.png'
+if c_rects:
+    check(c_png.exists(), 'friendsCBounds is filled in but mixup-friends-c.imageset is missing')
+    for name in RETURNING:
+        row = re.search(r'"' + name + r'": \[(.*?)\],', c_rects).group(1)
+        for zone in ZONES:
+            rect = tuple(map(int, re.search(r'\.' + zone + r': ' + RECT, row).groups()))
+            sources[(name, zone)] = ('mixup-friends-c', c_canvas, rect)   # C wins when present
+else:
+    check('private static let friendsCBounds: [String: [MixUpZone: CGRect]] = [:]' in source,
+          'Until atlas C is measured, friendsCBounds must stay empty')
+
+# --- Every part: right canvas, inside it, solid with a clear border, unique. ---
+images = {}
+def load(image, canvas):
+    if image not in images:
+        with Image.open(assets / f'{image}.imageset/{image}.png') as im:
+            check(im.size == canvas and im.mode == 'RGBA', f'{image} must be a native RGBA {canvas} canvas')
+            images[image] = im.copy()
+    return images[image]
+
+for zone in ZONES:
     hashes = set()
     for name in names:
-        key = 'mixup-friends-' + atlas_names[name]
-        image = root / f'App/Resources/Assets.xcassets/{key}.imageset/{key}.png'
-        with Image.open(image) as im:
-            check(im.size == (1536, 1024) and im.mode == 'RGBA', f'{key} must preserve native RGBA atlas')
-            row = re.search(r'"' + name + r'": \[(.*?)\],', source).group(1)
-            measured = re.search(r'\.' + zone + r': CGRect\(x: (\d+), y: (\d+), width: (\d+), height: (\d+)\)', row)
-            x, y, w, h = map(int, measured.groups())
-            check(x >= 0 and y >= 0 and x+w <= im.width and y+h <= im.height, f'{name}-{zone} outside atlas')
-            # Read-only crop for hash/alpha analysis; no raster output or edits.
-            sprite = im.crop((x,y,x+w,y+h))
-            alpha = list(sprite.getchannel('A').get_flattened_data())
-            check(max(alpha) >= 250 and min(alpha) == 0, f'{name}-{zone} needs solid material and clear exterior')
-            digest = hashlib.sha256(sprite.tobytes()).hexdigest()
-            check(digest not in hashes, f'Duplicate painted {zone}: {name}')
-            hashes.add(digest)
+        image, canvas, (x, y, w, h) = sources[(name, zone)]
+        im = load(image, canvas)
+        check(x >= 0 and y >= 0 and x + w <= im.width and y + h <= im.height, f'{name}-{zone} outside {image}')
+        # Read-only crop for hash/alpha analysis; no raster output or edits.
+        sprite = im.crop((x, y, x + w, y + h))
+        alpha = pixels(sprite.getchannel('A'))
+        check(max(alpha) >= 250 and min(alpha) == 0, f'{name}-{zone} needs solid material and clear exterior')
+        digest = hashlib.sha256(sprite.tobytes()).hexdigest()
+        check(digest not in hashes, f'Duplicate painted {zone}: {name}')
+        hashes.add(digest)
 
-# Execute the production migration for both previously shipped pool orders.
+# --- Registration edges: each rect hugs its painted part (chin / collar / waist / soles). ---
+def hugs(rect, box, label, slack=6):
+    x, y, w, h = rect
+    x0, y0, x1, y1 = box
+    check(x <= x0 and y <= y0 and x + w >= x1 and y + h >= y1, f'{label} rect cuts into the painted part')
+    check(x0 - x <= slack and y0 - y <= slack and x + w - x1 <= slack and y + h - y1 <= slack,
+          f'{label} rect is loose: its edges must sit on the chin, collar, waist and soles')
+
+for atlas, friends in [('mixup-friends-a', ANIMALS[:3]), ('mixup-friends-b', ANIMALS[3:])] + (
+        [('mixup-friends-c', RETURNING)] if c_rects else []):
+    _, _, rows = measure(str(assets / f'{atlas}.imageset/{atlas}.png'), tuple(friends), quiet=True)
+    for zone, row in zip(ZONES, rows):
+        for name, component in zip(friends, row):
+            hugs(sources[(name, zone)][2], component[:4], f'{name}-{zone}')
+if not c_rects:
+    for name in RETURNING:
+        for zone in ZONES:
+            image, canvas, rect = sources[(name, zone)]
+            # alpha > 32: ignores the faint ghost despill leaves where a baked shadow was.
+            box = images[image].getchannel('A').point(lambda v: 255 if v > 32 else 0).getbbox()
+            hugs(rect, box, f'{name}-{zone}')
+            # No baked teal key shadow left (the original robot set has ~6%).
+            visible = teal = 0
+            for r, g, b, a in pixels(images[image].crop((rect[0], rect[1], rect[0] + rect[2], rect[1] + rect[3]))):
+                if a > 32:
+                    visible += 1
+                    teal += min(g, b) - r > 14 and max(r, g, b) < 117
+            check(teal / visible < (0.0001 if image == 'officer-legs' else 0.01),
+                  f'{image} still carries a teal key shadow ({teal}/{visible})')
+
+# Envelope: no head may be taller (h/w) than bunny's, or the layout fixture
+# CGRect(-60, -98, 120, 239) in verify_mixup_layout.py would no longer hold.
+bunny_head = sources[('bunny', 'head')][2]
+for name in names:
+    _, _, (_, _, w, h) = sources[(name, 'head')]
+    check(h * bunny_head[2] <= bunny_head[3] * w, f'{name} head is taller than bunny: envelope would grow')
+
+# --- Execute the production migration for every previously shipped pool order. ---
 current = re.search(r'private static let artCharacterNames = \[.*?\n    \]', source, re.S).group(0)
 legacy = re.search(r'private static let legacyArtCharacterNames = \[.*?\n    \]', source, re.S).group(0)
 v2 = re.search(r'private static let versionTwoArtCharacterNames = \[.*?\n    \]', source, re.S).group(0)
 migration = block(source, 'static func migratedIndex')
-swift = 'import Foundation\nimport CoreGraphics\nenum MixUpLibrary {\n' + current + '\n' + legacy + '\n' + v2 + '\n' + migration + '\n}\n'
+expected = {
+    0: [0, 1, 1, 1, 4, 2, 0, 3, 1, 2, 2, 6, 6, 1, 5, 4, 1, 0, 3, 0, 8, 7, 5, 4],   # build 1 (24 names)
+    2: [0, 1, 1, 4, 2, 0, 3, 1, 2, 2, 6, 1, 5, 3, 0, 8, 7, 5, 4],                  # local v2 (19 names)
+    3: [0, 1, 2, 3, 4, 5],                                                         # builds 2-3: identity
+}
+swift = SWIFT_PRELUDE + 'enum MixUpLibrary {\n' + current + '\n' + legacy + '\n' + v2 + '\n' + migration + '\n}\n'
+swift += 'let cases: [(Int, [Int])] = [' + ', '.join(f'({v}, {a})' for v, a in expected.items()) + ']\n'
 swift += '''
-let v1 = [0,1,1,1,4,2,0,3,1,2,2,5,5,1,5,4,1,0,3,0,1,1,5,4]
-let v2 = [0,1,1,4,2,0,3,1,2,2,5,1,5,3,0,1,1,5,4]
-for (version, expected) in [(0,v1),(2,v2)] {
+for (version, expected) in cases {
     for index in expected.indices { precondition(MixUpLibrary.migratedIndex(index, fromVersion: version) == expected[index]) }
     precondition(MixUpLibrary.migratedIndex(-1, fromVersion: version) == expected.last!)
     precondition(MixUpLibrary.migratedIndex(expected.count, fromVersion: version) == expected.first!)
 }
 '''
-with tempfile.TemporaryDirectory(prefix='lull-mixup-check-') as tmp:
-    p = Path(tmp) / 'verify.swift'; p.write_text(swift)
-    subprocess.run(['xcrun', 'swift', '-module-cache-path', str(Path(tmp) / 'cache'), str(p)], check=True)
-checks += 47
+run_swift(swift, 'lull-mixup-check-')
+checks += sum(len(a) + 2 for a in expected.values())
 check('castVersionKey' in scene and 'migratedIndex(recipe.head, fromVersion: storedVersion)' in scene,
       'Stored recipes must pass through the production migration')
+check('private static let castVersion = 4' in scene, 'Appending friends bumps the stored cast version to 4')
+
+# --- Per-friend personality hooks the sound rebuild relies on. ---
+check('playMixFriend(name, moment: .arrive)' in scene and 'playMixFriend(name, moment: .wholeFriend)' in scene,
+      'Mix-Up must voice a friend on arrival and on the whole-friend moment')
+personality = block(scene, 'private func headPersonality')
+signature = block(scene, 'private func wholeFriendSignature')
+for name in names:
+    check(f'case "{name}"' in personality or f'"{name}",' in personality, f'{name} needs its own arrival move')
+    check(f'case "{name}"' in signature, f'{name} needs its own whole-friend signature')
+check('MixUpLibrary.friendlyName(' in scene and '"police officer"' in source,
+      'VoiceOver must say friendly names ("police officer")')
 
 # Extract the production sizing branch and positions, then verify all common
 # device/orientation families leave a visible, separate, unblocked supply tray.
 tray = block(stack, 'private var trayRect: CGRect').replace('private var', 'var')
 scale = block(stack, 'private var pieceScale: CGFloat').replace('private var', 'var')
-swift = '''import Foundation
-import CoreGraphics
-private extension Comparable {
+swift = SWIFT_PRELUDE + '''private extension Comparable {
     func clamped(to limits: ClosedRange<Self>) -> Self { min(max(self, limits.lowerBound), limits.upperBound) }
 }
 struct Layout {
@@ -103,10 +232,8 @@ for size in [CGSize(width: 375, height: 667), CGSize(width: 667, height: 375),
     precondition(size.width * 0.34 + largestHalfWidth + 10 < supply.midX - largestHalfWidth)
 }
 '''
-with tempfile.TemporaryDirectory(prefix='lull-stack-check-') as tmp:
-    p = Path(tmp) / 'verify.swift'
-    p.write_text(swift)
-    subprocess.run(['xcrun', 'swift', '-module-cache-path', str(Path(tmp) / 'cache'), str(p)], check=True)
+run_swift(swift, 'lull-stack-check-')
 checks += 24
 
-print(f'Mix-Up/Stack: {checks} checks passed; device interaction testing still required.')
+print(f'Mix-Up/Stack: {checks} checks passed ({len(names)} friends, {len(names) ** 3} combinations); '
+      'device interaction testing still required.')

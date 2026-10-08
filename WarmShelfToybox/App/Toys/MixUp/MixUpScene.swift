@@ -299,7 +299,7 @@ final class MixUpScene: BaseToyScene {
     private enum MixUpCreationStore {
         private static let key = "lull.mixup.creations"
         private static let castVersionKey = "lull.mixup.creations.castVersion"
-        private static let castVersion = 3
+        private static let castVersion = 4   // 4: robot, officer, firefighter appended (6-8)
         static let capacity = 6
         static func load() -> [MixUpCreation] {
             let defaults = UserDefaults.standard
@@ -488,6 +488,7 @@ final class MixUpScene: BaseToyScene {
                                 }]), withKey: "flip")
         }
         if changedAny {
+            removeAction(forKey: Self.wholeFriendShowKey)
             transformationFlourish(zone: .body)
             AudioManager.shared.playMixFlip()
         } else {
@@ -701,6 +702,7 @@ final class MixUpScene: BaseToyScene {
         let parts = MixUpLibrary.parts(for: zone)
         guard parts.count > 1 else { return }
         flipping.insert(zone)
+        removeAction(forKey: Self.wholeFriendShowKey)   // the friend is changing: no bow for the old one
         let count = parts.count
         let cur = indices[zone] ?? 0
         indices[zone] = ((cur + (forward ? 1 : -1)) % count + count) % count
@@ -719,8 +721,10 @@ final class MixUpScene: BaseToyScene {
                 AudioManager.shared.playMixSettle()
             },
             .run { [weak self] in
-                self?.flipping.remove(zone)
-                self?.checkMatchedBow()
+                guard let self else { return }
+                if zone == .head { self.voiceArrival(of: self.currentPartName(.head)) }
+                self.flipping.remove(zone)
+                self.checkMatchedBow()   // a whole friend cancels the arrival hello for its own
             }
         ]), withKey: "flip")
 
@@ -812,6 +816,8 @@ final class MixUpScene: BaseToyScene {
         }
 
         // Let the part finish flipping in, then the whole character notices and reacts to it.
+        // (The whole-friend moment, which replaced the procedural-era theme combos, is
+        // driven by checkMatchedBow once every zone has settled.)
         run(.sequence([.wait(forDuration: 0.40), .run { [weak self] in
             guard let self else { return }
             switch zone {
@@ -819,50 +825,35 @@ final class MixUpScene: BaseToyScene {
             case .body: self.peerDown(by: -0.16); self.showOffBody()
             case .legs: self.peerDown(by: -0.30); self.showOffLegs()
             }
-            // After personality fires, check for a special theme combo.
-            self.run(.sequence([.wait(forDuration: 0.55), .run { [weak self] in self?.checkSpecialCombo() }]))
         }]))
-    }
-
-    /// When all three zones accidentally align to a theme, the character gets a big moment —
-    /// the joke of a full frog outfit, a complete knight, or a head-to-toe bird.
-    private func checkSpecialCombo() {
-        let head = currentPartName(.head)
-        let body = currentPartName(.body)
-        let legs = currentPartName(.legs)
-
-        let color: UIColor?
-        if head == "frog" && legs == "frog feet" {
-            color = WarmShelfPalette.sage           // full frog
-        } else if head == "bird" && body == "bird belly" && legs == "bird legs" {
-            color = WarmShelfPalette.waterBlue      // full bird
-        } else if (head == "king" || head == "queen") && body == "royal robe" && legs == "boots" {
-            color = WarmShelfPalette.butter         // full royal
-        } else if head == "bear" && legs == "paws" {
-            color = UIColor(hex: 0x9B6B43)          // full bear
-        } else if head == "robot" && body == "spacesuit" {
-            color = WarmShelfPalette.waterBlue      // full robot
-        } else {
-            color = nil
-        }
-
-        guard let comboColor = color else { return }
-        let origin = CGPoint(x: root.position.x, y: root.position.y)
-        paperMotes(at: origin, count: AmbientAnimator.reduceMotion ? 3 : 14)
-        TouchFeedbackAnimator.bubblePopRing(in: self, at: origin, radius: 64 * mixScale, color: comboColor)
-        hop(height: 26 * mixScale, squash: true)
-        AudioManager.shared.playMixCelebrationCombo()
-        HapticsManager.shared.play(score: .mixUpCombo)
     }
 
     private func currentPartName(_ zone: MixUpZone) -> String {
         currentPart(zone)?.baseName ?? ""
     }
 
-    /// Approved delight: the bow. All three zones settled on the SAME character — it is
-    /// suddenly whole again. The spotlight warms and it takes one small bow. Recognition,
-    /// not reward: no chime, no motes, once per match (re-armed when the match breaks).
-    /// Name equality keeps this art-era-only — procedural pools never align by name.
+    private static let arrivalVoiceKey = "mixFriendArrivalVoice"
+    private static let wholeFriendKey = "mixWholeFriend"
+    private static let personalityKey = "mixPersonality"
+    private static let wholeFriendShowKey = "mixWholeFriendShow"
+
+    /// The friend whose head just landed says hello in its own voice, a beat after the
+    /// settle tone so the two never stack. Keyed: mashing keeps only the newest hello,
+    /// and a whole-friend moment (which has its own voice) cancels it.
+    private func voiceArrival(of name: String) {
+        guard !name.isEmpty else { return }
+        removeAction(forKey: Self.arrivalVoiceKey)
+        run(.sequence([
+            .wait(forDuration: 0.12),
+            .run { AudioManager.shared.playMixFriend(name, moment: .arrive) }
+        ]), withKey: Self.arrivalVoiceKey)
+    }
+
+    /// Approved delight: the whole friend. All three zones settled on the SAME character —
+    /// it is suddenly whole again. The spotlight warms, the friend says so in its own voice,
+    /// does its own small signature move and takes one small bow. Once per match (re-armed
+    /// when the match breaks). Name equality keeps this art-era-only — procedural pools
+    /// never align by name.
     private func checkMatchedBow() {
         guard flipping.isEmpty else { return }   // only the LAST settling zone reports
         let name = currentPartName(.head)
@@ -874,13 +865,25 @@ final class MixUpScene: BaseToyScene {
         }
         guard lastBowedMatch != name else { return }
         lastBowedMatch = name
+        removeAction(forKey: Self.arrivalVoiceKey)   // one voice: the whole-friend one
         // Let the flip's own settle exhale finish before the character notices itself.
-        run(.sequence([.wait(forDuration: 0.30), .run { [weak self] in self?.bowOnStage() }]))
+        run(.sequence([.wait(forDuration: 0.30), .run { [weak self] in self?.bowOnStage(name) }]),
+            withKey: Self.wholeFriendKey)
     }
 
-    private func bowOnStage() {
-        // The spotlight warms briefly — layered over the authored pool (its node alpha
-        // is already 1.0), or a soft pool at the feet in the procedural room.
+    private func bowOnStage(_ name: String) {
+        // A flip that started during the short pause already broke the match.
+        guard currentPartName(.head) == name, currentPartName(.body) == name,
+              currentPartName(.legs) == name else { return }
+        AudioManager.shared.playMixFriend(name, moment: .wholeFriend)
+        HapticsManager.shared.softTap()
+
+        // Light is not motion: the robot's glow pulses under Reduce Motion too, once.
+        if name == "robot" { robotGlowPulse(pulses: AmbientAnimator.reduceMotion ? 1 : 2, peak: 0.6) }
+        let signature = AmbientAnimator.reduceMotion ? 0 : wholeFriendSignature(name)
+
+        // The spotlight warms for the whole moment — layered over the authored pool (its
+        // node alpha is already 1.0), or a soft pool at the feet in the procedural room.
         let warm: SKShapeNode
         if let pool = stageLightPool {
             warm = SKShapeNode(ellipseOf: pool.frame.size)
@@ -898,14 +901,20 @@ final class MixUpScene: BaseToyScene {
         stage.addChild(warm)
         warm.run(.sequence([
             .fadeIn(withDuration: 0.5),
-            .wait(forDuration: 1.1),
+            .wait(forDuration: 1.1 + signature),
             .fadeOut(withDuration: 1.3),
             .removeFromParent()
         ]))
 
+        // Its own signature first, then the small bow that closes every whole friend.
+        guard !AmbientAnimator.reduceMotion else { return }
+        run(.sequence([.wait(forDuration: signature), .run { [weak self] in self?.takeBow() }]),
+            withKey: Self.wholeFriendShowKey)
+    }
+
+    private func takeBow() {
         // One small bow: root nod (rotation only — root's SCALE belongs to the breathe
         // loop) plus a gentle body-slot dip. Absolute returns, hop-style.
-        guard !AmbientAnimator.reduceMotion else { return }
         root.removeAction(forKey: "sway")
         root.removeAction(forKey: "bow")
         let lean = SKAction.rotate(toAngle: 0.09, duration: 0.34); lean.timingMode = .easeInEaseOut
@@ -919,7 +928,184 @@ final class MixUpScene: BaseToyScene {
                 .scaleY(to: 1.0, duration: 0.50)
             ]), withKey: "react")
         }
-        // No new sound — the settle tone just played; the calm IS the recognition.
+    }
+
+    // MARK: - Whole friend (each friend's own signature flourish)
+
+    private var headHome: CGPoint { CGPoint(x: 0, y: slotLocalY(.head)) }
+    private var rootHomeX: CGFloat { size.width / 2 }
+
+    private func eased(_ action: SKAction, _ mode: SKActionTimingMode = .easeInEaseOut) -> SKAction {
+        action.timingMode = mode
+        return action
+    }
+
+    /// Every new head move starts here: back to the head's home pose (place, tilt and the
+    /// officer's half-turn squeeze) from wherever a cut-short reaction left it.
+    private func headToRest(_ duration: TimeInterval) -> SKAction {
+        eased(.group([.move(to: headHome, duration: duration), .rotate(toAngle: 0, duration: duration),
+                      .scaleX(to: 1.0, duration: duration)]))
+    }
+
+    /// The same for the body: both axes back to 1 (a hug or a flutter cut short).
+    private func bodyToRest(_ duration: TimeInterval) -> SKAction {
+        eased(.group([.scaleX(to: 1.0, duration: duration), .scaleY(to: 1.0, duration: duration)]))
+    }
+
+    /// Head, body and legs all belong to one friend: it does the small thing only that
+    /// friend would do. Calm and short (about a second or two), absolute targets so any
+    /// interruption still lands home. Returns how long it takes, so the bow can follow.
+    private func wholeFriendSignature(_ name: String) -> TimeInterval {
+        guard let head = slots[.head], let body = slots[.body] else { return 0 }
+        removeAction(forKey: Self.personalityKey)
+        let m = mixScale
+        let home = headHome
+        let cx = rootHomeX
+        switch name {
+        case "robot":
+            // A two-step stiff dance: step right, hold, step left, hold, home. Linear,
+            // robot-precise moves; the head ticks against each step.
+            let step: TimeInterval = 0.12, hold: TimeInterval = 0.26
+            root.run(.sequence([
+                .moveTo(x: cx + 5 * m, duration: step), .wait(forDuration: hold),
+                .moveTo(x: cx - 5 * m, duration: step * 2), .wait(forDuration: hold),
+                .moveTo(x: cx, duration: step)
+            ]), withKey: "dance")
+            root.run(.sequence([
+                .rotate(toAngle: -0.04, duration: step), .wait(forDuration: hold),
+                .rotate(toAngle: 0.04, duration: step * 2), .wait(forDuration: hold),
+                .rotate(toAngle: 0, duration: step)
+            ]), withKey: "sway")
+            head.run(.sequence([
+                headToRest(0.1),
+                .rotate(toAngle: 0.07, duration: step), .wait(forDuration: hold),
+                .rotate(toAngle: -0.07, duration: step * 2), .wait(forDuration: hold),
+                .rotate(toAngle: 0, duration: step)
+            ]), withKey: "react")
+            return step * 4 + hold * 2 + 0.1
+        case "officer":
+            // A proper salute (cap tips and holds, standing tall), then a slow look one
+            // way and the other, as if minding the street.
+            head.run(.sequence([
+                headToRest(0.1),
+                eased(.group([.rotate(toAngle: -0.12, duration: 0.16),
+                              .move(to: CGPoint(x: home.x + 2 * m, y: home.y - 3 * m), duration: 0.16)]), .easeOut),
+                .wait(forDuration: 0.36),
+                eased(.group([.rotate(toAngle: 0, duration: 0.24), .move(to: home, duration: 0.24)])),
+                eased(.group([.move(to: CGPoint(x: home.x - 3 * m, y: home.y), duration: 0.42),
+                              .scaleX(to: 0.95, duration: 0.42), .rotate(toAngle: 0.05, duration: 0.42)])),
+                .wait(forDuration: 0.16),
+                eased(.group([.move(to: CGPoint(x: home.x + 3 * m, y: home.y), duration: 0.6),
+                              .rotate(toAngle: -0.05, duration: 0.6)])),
+                .wait(forDuration: 0.16),
+                eased(.group([.move(to: home, duration: 0.4), .scaleX(to: 1.0, duration: 0.4),
+                              .rotate(toAngle: 0, duration: 0.4)]))
+            ]), withKey: "react")
+            body.run(.sequence([
+                bodyToRest(0.16), eased(.scaleY(to: 1.04, duration: 0.2)),
+                .wait(forDuration: 0.3), eased(.scaleY(to: 1.0, duration: 0.3))
+            ]), withKey: "react")
+            return 2.5
+        case "firefighter":
+            // A little hop, then a big friendly wave: the whole friend rocks side to side
+            // while the helmet nods along the other way.
+            hop(height: 12 * m, squash: true)
+            let wave: [(CGFloat, TimeInterval)] = [(0.05, 0.24), (-0.05, 0.3), (0.035, 0.26), (0, 0.26)]
+            root.run(.sequence([SKAction.wait(forDuration: 0.42)] + wave.map { eased(.rotate(toAngle: $0.0, duration: $0.1)) }),
+                     withKey: "sway")
+            head.run(.sequence([headToRest(0.42)] + wave.map { eased(.rotate(toAngle: -$0.0 * 1.2, duration: $0.1)) }),
+                     withKey: "react")
+            return 1.55
+        case "bunny":
+            // Hop, hop, hop — three soft bunny hops, ears tipping one way then the other.
+            run(.sequence([
+                .run { [weak self] in self?.hop(height: 8 * m, squash: false) }, .wait(forDuration: 0.42),
+                .run { [weak self] in self?.hop(height: 10 * m, squash: false) }, .wait(forDuration: 0.42),
+                .run { [weak self] in self?.hop(height: 7 * m, squash: true) }
+            ]), withKey: Self.personalityKey)
+            head.run(.sequence([
+                headToRest(0.1),
+                eased(.rotate(toAngle: 0.08, duration: 0.3)), eased(.rotate(toAngle: -0.08, duration: 0.42)),
+                eased(.rotate(toAngle: 0, duration: 0.4))
+            ]), withKey: "react")
+            return 1.3
+        case "bear":
+            // A big, slow bear hug: the body squeezes wide, the head snuggles down into it.
+            body.run(.sequence([
+                eased(.group([.scaleX(to: 1.07, duration: 0.45), .scaleY(to: 0.97, duration: 0.45)])),
+                .wait(forDuration: 0.35),
+                eased(.group([.scaleX(to: 1.0, duration: 0.55), .scaleY(to: 1.0, duration: 0.55)]))
+            ]), withKey: "react")
+            head.run(.sequence([
+                headToRest(0.1),
+                eased(.move(to: CGPoint(x: home.x, y: home.y - 2.5 * m), duration: 0.45)),
+                .wait(forDuration: 0.35), eased(.move(to: home, duration: 0.55))
+            ]), withKey: "react")
+            return 1.4
+        case "songbird":
+            // A gentle flutter-float: three unhurried wing beats, a little rise, a soft landing.
+            let flap = SKAction.sequence([.scaleX(to: 0.9, duration: 0.14), .scaleX(to: 1.08, duration: 0.16),
+                                          .scaleX(to: 1.0, duration: 0.14)])
+            body.run(.sequence([bodyToRest(0.08), .repeat(flap, count: 3)]), withKey: "react")
+            let baseY = characterRootY
+            groundRoot()
+            root.run(.sequence([
+                eased(.moveTo(y: baseY + 12 * m, duration: 0.55), .easeOut), .wait(forDuration: 0.2),
+                eased(.moveTo(y: baseY, duration: 0.6))
+            ]), withKey: "hop")
+            return 1.4
+        case "fox":
+            // A proud little tiptoe strut, one way and back, head tipped to match.
+            root.run(.sequence([
+                eased(.moveTo(x: cx + 7 * m, duration: 0.38)), eased(.moveTo(x: cx - 7 * m, duration: 0.62)),
+                eased(.moveTo(x: cx, duration: 0.38))
+            ]), withKey: "dance")
+            head.run(.sequence([
+                headToRest(0.1),
+                eased(.rotate(toAngle: -0.1, duration: 0.38)), eased(.rotate(toAngle: 0.1, duration: 0.62)),
+                eased(.rotate(toAngle: 0, duration: 0.38))
+            ]), withKey: "react")
+            return 1.4
+        case "mouse":
+            // A shy, happy wiggle: duck, peek out, a whisker-wiggle and one tiny bounce.
+            head.run(.sequence([
+                headToRest(0.1),
+                eased(.move(to: CGPoint(x: home.x, y: home.y - 3 * m), duration: 0.18), .easeOut),
+                .wait(forDuration: 0.14),
+                eased(.group([.move(to: home, duration: 0.22), .rotate(toAngle: 0.1, duration: 0.22)])),
+                eased(.rotate(toAngle: -0.1, duration: 0.24)), eased(.rotate(toAngle: 0.05, duration: 0.2)),
+                eased(.rotate(toAngle: 0, duration: 0.2))
+            ]), withKey: "react")
+            run(.sequence([.wait(forDuration: 0.54), .run { [weak self] in self?.hop(height: 7 * m, squash: true) }]),
+                withKey: Self.personalityKey)
+            return 1.25
+        case "frog":
+            // One big springy leap, then a little landing bounce.
+            hop(height: 24 * m, squash: true)
+            run(.sequence([.wait(forDuration: 0.5), .run { [weak self] in self?.hop(height: 8 * m, squash: true) }]),
+                withKey: Self.personalityKey)
+            return 1.0
+        default:
+            return 0
+        }
+    }
+
+    /// A soft warm glow that pulses behind the robot's head, as if it just powered on.
+    /// It rides on the head slot (so it follows every nod) and a head flip clears it.
+    private func robotGlowPulse(pulses: Int, peak: CGFloat) {
+        guard let head = slots[.head] else { return }
+        let glow = SKSpriteNode(texture: ProceduralTexture.softRadialGlow)
+        glow.color = WarmShelfPalette.butter
+        glow.colorBlendFactor = 1
+        glow.blendMode = .add
+        glow.size = CGSize(width: 150 * mixScale, height: 150 * mixScale)
+        glow.position = CGPoint(x: 0, y: -22 * mixScale)   // the robot's face, inside the head slot
+        glow.zPosition = -9                                 // behind every part band, above the room
+        glow.alpha = 0
+        head.addChild(glow)
+        let pulse = SKAction.sequence([eased(.fadeAlpha(to: peak, duration: 0.45)),
+                                       eased(.fadeAlpha(to: peak * 0.3, duration: 0.5))])
+        glow.run(.sequence([.repeat(pulse, count: max(1, pulses)), .fadeOut(withDuration: 0.6), .removeFromParent()]))
     }
 
     private func currentPart(_ zone: MixUpZone) -> MixUpPart? {
@@ -957,18 +1143,98 @@ final class MixUpScene: BaseToyScene {
         // the head stranded low under the body.
         let back = SKAction.group([
             .rotate(toAngle: 0, duration: 0.30),
-            .move(to: CGPoint(x: 0, y: slotLocalY(.head)), duration: 0.30)
+            .move(to: CGPoint(x: 0, y: slotLocalY(.head)), duration: 0.30),
+            .scaleX(to: 1.0, duration: 0.30)
         ])
         dip.timingMode = .easeOut; back.timingMode = .easeInEaseOut
         head.run(.sequence([dip, .wait(forDuration: 0.34), back]), withKey: "react")
     }
 
-    /// A signature beat for the species now wearing the head — the joke made motion.
+    /// The friend whose head just landed says hello with its own small move — the joke made
+    /// motion. Each of the nine friends has a different one; all are gentle (small heights,
+    /// unhurried timing) and use absolute targets so a quick re-flip never strands the head.
+    /// Under Reduce Motion everyone gets the same slow, small acknowledging tilt.
     private func headPersonality(_ name: String) {
         guard let head = slots[.head] else { return }
+        removeAction(forKey: Self.personalityKey)
+        let m = mixScale
+        let home = headHome
+        if AmbientAnimator.reduceMotion {
+            head.run(.sequence([headToRest(0.1), eased(.rotate(toAngle: 0.06, duration: 0.32)),
+                                eased(.rotate(toAngle: 0, duration: 0.44))]), withKey: "react")
+            return
+        }
         switch name {
+        case "bunny":
+            // Two soft little bunny hops, the second smaller.
+            run(.sequence([
+                .run { [weak self] in self?.hop(height: 9 * m, squash: false) }, .wait(forDuration: 0.42),
+                .run { [weak self] in self?.hop(height: 6 * m, squash: false) }
+            ]), withKey: Self.personalityKey)
+        case "bear":
+            root.run(.sequence([                                 // a slow heavy sway
+                eased(.rotate(toAngle: 0.06, duration: 0.24)), eased(.rotate(toAngle: -0.06, duration: 0.32)),
+                eased(.rotate(toAngle: 0, duration: 0.24))
+            ]), withKey: "sway")
+        case "songbird", "bird", "duck", "owl", "penguin":
+            flapWings()
+        case "fox":
+            // A curious sideways peek: lean out, look, lean back.
+            head.run(.sequence([
+                headToRest(0.1),
+                eased(.group([.move(to: CGPoint(x: home.x + 4 * m, y: home.y + 1 * m), duration: 0.22),
+                              .rotate(toAngle: -0.15, duration: 0.22)]), .easeOut),
+                .wait(forDuration: 0.3),
+                eased(.group([.move(to: home, duration: 0.32), .rotate(toAngle: 0, duration: 0.32)]))
+            ]), withKey: "react")
+        case "mouse":
+            // A shy little duck, then a peek up and a whisker-twitch.
+            head.run(.sequence([
+                headToRest(0.1),
+                eased(.move(to: CGPoint(x: home.x, y: home.y - 4 * m), duration: 0.16), .easeOut),
+                .wait(forDuration: 0.16),
+                eased(.move(to: CGPoint(x: home.x, y: home.y + 2 * m), duration: 0.2)),
+                .rotate(toAngle: 0.07, duration: 0.09), .rotate(toAngle: -0.07, duration: 0.12),
+                .rotate(toAngle: 0, duration: 0.1),
+                eased(.move(to: home, duration: 0.22))
+            ]), withKey: "react")
         case "frog":
-            hop(height: 26 * mixScale, squash: true)            // a springy leap
+            hop(height: 22 * m, squash: true)                    // a springy leap
+        case "robot":
+            let j: CGFloat = 3 * m
+            head.run(.sequence([                                 // a stiff little glitch-stutter
+                headToRest(0.1),
+                .moveBy(x: j, y: 0, duration: 0.03), .moveBy(x: -2 * j, y: 0, duration: 0.04),
+                .moveBy(x: 2 * j, y: 0, duration: 0.04), .moveBy(x: -j, y: 0, duration: 0.03),
+                .move(to: home, duration: 0.04)
+            ]), withKey: "react")
+        case "officer":
+            // A small salute: the cap tips, holds a beat, and the officer stands up tall.
+            head.run(.sequence([
+                headToRest(0.1),
+                eased(.group([.rotate(toAngle: -0.11, duration: 0.16),
+                              .move(to: CGPoint(x: home.x + 2 * m, y: home.y - 3 * m), duration: 0.16)]), .easeOut),
+                .wait(forDuration: 0.3),
+                eased(.group([.rotate(toAngle: 0, duration: 0.24),
+                              .move(to: CGPoint(x: home.x, y: home.y + 2 * m), duration: 0.24)])),
+                eased(.move(to: home, duration: 0.26))
+            ]), withKey: "react")
+            slots[.body]?.run(.sequence([
+                bodyToRest(0.1), .wait(forDuration: 0.36),
+                eased(.scaleY(to: 1.04, duration: 0.2)), eased(.scaleY(to: 1.0, duration: 0.3))
+            ]), withKey: "react")
+        case "firefighter":
+            // Two helmet nods ("ready!") and a small hop.
+            head.run(.sequence([
+                headToRest(0.1),
+                eased(.move(to: CGPoint(x: home.x, y: home.y - 4 * m), duration: 0.12), .easeOut),
+                eased(.move(to: home, duration: 0.16)),
+                eased(.move(to: CGPoint(x: home.x, y: home.y - 3 * m), duration: 0.12), .easeOut),
+                eased(.move(to: home, duration: 0.16))
+            ]), withKey: "react")
+            run(.sequence([.wait(forDuration: 0.56), .run { [weak self] in self?.hop(height: 10 * m, squash: true) }]),
+                withKey: Self.personalityKey)
+        // Procedural-era heads (fallback pools only).
         case "lion":
             let shake = SKAction.sequence([
                 .rotate(toAngle: 0.12, duration: 0.06), .rotate(toAngle: -0.12, duration: 0.08),
@@ -976,20 +1242,7 @@ final class MixUpScene: BaseToyScene {
             ])
             head.run(shake, withKey: "react")                   // a tiny roar, mane and all
             head.run(.sequence([.scale(to: 1.14, duration: 0.10), .scale(to: 1.0, duration: 0.16)]))
-        case "robot":
-            let j: CGFloat = 3 * mixScale
-            head.run(.sequence([                                 // a stiff little glitch-stutter
-                .moveBy(x: j, y: 0, duration: 0.03), .moveBy(x: -2 * j, y: 0, duration: 0.04),
-                .moveBy(x: 2 * j, y: 0, duration: 0.04), .moveBy(x: -j, y: 0, duration: 0.03)
-            ]), withKey: "react")
-        case "bird", "duck", "owl", "penguin":
-            flapWings()
-        case "bear":
-            root.run(.sequence([                                 // a slow heavy sway
-                .rotate(toAngle: 0.06, duration: 0.18), .rotate(toAngle: -0.06, duration: 0.24),
-                .rotate(toAngle: 0, duration: 0.18)
-            ]), withKey: "sway")
-        case "cat", "fox", "mouse", "bunny":
+        case "cat":
             head.run(.sequence([                                 // a coy, curious tilt
                 .rotate(toAngle: 0.20, duration: 0.14), .wait(forDuration: 0.20), .rotate(toAngle: 0, duration: 0.24)
             ]), withKey: "react")
@@ -1021,12 +1274,21 @@ final class MixUpScene: BaseToyScene {
         }
     }
 
+    /// Back on the floor (a snap, as hops always did) and gliding back to centre: an idle
+    /// side-sway or a whole-friend strut cut short would otherwise leave it off-centre.
+    private func groundRoot() {
+        root.removeAction(forKey: "hop")
+        root.position.y = characterRootY
+        if abs(root.position.x - rootHomeX) > 0.5 {
+            root.run(eased(.moveTo(x: rootHomeX, duration: 0.2)), withKey: "dance")
+        }
+    }
+
     private func hop(height: CGFloat, squash: Bool) {
         // Absolute moves (not relative) and a hard reset to the grounded baseline first, so stacked
         // celebrations can never leave the character drifting in the air — it always lands home.
         let baseY = characterRootY
-        root.removeAction(forKey: "hop")
-        root.position.y = baseY
+        groundRoot()
         let up = SKAction.moveTo(y: baseY + height, duration: 0.16); up.timingMode = .easeOut
         let down = SKAction.moveTo(y: baseY, duration: 0.24); down.timingMode = .easeIn
         if squash, let body = slots[.body] {
@@ -1038,7 +1300,7 @@ final class MixUpScene: BaseToyScene {
     private func flapWings() {
         guard let body = slots[.body] else { return }
         let flap = SKAction.sequence([.scaleX(to: 0.86, duration: 0.10), .scaleX(to: 1.10, duration: 0.12), .scaleX(to: 1.0, duration: 0.10)])
-        body.run(.repeat(flap, count: 2), withKey: "react")
+        body.run(.sequence([bodyToRest(0.06), .repeat(flap, count: 2)]), withKey: "react")
         hop(height: 10 * mixScale, squash: false)
     }
 
@@ -1064,14 +1326,18 @@ final class MixUpScene: BaseToyScene {
     /// sway showing off the outfit, or admiring itself — never the same beat twice in a row.
     private func idleShowOff() {
         guard let head = slots[.head] else { return }
+        // Now and then (about one idle beat in five) the friend wearing the head does its
+        // own tiny habit instead. Reduce Motion keeps only the shared, gentler beats.
+        if !AmbientAnimator.reduceMotion, Int.random(in: 0..<5) == 0, idleQuirk(currentPartName(.head)) { return }
         switch Int.random(in: 0..<5) {
         case 0:
             head.run(.sequence([.rotate(toAngle: CGFloat.random(in: -0.12...0.12), duration: 0.4), .wait(forDuration: 0.7), .rotate(toAngle: 0, duration: 0.4)]), withKey: "react")
         case 1:
             root.run(.sequence([.moveBy(x: 0, y: 6 * mixScale, duration: 0.5), .moveBy(x: 0, y: -6 * mixScale, duration: 0.5)]), withKey: "hop")
         case 2:
-            root.run(.sequence([
-                .moveBy(x: 8 * mixScale, y: 0, duration: 0.5), .moveBy(x: -16 * mixScale, y: 0, duration: 0.7), .moveBy(x: 8 * mixScale, y: 0, duration: 0.5)
+            root.run(.sequence([   // absolute, so it always ends centred
+                .moveTo(x: rootHomeX + 8 * mixScale, duration: 0.5), .moveTo(x: rootHomeX - 8 * mixScale, duration: 0.7),
+                .moveTo(x: rootHomeX, duration: 0.5)
             ]), withKey: "hop")
         case 3:
             peerDown(by: -0.14)
@@ -1079,6 +1345,50 @@ final class MixUpScene: BaseToyScene {
         default:
             root.run(.sequence([.rotate(toAngle: 0.05, duration: 0.16), .rotate(toAngle: -0.05, duration: 0.2), .rotate(toAngle: 0, duration: 0.16)]), withKey: "sway")
         }
+    }
+
+    /// A rare, tiny habit of whoever's head is on — small enough to be noticed only by a
+    /// child who is watching. Returns false for heads without one.
+    private func idleQuirk(_ name: String) -> Bool {
+        guard let head = slots[.head], let body = slots[.body] else { return false }
+        let m = mixScale
+        let home = headHome
+        switch name {
+        case "robot":       // a quiet blink of its lights and one stiff head tick
+            robotGlowPulse(pulses: 1, peak: 0.35)
+            head.run(.sequence([headToRest(0.1), .rotate(toAngle: 0.05, duration: 0.08), .wait(forDuration: 0.4),
+                                .rotate(toAngle: 0, duration: 0.08)]), withKey: "react")
+        case "officer":     // touches the cap brim
+            head.run(.sequence([headToRest(0.1), eased(.rotate(toAngle: -0.07, duration: 0.22)), .wait(forDuration: 0.3),
+                                eased(.rotate(toAngle: 0, duration: 0.3))]), withKey: "react")
+        case "firefighter": // one slow helmet nod
+            head.run(.sequence([headToRest(0.1), eased(.move(to: CGPoint(x: home.x, y: home.y - 3 * m), duration: 0.26)),
+                                eased(.move(to: home, duration: 0.36))]), withKey: "react")
+        case "bunny":       // an ear flick, twice
+            let flick = SKAction.sequence([.rotate(toAngle: 0.04, duration: 0.09), .rotate(toAngle: 0, duration: 0.15)])
+            head.run(.sequence([headToRest(0.1), flick, .wait(forDuration: 0.12), flick]), withKey: "react")
+        case "bear":        // a slow, sleepy stretch
+            head.run(.sequence([headToRest(0.1), eased(.move(to: CGPoint(x: home.x, y: home.y + 3 * m), duration: 0.7)),
+                                .wait(forDuration: 0.3), eased(.move(to: home, duration: 0.8))]), withKey: "react")
+        case "songbird":    // one small wing ruffle
+            body.run(.sequence([bodyToRest(0.08), .scaleX(to: 0.95, duration: 0.14), .scaleX(to: 1.04, duration: 0.14),
+                                .scaleX(to: 1.0, duration: 0.16)]), withKey: "react")
+        case "fox":         // two little sniffs
+            let sniff = SKAction.sequence([.move(to: CGPoint(x: home.x, y: home.y + 1.5 * m), duration: 0.12),
+                                           .move(to: home, duration: 0.14)])
+            head.run(.sequence([headToRest(0.1), sniff, sniff]), withKey: "react")
+        case "mouse":       // a whisker twitch
+            head.run(.sequence([headToRest(0.1), .rotate(toAngle: 0.05, duration: 0.08), .rotate(toAngle: -0.05, duration: 0.1),
+                                .rotate(toAngle: 0, duration: 0.1)]), withKey: "react")
+        case "frog":        // a tiny bounce on the spot
+            let baseY = characterRootY
+            groundRoot()
+            root.run(.sequence([eased(.moveTo(y: baseY + 4 * m, duration: 0.2), .easeOut),
+                                eased(.moveTo(y: baseY, duration: 0.26), .easeIn)]), withKey: "hop")
+        default:
+            return false
+        }
+        return true
     }
 
     // MARK: - Idle life
@@ -1090,7 +1400,9 @@ final class MixUpScene: BaseToyScene {
         idleAccumulator += delta
         if idleAccumulator > 5.0 {
             idleAccumulator = 0
-            guard flipping.isEmpty, root.action(forKey: "hop") == nil else { return }
+            guard flipping.isEmpty, root.action(forKey: "hop") == nil,
+                  action(forKey: Self.wholeFriendKey) == nil,
+                  action(forKey: Self.wholeFriendShowKey) == nil else { return }
             idleShowOff()
         }
     }
@@ -1098,7 +1410,7 @@ final class MixUpScene: BaseToyScene {
     override func accessibilityElements(in view: SKView) -> [UIAccessibilityElement] {
         var elements = super.accessibilityElements(in: view)
         for zone in MixUpZone.allCases {
-            let name = currentPart(zone)?.name ?? ""
+            let name = MixUpLibrary.friendlyName(currentPart(zone)?.name ?? "")
             let label: String
             switch zone {
             case .head: label = "head: \(name), tap to change"

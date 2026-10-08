@@ -29,6 +29,23 @@ struct MixUpPart {
     }
 }
 
+/// Where one painted part comes from: a pixel rect inside an image of known pixel size.
+/// An atlas (mixup-friends-a/-b/-c) holds nine parts; a legacy part image holds one.
+/// Rects are measured from alpha (origin top-left, padded ~3 px), and their edges ARE the
+/// registration: head bottom = chin, body top/bottom = collar/waist, legs top/bottom =
+/// waist/soles. Sizes are PNG pixels, also for the @3x legacy imagesets.
+struct MixUpArtSource {
+    let image: String
+    let pixelSize: CGSize
+    let rect: CGRect
+
+    /// The rect in SpriteKit's unit texture space (origin bottom-left).
+    var unitRect: CGRect {
+        CGRect(x: rect.minX / pixelSize.width, y: 1 - rect.maxY / pixelSize.height,
+               width: rect.width / pixelSize.width, height: rect.height / pixelSize.height)
+    }
+}
+
 /// A recognizable, varied library of heads, bodies, and legs in the alphabet-card look.
 enum MixUpLibrary {
     private static let primaryHeadName = "mix.primary.head"
@@ -52,10 +69,12 @@ enum MixUpLibrary {
     /// The authored cast (Docs/MixUpSlice.md). Every character whose split sheet has
     /// landed joins all three flip pools — their pieces mix with everyone else's,
     /// which is the whole joke. Order here is pool order; newest additions last.
-    // One cohesive, clean-alpha felt cast. Six friends make 216 combinations;
-    // retired art remains in the project as source material, outside the live pools.
+    // One cohesive felt cast. The six animals (atlases a and b) are indices 0-5; the
+    // robot, police officer and firefighter came back from the first Mix-Up as 6-8.
+    // Nine friends make 729 combinations. Only ever APPEND: saves store these indices.
     private static let artCharacterNames = [
-        "bunny", "bear", "songbird", "fox", "mouse", "frog"
+        "bunny", "bear", "songbird", "fox", "mouse", "frog",
+        "robot", "officer", "firefighter"
     ]
     private static let legacyArtCharacterNames = [
         "bunny", "bear", "king", "queen", "mouse", "songbird", "zebra", "cat", "dog", "owl", "duck",
@@ -70,21 +89,35 @@ enum MixUpLibrary {
     /// Keep every saved recipe while updating retired identities to their closest
     /// new felt friend. Trial, favourites count and storage are never reset.
     static func migratedIndex(_ rawIndex: Int, fromVersion version: Int) -> Int {
+        if version == 3 {
+            // Builds 2-3: the six felt friends in today's order. The returning friends
+            // were appended after them, so a v3 index keeps its meaning.
+            return ((rawIndex % 6) + 6) % 6
+        }
         let oldNames = version == 2 ? versionTwoArtCharacterNames : legacyArtCharacterNames
         let oldIndex = ((rawIndex % oldNames.count) + oldNames.count) % oldNames.count
-        let aliases = ["queen": "bear", "king": "bear", "robot2": "frog", "robot": "frog",
+        let aliases = ["queen": "bear", "king": "bear", "robot2": "robot", "robot": "robot",
                        "mouse2": "mouse", "bear2": "bear", "bunny2": "bunny", "zebra": "bunny",
                        "cat": "fox", "dog": "bear", "owl": "songbird", "duck": "songbird",
-                       "lion": "bear", "dancer": "bunny", "firefighter": "bear", "officer": "bear",
+                       "lion": "bear", "dancer": "bunny", "firefighter": "firefighter", "officer": "officer",
                        "alien": "frog", "astronaut": "mouse"]
         let name = oldNames[oldIndex]
         return artCharacterNames.firstIndex(of: aliases[name] ?? name) ?? 0
+    }
+
+    /// What VoiceOver calls a friend: a child's word, not the asset key.
+    static func friendlyName(_ name: String) -> String {
+        switch name {
+        case "officer": return "police officer"
+        default: return name
+        }
     }
 
     private static let atlasForCharacter = [
         "bunny": "mixup-friends-a", "bear": "mixup-friends-a", "songbird": "mixup-friends-a",
         "fox": "mixup-friends-b", "mouse": "mixup-friends-b", "frog": "mixup-friends-b"
     ]
+    private static let atlasCanvas = CGSize(width: 1536, height: 1024)   // atlases a and b, 1x
     // Pixel rectangles measured from the native transparent atlases. No color
     // keying/despill or bitmap surgery: these are runtime texture coordinates.
     private static let paintedBounds: [String: [MixUpZone: CGRect]] = [
@@ -96,19 +129,71 @@ enum MixUpLibrary {
         "frog": [.head: CGRect(x: 1063, y: 49, width: 393, height: 331), .body: CGRect(x: 1004, y: 392, width: 507, height: 264), .legs: CGRect(x: 1066, y: 668, width: 389, height: 320)],
     ]
 
+    // Atlas C: the robot, police officer and firefighter in the a/b layout, once that art
+    // lands (Docs/MixUp-Friends-Prompt.md). Until then there are NO rects here, so the C
+    // path stays off even if an imageset appears. To wire it, replace these two
+    // declarations with the output of
+    //   python3 Tools/Art/measure_atlas.py App/Resources/Assets.xcassets/mixup-friends-c.imageset/mixup-friends-c.png
+    // and C is preferred over the interim parts below whenever its imageset loads.
+    private static let friendsCCanvas = CGSize(width: 1536, height: 1024)
+    private static let friendsCBounds: [String: [MixUpZone: CGRect]] = [:]
+
+    // Interim art for the returning friends: the build-1 part images (@3x, one part on a
+    // fixed canvas each; robot2 is the clean robot). Rects are the alpha > 32 box padded
+    // 3 px, which skips the faint ghost despill left where officer-legs had a baked teal
+    // shadow (Tools/Art/despill.py --shadow-strength 0).
+    private static let singleImageParts: [String: [MixUpZone: MixUpArtSource]] = [
+        "robot": [
+            .head: MixUpArtSource(image: "robot2-head", pixelSize: CGSize(width: 520, height: 850), rect: CGRect(x: 33, y: 386, width: 452, height: 441)),
+            .body: MixUpArtSource(image: "robot2-body", pixelSize: CGSize(width: 650, height: 500), rect: CGRect(x: 16, y: 12, width: 617, height: 300)),
+            .legs: MixUpArtSource(image: "robot2-legs", pixelSize: CGSize(width: 400, height: 240), rect: CGRect(x: 20, y: 7, width: 360, height: 227)),
+        ],
+        "officer": [
+            .head: MixUpArtSource(image: "officer-head", pixelSize: CGSize(width: 520, height: 850), rect: CGRect(x: 33, y: 382, width: 452, height: 445)),
+            .body: MixUpArtSource(image: "officer-body", pixelSize: CGSize(width: 650, height: 500), rect: CGRect(x: 17, y: 13, width: 615, height: 378)),
+            .legs: MixUpArtSource(image: "officer-legs", pixelSize: CGSize(width: 400, height: 240), rect: CGRect(x: 68, y: 7, width: 248, height: 224)),
+        ],
+        "firefighter": [
+            .head: MixUpArtSource(image: "firefighter-head", pixelSize: CGSize(width: 520, height: 850), rect: CGRect(x: 34, y: 402, width: 452, height: 425)),
+            .body: MixUpArtSource(image: "firefighter-body", pixelSize: CGSize(width: 650, height: 500), rect: CGRect(x: 16, y: 13, width: 617, height: 415)),
+            .legs: MixUpArtSource(image: "firefighter-legs", pixelSize: CGSize(width: 400, height: 240), rect: CGRect(x: 52, y: 7, width: 296, height: 227)),
+        ],
+    ]
+
+    /// The painted source for one friend's part: atlas C when measured and present, then
+    /// atlases a/b, then the interim single-image parts.
+    private static func artSource(_ name: String, zone: MixUpZone) -> MixUpArtSource? {
+        if let rects = friendsCBounds[name], rects.count == MixUpZone.allCases.count,
+           let rect = rects[zone], ToyArt.texture("mixup-friends-c") != nil {
+            return MixUpArtSource(image: "mixup-friends-c", pixelSize: friendsCCanvas, rect: rect)
+        }
+        if let atlas = atlasForCharacter[name], let rect = paintedBounds[name]?[zone] {
+            return MixUpArtSource(image: atlas, pixelSize: atlasCanvas, rect: rect)
+        }
+        return singleImageParts[name]?[zone]
+    }
+
     private static func artCharacterParts(for zone: MixUpZone) -> [MixUpPart] {
-        // Require the complete cast, so a missing atlas cannot shift saved indices.
+        // Atlases a and b are required, so a missing atlas cannot shift saved indices 0-5.
         guard ["mixup-friends-a", "mixup-friends-b"].allSatisfy({ ToyArt.texture($0) != nil }) else { return [] }
-        return artCharacterNames.compactMap { artPart(name: $0, zone: zone) }
+        // Appended friends join only while they, and every friend before them, have all
+        // three parts: every zone's pool stays the same length and no saved index can
+        // point at a different friend.
+        var cast = Array(artCharacterNames.prefix(6))
+        for name in artCharacterNames.dropFirst(6) {
+            let complete = MixUpZone.allCases.allSatisfy { zone in
+                artSource(name, zone: zone).flatMap { ToyArt.texture($0.image) } != nil
+            }
+            guard complete else { break }
+            cast.append(name)
+        }
+        return cast.compactMap { artPart(name: $0, zone: zone) }
     }
 
     private static func artPart(name: String, zone: MixUpZone) -> MixUpPart? {
-        guard let atlas = atlasForCharacter[name], let texture = ToyArt.texture(atlas),
-              let bounds = paintedBounds[name]?[zone] else { return nil }
-        let source = CGSize(width: 1536, height: 1024)
-        let crop = CGRect(x: bounds.minX / source.width, y: 1 - bounds.maxY / source.height,
-                          width: bounds.width / source.width, height: bounds.height / source.height)
-        let paintedTexture = SKTexture(rect: crop, in: texture)
+        guard let source = artSource(name, zone: zone), let texture = ToyArt.texture(source.image) else { return nil }
+        let bounds = source.rect
+        let paintedTexture = SKTexture(rect: source.unitRect, in: texture)
         paintedTexture.filteringMode = .linear
         return MixUpPart(name: name) { s in
             let n = SKNode()

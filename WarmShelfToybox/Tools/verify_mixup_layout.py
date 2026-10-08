@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
-"""Verify production Mix-Up layout across phone/tablet safe areas."""
+"""Verify production Mix-Up layout across phone/tablet safe areas.
+
+Needs `xcrun swift` on a Mac, or SWIFT set to a swift binary (e.g. a Linux toolchain).
+"""
 from pathlib import Path
-import re, subprocess, tempfile
+import os, re, subprocess, tempfile
+SWIFT=[os.environ['SWIFT']] if os.environ.get('SWIFT') else ['xcrun','swift']
 root=Path(__file__).resolve().parents[1]
 s=(root/'App/Toys/MixUp/MixUpScene.swift').read_text()
 base=(root/'App/Shared/BaseToyScene.swift').read_text()
@@ -14,7 +18,9 @@ need=['private var controlRadius:','private var controlTouchRadius:','private va
 methods='\n'.join(block(s,x).replace('private ','') for x in need)
 helpers='\n'.join(block(base,x) for x in ['var isLandscapeLayout:','var isTabletLayout:','func safePlayRect'])
 code='''import Foundation
+#if canImport(CoreGraphics)
 import CoreGraphics
+#endif
 struct Insets { let top: CGFloat; let left: CGFloat; let bottom: CGFloat; let right: CGFloat }
 enum MixUpZone: CaseIterable { case head, body, legs }
 private extension Comparable {
@@ -88,4 +94,4 @@ print("Mix-Up room/layout: \\(checks) checks passed.")
 '''
 with tempfile.TemporaryDirectory(prefix='lull-mixroom-verify-') as tmp:
  p=Path(tmp)/'check.swift';p.write_text(code)
- subprocess.run(['xcrun','swift','-module-cache-path',str(Path(tmp)/'cache'),str(p)],check=True)
+ subprocess.run(SWIFT+['-module-cache-path',str(Path(tmp)/'cache'),str(p)],check=True)

@@ -1,0 +1,150 @@
+LULL — WHICH NEW TOY REPLACES STACK
+Research overview, October 9, 2026
+
+THE ANSWER
+-----------
+Build LITTLE WASH, a calm car wash: muddy felt vehicles roll in, the child scrubs,
+rinses and buffs them clean, and they drive off sparkling.
+It beats all three of my earlier options, Pond included.
+
+Revised ranking:
+  1. Little Wash (car wash)           NEW
+  2. Little Pond (magnetic fishing)   my old pick, still a strong option
+  3. Little Railway (wooden train)    NEW
+  Dropped: Little Town, Little Garden, marble run, bakery, sandbox, colour mixing, laundry.
+
+
+WHAT THE RESEARCH CHANGED
+-------------------------
+- Garden is out. Sago Mini's gardening game (Jinja's Garden, Apple Arcade, ages 3–6)
+  won a 2026 Apple Design Award for Interaction. We'd be compared to an award winner,
+  and it overlaps our Meadow.
+- Town, marble run and bakery are taken. Pok Pok is the closest rival: calm, Montessori,
+  "handcrafted", won an Apple Design Award in 2021, 25 toys. It already has a Town, a
+  Marble Machine, Cooking, and Shops (a bakery).
+- Pok Pok has no water play, washing, fishing or trains. That's open ground.
+- Vehicles are the biggest interest at this age.
+  - A Hot Wheels car set was the world's top-selling toy of 2025 (Circana).
+  - About 1 in 3 young children has an "extremely intense interest" (DeLoache 2007).
+    75% of them are boys, and vehicles and trains are among the most common.
+  - Your son lit up at the police officer and firefighter.
+- Cleaning is one of the most satisfying things to do in a game.
+  - PowerWash Simulator passed 12 million players.
+  - "Oddly satisfying" videos all share one thing: you watch something get finished.
+  - Washing is classic Montessori practical life (caring for things).
+- The gesture is perfect for 2-year-olds. Rubbing needs no precision and no timing.
+  - Research on toddlers (Nácher 2015) found double-tap and long-press unreliable.
+  - It also found that steering along a path needs precision.
+  - Rubbing anywhere avoids all of that.
+- The market has a real gap at the top.
+  - Car-wash apps for kids are plentiful but ad-funded and low quality.
+  - There's no premium, calm one.
+  - Sago Mini (Feb 2024) and Toca Boca (Jan 2024) pulled all their one-time-purchase apps.
+  - A beautiful, buy-once calm toy now stands out more.
+
+
+#1  LITTLE WASH — the design
+----------------------------
+The loop (about 1 minute per vehicle):
+  1. A muddy vehicle rolls into a felt-and-wood wash bay, splashing through a puddle.
+     Its face is in the windshield and its eyes follow your finger.
+  2. Three big tools, any order, rub anywhere:
+     - soapy sponge: mud turns to foam
+     - hose: rinses foam and mud away
+     - towel: buffs it to a shine
+  3. When it's clean: a sparkle sweeps across, a happy wiggle, a soft "toot",
+     and it drives off. The next one rolls in.
+
+Why it's fun:
+  - Instant, with no instructions needed.
+  - Visible before and after.
+  - The vehicle reacts the whole time: giggles at the brush, sneezes at foam.
+
+Why it looks great:
+  - Mud on felt, white foam, water and a sparkle sweep: every frame is a screenshot.
+  - "Half-clean fire truck covered in foam" is the App Store hero image.
+
+The cast:
+  - fire truck, police car, tractor, school bus, digger, ice-cream van
+  - Rare guests: a muddy piglet in a wagon, a hot-air-balloon basket, a toy rocket.
+
+Depth for a 6-year-old:
+  - Different dirt: mud, autumn leaves, snow, sand from the beach, paint splashes.
+  - Spinning brushes, which feed the "rotation" play children love
+    (wheels, washing machines).
+  - Rare guests and surprises.
+
+Calm by design:
+  - No timer, no score, slow vehicles.
+  - Soft water and foam sounds, soft horn, no sirens.
+
+Watch-outs:
+  - Its "next visitor" loop resembles Feed. We vary arrivals and keep it short.
+  - Foam must not turn into a second Bubbles toy.
+
+Art: about 12 images. Six vehicles drawn clean (mud is added in code), the wash bay,
+3 tools and 4 mud textures.
+Build: about 3 days. The scrub-to-clean effect is a mud layer erased by touch;
+straightforward in SpriteKit.
+
+
+#2  LITTLE POND — magnetic fishing
+----------------------------------
+Dangle a magnet bobber, a felt fish swims up and sticks, lift it into the bucket,
+tip the bucket and they all splash back.
+
+For:
+  - The calmest option.
+  - Water is lovely.
+  - Magnetic fishing is a perennial bestseller: Pressman's "Let's Go Fishin'" tops
+    Amazon's toddler fishing toys (an estimated 9,000 a month).
+  - Toddler fishing apps are thin, ad-ridden and barely rated.
+  - Nobody premium does it.
+
+Against:
+  - Less depth.
+  - Little pull for vehicle-loving kids.
+  - Lifting at the right moment needs a forgiving auto-catch.
+
+Art: about 10 images. Build: about 2–3 days.
+
+
+#3  LITTLE RAILWAY — wooden train
+---------------------------------
+A felt train on a wooden track that's already laid. The child pulls the train to go,
+flips the switch points, picks up animal passengers at stations, and sends it through
+a tunnel and over a bridge.
+
+For:
+  - Trains are a classic deep interest.
+  - BRIO-style wooden track plus felt looks iconic.
+  - The chugging rhythm is soothing.
+  - The only train apps are brand-led (LEGO DUPLO); Toca Train is gone.
+
+Against:
+  - Laying track is fiddly by touch, so v1 must use a pre-laid layout.
+  - The most work: about 4 days, about 14 images.
+
+
+WHY THE OTHERS DROPPED
+----------------------
+- Little Town: Pok Pok has Town; steering along roads needs precision; most work for the payoff.
+- Little Garden: an award winner already owns it; overlaps Meadow.
+- Marble run: Pok Pok's Marble Machine; building runs is precision-heavy; overlaps Hum.
+- Bakery/kitchen: Pok Pok Cooking and Shops; overlaps Feed.
+- Sandbox/diggers: lovely, but realistic sand is hard to render well.
+- Colour mixing: great Montessori fit, but overlaps Drop Dots colours and Pok Pok Drawing.
+- Laundry: toddlers adore watching washing machines, but it's quieter as a first
+  impression. Good future toy.
+
+
+NEXT STEP
+---------
+If you say yes to Little Wash, I'll write the image prompts for the 6 vehicles and the
+wash bay, then build it.
+
+Sources: Pok Pok site and App Store listing; Sago Mini help centre (standalone apps
+removed Feb 29, 2024); Toca Boca (Wikipedia); Apple Design Awards; gori.me on Jinja's
+Garden; Circana toy awards (Jan 2026); DeLoache, Simcock & Macari, Developmental
+Psychology 2007; Nácher et al., IJHCS 2015; PowerWash Simulator player count (KitGuru);
+Amazon toddler fishing-toy sales trackers (2026); Radesky et al. 2018 on ads in kids' apps.

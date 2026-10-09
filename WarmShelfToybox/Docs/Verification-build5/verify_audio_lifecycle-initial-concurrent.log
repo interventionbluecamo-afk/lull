@@ -1,0 +1,7 @@
+lifecycle/main.swift:6: Precondition failed: FAIL: Repeated cues rotate through rendered variants (saw 1)
+Traceback (most recent call last):
+  File "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Tools/verify_audio_lifecycle.py", line 221, in <module>
+    subprocess.run([str(exe)], check=True)
+  File "/Users/User2/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['/var/folders/cc/yvglw42j0gs48_wtzv6t5gdw0000gp/T/tmplb5qytx6/lifecycle']' died with <Signals.SIGTRAP: 5>.

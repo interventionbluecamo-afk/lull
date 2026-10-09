@@ -1,0 +1,12 @@
+Debug simulator: BUILD SUCCEEDED
+2026-10-09 11:46:17.171 appintentsmetadataprocessor[83795:4073954] warning: Metadata extraction skipped, no AppIntents.framework dependency found
+
+Release iPhone: BUILD SUCCEEDED
+2026-10-09 11:46:59.540 appintentsmetadataprocessor[83878:4076004] warning: Metadata extraction skipped, no AppIntents.framework dependency found
+
+Bundle version: 1.0 (5)
+Signed source: 7dca11b9b49addc73337fe6859076149afa4a1ed
+iPhone installation: SUCCESS
+Launch: Launched application with com.lull.toybox.a5ct5fk3sy bundle identifier.
+Device play/listening approval: pending founder review
+Archive/upload this turn: none

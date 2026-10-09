@@ -66,3 +66,8 @@ founder owns device testing; upload only with the founder's explicit approval.
    flowers, Wren in felt, Feed food set, Sleepy Box shapes.
 4. Still open from before: GitHub repo is public (founder: make it private), support domain/email,
    store screenshots, website hosting, Paid Apps Agreement, Kids age band, trial model decision.
+
+
+## Completed continuation — October 9
+
+All six fallback polish changes are implemented, SDK-built and installed as 1.0 (5). Read [the current ChatGPT handoff](Handoff-ChatGPT-to-Claude-2026-10-09-build5.md) and its verification logs before continuing. Founder device approval is pending; this turn did not upload TestFlight.

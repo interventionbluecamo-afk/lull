@@ -15,8 +15,10 @@ final class ToyShelfScene: BaseToyScene {
     private weak var hostTouch: UITouch?
     private var hostTouchLastPoint = CGPoint.zero
     private var hostLongPressActive = false
-    private var hostTapCount = 0
-    private var lastHostTapAt: TimeInterval = 0
+    /// Where Wren is peeking from right now (see `WrenSpot`), and whether he is mid-trip.
+    private var wrenSpot: WrenSpot = .home
+    private var wrenIsTravelling = false
+    private var wrenSpotQueue: [WrenSpot] = []
     private var lastShelfInteractionAt: TimeInterval = 0
     private var nextShelfInvitationAt: TimeInterval = 0
     private var shelfInvitationCursor = 0
@@ -313,8 +315,47 @@ final class ToyShelfScene: BaseToyScene {
         )
     }
 
-    private func hostAwakeY() -> CGFloat {
-        hostRestingPosition().y + 24 * hostScale()
+    /// Peek-a-boo spots around the screen's edges (founder, build 5: "tap him and he wiggles off
+    /// screen and pops up in other spots around the edges"). All of them sit where the shelf
+    /// layout never puts a card: the bottom band it reserves for Wren and the top corners beside
+    /// the wordmark. The bottom-right spot keeps clear of the grown-up button; the top corners
+    /// stay away from the rounded display corners and the Dynamic Island.
+    private enum WrenSpot: CaseIterable { case home, bottomMiddle, bottomRight, topLeft, topRight }
+
+    /// Rest position, the unit direction that leads off-screen, and Wren's rotation at a spot.
+    /// Away from home he only peeks: his head shows over the edge and his body stays hidden.
+    private func wrenPlacement(_ spot: WrenSpot) -> (rest: CGPoint, out: CGVector, rotation: CGFloat) {
+        let r = 58 * hostScale()
+        let safe = view?.safeAreaInsets ?? .zero
+        switch spot {
+        case .home:
+            return (hostRestingPosition(), CGVector(dx: 0, dy: -1), 0)
+        case .bottomMiddle:
+            return (CGPoint(x: size.width * 0.5, y: r * 0.2), CGVector(dx: 0, dy: -1), 0)
+        case .bottomRight:
+            let x = size.width - safe.right - 14 - 44 - 24 - r * 0.8
+            return (CGPoint(x: x, y: r * 0.2), CGVector(dx: 0, dy: -1), 0)
+        case .topLeft:
+            return (CGPoint(x: size.width * 0.22, y: size.height + r * 0.05), CGVector(dx: 0, dy: 1), .pi)
+        case .topRight:
+            return (CGPoint(x: size.width * 0.78, y: size.height + r * 0.05), CGVector(dx: 0, dy: 1), .pi)
+        }
+    }
+
+    /// A little further in from the edge: the look-up after a shelf wake or a touch.
+    private func wrenAwakePosition() -> CGPoint {
+        let placement = wrenPlacement(wrenSpot)
+        let lift = 24 * hostScale()
+        return CGPoint(x: placement.rest.x - placement.out.dx * lift, y: placement.rest.y - placement.out.dy * lift)
+    }
+
+    /// The next spot: every spot once, in a fresh order, before any repeats, never where he is now.
+    private func nextWrenSpot() -> WrenSpot {
+        if wrenSpotQueue.isEmpty {
+            wrenSpotQueue = WrenSpot.allCases.filter { $0 != wrenSpot }.shuffled()
+        }
+        let next = wrenSpotQueue.removeFirst()
+        return next == wrenSpot ? nextWrenSpot() : next
     }
 
     /// Wren sleeps visibly in the shelf corner, then leans awake after a beautiful
@@ -322,11 +363,63 @@ final class ToyShelfScene: BaseToyScene {
     private func addShelfHost() {
         let host = LullHostNode(scale: hostScale())
         host.name = "shelfHost"
-        host.position = hostRestingPosition()
+        let placement = wrenPlacement(wrenSpot)
+        host.position = placement.rest
+        host.zRotation = placement.rotation
         host.zPosition = 250
         host.rest()
         contentRoot.addChild(host)
         shelfHost = host
+        wrenIsTravelling = false
+    }
+
+    /// Peek-a-boo: a happy wiggle, off the nearest edge, a beat of nothing, then in from another
+    /// edge with a small overshoot, a look at the child, and back to his sleepy breathing.
+    /// Silent (felt as a soft haptic). Reduce Motion fades him out and in instead.
+    private func wrenPeekABoo(lookingAt point: CGPoint) {
+        guard let host = shelfHost, !wrenIsTravelling else { return }
+        wrenIsTravelling = true
+        lastHostPeek = CACurrentMediaTime()
+        HapticsManager.shared.softTap()
+        host.removeAction(forKey: "hostPeek")
+        host.removeAction(forKey: "hostPeekHide")
+
+        let from = wrenPlacement(wrenSpot)
+        let next = nextWrenSpot()
+        let to = wrenPlacement(next)
+        let r = 58 * hostScale()
+        let away = r * 2.8
+        let gone = CGPoint(x: from.rest.x + from.out.dx * away, y: from.rest.y + from.out.dy * away)
+        let start = CGPoint(x: to.rest.x + to.out.dx * away, y: to.rest.y + to.out.dy * away)
+        let arrive: [SKAction]
+        let leave: [SKAction]
+        if AmbientAnimator.reduceMotion {
+            leave = [.wait(forDuration: 0.15), .fadeOut(withDuration: 0.25)]
+            arrive = [.run { [weak host] in host?.position = to.rest }, .fadeIn(withDuration: 0.35)]
+        } else {
+            let exit = SKAction.move(to: gone, duration: 0.32); exit.timingMode = .easeIn
+            let overshoot = CGPoint(x: to.rest.x - to.out.dx * r * 0.14, y: to.rest.y - to.out.dy * r * 0.14)
+            let enter = SKAction.move(to: overshoot, duration: 0.42); enter.timingMode = .easeOut
+            let settle = SKAction.move(to: to.rest, duration: 0.2); settle.timingMode = .easeInEaseOut
+            leave = [.wait(forDuration: 0.42), exit]
+            arrive = [.run { [weak host] in host?.position = start }, enter, settle]
+        }
+        host.wiggle()
+        host.run(.sequence(leave + [
+            .run { [weak self, weak host] in
+                host?.zRotation = to.rotation
+                self?.wrenSpot = next
+            },
+            .wait(forDuration: Double.random(in: 0.8...1.4)),
+            .run { [weak host] in host?.notice(toward: point) }   // "I see you" — toward where the child tapped
+        ] + arrive + [
+            .run { [weak host] in host?.respond() },
+            .wait(forDuration: 1.1),
+            .run { [weak self, weak host] in
+                host?.settle()
+                self?.wrenIsTravelling = false
+            }
+        ]), withKey: "hostPeek")
     }
 
     // Wren peeks up after a shelf wake — throttled to stay a rare, earned moment.
@@ -335,8 +428,9 @@ final class ToyShelfScene: BaseToyScene {
         let now = CACurrentMediaTime()
         guard now - lastHostPeek > 11 else { return }   // keep it a rare, earned moment
         lastHostPeek = now
-        let up = SKAction.moveTo(y: hostAwakeY(), duration: 0.5); up.timingMode = .easeOut
-        let down = SKAction.moveTo(y: hostRestingPosition().y, duration: 0.95); down.timingMode = .easeInEaseOut
+        guard !wrenIsTravelling else { return }
+        let up = SKAction.move(to: wrenAwakePosition(), duration: 0.5); up.timingMode = .easeOut
+        let down = SKAction.move(to: wrenPlacement(wrenSpot).rest, duration: 0.95); down.timingMode = .easeInEaseOut
         host.removeAction(forKey: "hostPeek")
         host.run(.sequence([
             up,
@@ -348,26 +442,18 @@ final class ToyShelfScene: BaseToyScene {
         ]), withKey: "hostPeek")
     }
 
-    private func tapHost(at point: CGPoint) {
-        guard let host = shelfHost else { return }
-        lastHostPeek = CACurrentMediaTime()
-        presentHostForInteraction()
-        host.tapped(at: point)
-        hideHost(after: 2.1)
-    }
-
     private func presentHostForInteraction() {
-        guard let host = shelfHost else { return }
+        guard let host = shelfHost, !wrenIsTravelling else { return }
         host.removeAction(forKey: "hostPeek")
         host.removeAction(forKey: "hostPeekHide")
-        let up = SKAction.moveTo(y: hostAwakeY(), duration: 0.20)
+        let up = SKAction.move(to: wrenAwakePosition(), duration: 0.20)
         up.timingMode = .easeOut
         host.run(up, withKey: "hostPeek")
     }
 
     private func hideHost(after delay: TimeInterval) {
-        guard let host = shelfHost else { return }
-        let down = SKAction.moveTo(y: hostRestingPosition().y, duration: 0.95)
+        guard let host = shelfHost, !wrenIsTravelling else { return }
+        let down = SKAction.move(to: wrenPlacement(wrenSpot).rest, duration: 0.95)
         down.timingMode = .easeInEaseOut
         host.run(.sequence([
             .wait(forDuration: delay),
@@ -379,6 +465,7 @@ final class ToyShelfScene: BaseToyScene {
     }
 
     private func beginHostTouch(_ touch: UITouch, at point: CGPoint) {
+        guard !wrenIsTravelling else { return }   // mid peek-a-boo: let him finish his trip
         hostTouch = touch
         hostTouchLastPoint = point
         hostLongPressActive = false
@@ -415,7 +502,6 @@ final class ToyShelfScene: BaseToyScene {
 
         if hostLongPressActive {
             hostLongPressActive = false
-            hostTapCount = 0
             shelfHost?.endLongPress(at: point)
             hideHost(after: 1.4)
             return true
@@ -431,28 +517,9 @@ final class ToyShelfScene: BaseToyScene {
         return true
     }
 
+    /// A tap is peek-a-boo: Wren wiggles off and pops up somewhere else around the edges.
     private func registerHostTap(at point: CGPoint) {
-        let now = CACurrentMediaTime()
-        if now - lastHostTapAt > 0.66 {
-            hostTapCount = 0
-        }
-        hostTapCount += 1
-        lastHostTapAt = now
-
-        removeAction(forKey: "hostTapReset")
-        run(.sequence([
-            .wait(forDuration: 0.72),
-            .run { [weak self] in self?.hostTapCount = 0 }
-        ]), withKey: "hostTapReset")
-
-        if hostTapCount >= 3 {
-            hostTapCount = 0
-            presentHostForInteraction()
-            shelfHost?.giggle(at: point)
-            hideHost(after: 2.0)
-        } else {
-            tapHost(at: point)
-        }
+        wrenPeekABoo(lookingAt: point)
     }
 
     private func nodeIsHost(_ nodes: [SKNode]) -> Bool {

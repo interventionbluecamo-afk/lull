@@ -425,6 +425,26 @@ final class LullHostNode: SKNode {
         HapticsManager.shared.softTap()
     }
 
+    /// Peek-a-boo (founder, build 5): a quick happy wiggle before Wren scoots off the edge.
+    /// Quiet on purpose: no sound, just a delighted face and a wiggle.
+    func wiggle() {
+        removeAction(forKey: "host.sequence")
+        state = .responding
+        breathing.removeAction(forKey: breatheKey)
+        removeAction(forKey: eyeWanderKey)
+        showSleeping(false, duration: 0.08)
+        centerPupils(duration: 0.1)
+        mouth?.path = delightedMouthPath()
+        bloomCheeks(alpha: 0.9, lift: r * 0.08, duration: 0.1)
+        guard !AmbientAnimator.reduceMotion else { return }
+        let a: CGFloat = 0.16
+        breathing.run(.sequence([
+            .rotate(toAngle: a, duration: 0.07), .rotate(toAngle: -a, duration: 0.1),
+            .rotate(toAngle: a * 0.8, duration: 0.1), .rotate(toAngle: -a * 0.6, duration: 0.09),
+            .rotate(toAngle: 0, duration: 0.08)
+        ]), withKey: leanKey)
+    }
+
     func giggle(at point: CGPoint? = nil) {
         removeAction(forKey: "host.sequence")
         state = .responding

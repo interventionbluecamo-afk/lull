@@ -123,3 +123,10 @@ Feed 958, Hum 10,367, Mix-Up 399 + 280, adult gate, onboarding and rest verifier
    replacement and the Meadow direction. Upload only with the founder's words.
 3. Still open from before: GitHub repo is public (founder: make it private), support domain/email,
    store screenshots, website hosting, Paid Apps Agreement, Kids age band, trial model decision.
+
+## Update — Stack replacement chosen (October 9, late)
+
+The founder chose **Little Wash** (calm car wash) after research
+(`Polish-2026-10-09/Stack-replacement-overview.txt`). Image prompts:
+`Polish-2026-10-09/Little-Wash-image-prompts.md`. Implementation handoff for ChatGPT (build 6
+first, then Little Wash as 1.0 (7)): `Handoff-Claude-to-ChatGPT-2026-10-09-little-wash.md`.

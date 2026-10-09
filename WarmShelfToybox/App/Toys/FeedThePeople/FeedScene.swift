@@ -122,9 +122,11 @@ final class FeedScene: BaseToyScene {
         static let insetX: CGFloat = 0.06
         static let boardOffsets: [CGFloat] = [0.0, 0.42, 0.18, 0.55, 0.30, 0.08, 0.47, 0.24]
         /// Share of a painted friend hidden behind the counter's far edge: the lower body.
-        /// The pass-2 waist-up friends' necks end ~68% down the canvas, so hiding 26%
-        /// keeps a little collar or shawl above the counter instead of cutting at the chin.
-        static let hiddenFraction: CGFloat = 0.26
+        /// The pass-2 waist-up friends' necks end ~68% down the canvas. Hiding 26% cut the
+        /// sprout and the knit-hat kid just under the chin (founder, build 5: "the counter may
+        /// be a little high for some of the friends… slight"); 20% shows their sweaters'
+        /// chest and the grandmother's whole shawl button, and still hides hands and base.
+        static let hiddenFraction: CGFloat = 0.20
     }
 
     private var hasCounterArt: Bool { ToyArt.texture("feed-counter") != nil }
@@ -1095,16 +1097,12 @@ final class FeedScene: BaseToyScene {
             count: 6,
             includesRipple: true
         )
-        // Asymmetric timing: quick lift (0.14s easeOut) → slow settle (0.28s easeInEaseOut).
-        let dy = max(10, food.foodSize.height * 0.10)
-        let lift = SKAction.moveBy(x: 0, y: dy, duration: 0.14); lift.timingMode = .easeOut
-        let settle = SKAction.moveBy(x: 0, y: -dy, duration: 0.28); settle.timingMode = .easeInEaseOut
-        let grow = SKAction.scale(to: 1.10, duration: 0.14); grow.timingMode = .easeOut
-        let shrink = SKAction.scale(to: 1.0, duration: 0.28); shrink.timingMode = .easeInEaseOut
-        food.run(.sequence([
-            .group([lift, grow]),
-            .group([settle, shrink])
-        ]), withKey: "firstInvitePulse")
+        // In place: a soft swell, never a hop, so the wished-for food stays where a small
+        // hand is already reaching (founder, build 5).
+        guard !food.isDragging, !food.isServing else { return }
+        let grow = SKAction.scale(to: 1.07, duration: 0.18); grow.timingMode = .easeOut
+        let shrink = SKAction.scale(to: 1.0, duration: 0.34); shrink.timingMode = .easeInEaseOut
+        food.run(.sequence([grow, shrink]), withKey: "firstInvitePulse")
     }
 
     private func startingFoodPositions(count: Int) -> [CGPoint] {
@@ -1145,14 +1143,12 @@ final class FeedScene: BaseToyScene {
         }
     }
 
+    /// Food rests still on its plate (founder, build 5: foods "randomly moving" while a child
+    /// might want to use one next). The drift also re-anchored wherever a food happened to be,
+    /// so foods could wander off their plates over time. Kept as the one place to add rest.
     private func runIdleFoodMotion(_ food: FoodNode, index: Int) {
-        AmbientAnimator.idleDrift(
-            node: food,
-            x: CGFloat.random(in: -2.4...2.4),
-            y: CGFloat.random(in: 1.8...4.0),
-            duration: Double.random(in: 5.2...7.8),
-            delay: Double(index) * 0.18
-        )
+        food.removeAction(forKey: "ambientIdleDrift")
+        food.removeAction(forKey: "ambientIdleDriftLoop")
     }
 
     private func addAmbientTableLife() {
@@ -1529,42 +1525,26 @@ final class FeedScene: BaseToyScene {
         ]))
     }
 
+    /// Only the plate that was used refills, in place: the fresh food grows on its own plate.
+    /// Nothing flies in across the counter and nothing else moves, so the food a child is
+    /// about to pick next stays exactly where it was (founder, build 5).
     private func respawnFood(kind: FoodKind) {
-        let delay = SKAction.wait(forDuration: Double.random(in: 0.6...1.0))
+        let delay = SKAction.wait(forDuration: 0.8)
         let appear = SKAction.run { [weak self] in
             guard let self else { return }
 
             let existingFoods = self.foodLayer.children.compactMap { $0 as? FoodNode }
             guard !existingFoods.contains(where: { $0.kind == kind && !$0.isServing }) else { return }
             let food = self.makeFood(kind: kind, index: existingFoods.count)
-            if self.hasCounterArt {
-                // The shopkeeper's stock lives under the counter: the fresh food rises
-                // from below the near edge straight onto its own plate.
-                food.position = CGPoint(x: food.homePosition.x, y: -food.foodSize.height * 0.5)
-            } else {
-                food.position = CGPoint(
-                    x: self.foodSourcePosition.x + CGFloat.random(in: -28...28),
-                    y: self.foodSourcePosition.y + food.foodSize.height * 0.10
-                )
-            }
+            food.position = food.homePosition
             food.alpha = 0
-            food.setScale(0.78)
+            food.setScale(0.6)
             self.foodLayer.addChild(food)
-            AudioManager.shared.playFoodPlop()
 
-            let target = food.homePosition
-            let move = SKAction.move(to: target, duration: Double.random(in: 0.34...0.50))
-            let fade = SKAction.fadeAlpha(to: 1, duration: 0.20)
-            let grow = SKAction.scale(to: 1.0, duration: 0.26)
-            move.timingMode = .easeOut
+            let fade = SKAction.fadeAlpha(to: 1, duration: 0.22)
+            let grow = SKAction.scale(to: 1.0, duration: 0.3)
             grow.timingMode = .easeOut
-            food.run(.sequence([
-                .group([move, fade, grow]),
-                .run { [weak self, weak food] in
-                    guard let self, let food else { return }
-                    self.runIdleFoodMotion(food, index: Int(food.zPosition))
-                }
-            ]))
+            food.run(.group([fade, grow]))
         }
         run(.sequence([delay, appear]), withKey: "feed.respawn.\(kind.accessibilityName)")
     }

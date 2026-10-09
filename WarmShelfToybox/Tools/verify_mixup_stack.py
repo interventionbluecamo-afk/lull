@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check production Mix-Up registration/legacy recipes and Stack supply fit.
+"""Check production Mix-Up registration/legacy recipes and Stack supply/rooted tower geometry.
 
 Needs Pillow (also used by Tools/Art) and a Swift toolchain: `xcrun swift` on a Mac,
 or set SWIFT to a swift binary (e.g. a Linux toolchain). No images are changed.
@@ -212,13 +212,17 @@ check('MixUpLibrary.friendlyName(' in scene and '"police officer"' in source,
 # device/orientation families leave a visible, separate, unblocked supply tray.
 tray = block(stack, 'private var trayRect: CGRect').replace('private var', 'var')
 scale = block(stack, 'private var pieceScale: CGFloat').replace('private var', 'var')
-swift = SWIFT_PRELUDE + '''private extension Comparable {
+ground = block(stack, 'private func groundLineY(for canvasSize: CGSize)').replace('private func', 'func')
+supply_plan = block(stack, 'enum StackSupplyPlan')
+tower_geometry = block(stack, 'enum StackTowerGeometry')
+restore_plan = block(stack, 'enum StackRestorePlan')
+swift = SWIFT_PRELUDE + supply_plan + '\n' + tower_geometry + '\n' + restore_plan + '''\nprivate extension Comparable {
     func clamped(to limits: ClosedRange<Self>) -> Self { min(max(self, limits.lowerBound), limits.upperBound) }
 }
 struct Layout {
     let size: CGSize
-    var groundLineY: CGFloat { 200 }
-'''+scale+'\n'+tray+'''
+    var groundLineY: CGFloat { groundLineY(for: size) }
+'''+scale+'\n'+tray+'\n'+ground+'''
 }
 for size in [CGSize(width: 375, height: 667), CGSize(width: 667, height: 375),
              CGSize(width: 393, height: 852), CGSize(width: 852, height: 393),
@@ -229,11 +233,111 @@ for size in [CGSize(width: 375, height: 667), CGSize(width: 667, height: 375),
     let largestHalfWidth = 116 * layout.pieceScale / 2
     precondition(supply.minX >= 0 && supply.maxX <= size.width)
     precondition(supply.width >= largestHalfWidth * 2 + 12)
-    precondition(size.width * 0.34 + largestHalfWidth + 10 < supply.midX - largestHalfWidth)
+    let bases = StackSupplyPlan.baseFractions(for: size)
+    precondition(bases == (size.width > size.height ? [0.22, 0.46] : [0.34]))
+    for fraction in bases {
+        let x = fraction * size.width
+        precondition(x - largestHalfWidth >= 0)
+        precondition(x + largestHalfWidth + 10 < supply.midX - largestHalfWidth)
+    }
+    if bases.count == 2 {
+        precondition((bases[1] - bases[0]) * size.width > largestHalfWidth * 2 + 10)
+    }
+    let maximumTopY = size.height - (size.width > size.height ? 62 : 90) - 54 * layout.pieceScale
+    let threshold = StackTowerGeometry.wakeThreshold(groundY: layout.groundLineY,
+        maximumTopY: maximumTopY, scale: layout.pieceScale, landscape: size.width > size.height)
+    precondition(threshold >= layout.groundLineY && threshold < maximumTopY)
 }
+// Shape variety depends on successful refill ordinal, never the number of stones left.
+for variation in 0..<7 {
+    let cycle = (0..<7).map { StackSupplyPlan.kindIndex(ordinal: $0, variation: variation) }
+    precondition(Set(cycle) == Set(0..<4))
+    precondition((0..<6).contains { cycle[$0] != cycle[$0 + 1] })
+    for ordinal in 0..<7 {
+        precondition(StackSupplyPlan.kindIndex(ordinal: ordinal + 7, variation: variation) == cycle[ordinal])
+    }
+}
+let tray = CGRect(x: 280, y: 0, width: 100, height: 60)
+func stone(_ index: Int, _ x: CGFloat, _ y: CGFloat,
+           settled: Bool = true, held: Bool = false, rotation: CGFloat = 0) -> StackTowerGeometry.Stone {
+    StackTowerGeometry.Stone(index: index, center: CGPoint(x: x, y: y),
+        size: CGSize(width: 100, height: 50), settled: settled, held: held, rotation: rotation)
+}
+func chain(_ stones: [StackTowerGeometry.Stone], top: Int = 2) -> [Int] {
+    StackTowerGeometry.supportedChain(to: top, stones: stones, groundY: 0, tray: tray)
+}
+let tower = [stone(0, 100, 25), stone(1, 100, 75), stone(2, 100, 125)]
+precondition(chain(tower) == [0, 1, 2])
+precondition(chain(Array(tower.reversed())) == [0, 1, 2])
+precondition(chain([tower[0], stone(1, 100, 75, held: true), tower[2]]).isEmpty)
+precondition(chain([stone(0, 100, 25, settled: false), tower[1], tower[2]]).isEmpty)
+precondition(chain([tower[0], tower[1], stone(2, 100, 125, rotation: 0.6)]).isEmpty)
+precondition(chain([stone(0, 100, 60), stone(1, 100, 110), stone(2, 100, 160)]).isEmpty)
+precondition(chain([tower[0], stone(1, 185, 75), stone(2, 185, 125)]).isEmpty)
+precondition(chain([stone(0, 330, 25), stone(1, 330, 75), stone(2, 330, 125)]).isEmpty)
+precondition(chain([tower[0], tower[1], stone(2, 100, 150)]).isEmpty)
+// A wide top can overlap a floating branch, but its valid rooted path still wins.
+let wideTop = StackTowerGeometry.Stone(index: 2, center: CGPoint(x: 100, y: 125),
+    size: CGSize(width: 200, height: 50), settled: true, held: false, rotation: 0)
+precondition(chain([tower[0], tower[1], wideTop, stone(8, 180, 78)]) == [0, 1, 2])
+precondition(chain([tower[0]], top: 0) == [0])
+precondition(chain([], top: 99).isEmpty)
 '''
+swift += """
+// On the shortest shipped landscape, the mandatory pebble plus smallest bean
+// can trigger the payoff using the production 94% rectangular physics heights.
+let short = Layout(size: CGSize(width: 667, height: 375))
+let scale = short.pieceScale
+let baseHeight = 74 * scale
+let beanHeight = 64 * scale
+let baseX = short.size.width * StackSupplyPlan.baseFractions(for: short.size)[0]
+let base = StackTowerGeometry.Stone(index: 0,
+    center: CGPoint(x: baseX, y: short.groundLineY + baseHeight * 0.47),
+    size: CGSize(width: 116 * scale, height: baseHeight), settled: true, held: false, rotation: 0)
+let bean = StackTowerGeometry.Stone(index: 1,
+    center: CGPoint(x: baseX, y: short.groundLineY + baseHeight * 0.94 + beanHeight * 0.47),
+    size: CGSize(width: 80 * scale, height: beanHeight), settled: true, held: false, rotation: 0)
+let maximum = short.size.height - 62 - 54 * scale
+let threshold = StackTowerGeometry.wakeThreshold(groundY: short.groundLineY,
+    maximumTopY: maximum, scale: scale, landscape: true)
+let supported = StackTowerGeometry.supportedChain(to: 1, stones: [base, bean],
+    groundY: short.groundLineY, tray: short.trayRect)
+precondition(supported.count >= StackTowerGeometry.minimumCount(landscape: true))
+precondition(bean.topY > threshold && bean.topY <= maximum)
+precondition(StackTowerGeometry.minimumCount(landscape: false) == 3)
+"""
+swift += """
+// Two landscape bases and their tops rotate into narrow portrait as separate
+// intact chains, leaving room for the actual sleeping bean in the tray.
+let portrait = Layout(size: CGSize(width: 375, height: 667))
+let baseWidth = 116 * portrait.pieceScale
+let topWidth = 80 * portrait.pieceScale
+let rootX: [CGFloat] = [0.22 * portrait.size.width, 0.46 * portrait.size.width]
+let desired: [CGFloat] = [rootX[0], rootX[1], rootX[0] + 10, rootX[1] - 8, portrait.trayRect.midX]
+let widths: [CGFloat] = [baseWidth, baseWidth, topWidth, topWidth, topWidth]
+let restored = StackRestorePlan.separatedCenters(desired, widths: widths,
+    roots: [0, 1, 0, 1, nil], rightLimit: desired[4] - topWidth / 2 - 6)
+precondition(restored[0] - baseWidth / 2 >= 4)
+precondition(restored[1] - restored[0] >= baseWidth + 6)
+precondition(restored[3] - restored[2] >= topWidth + 6)
+precondition(abs((restored[2] - restored[0]) - 10) < 0.0001)
+precondition(abs((restored[3] - restored[1]) + 8) < 0.0001)
+precondition(restored[4] == desired[4])
+precondition(restored[1] + baseWidth / 2 + 6 <= restored[4] - topWidth / 2)
+let roomy = [CGFloat(150), 310, 160, 302, 507]
+precondition(StackRestorePlan.separatedCenters(roomy, widths: widths,
+    roots: [0, 1, 0, 1, nil], rightLimit: 465) == roomy)
+"""
 run_swift(swift, 'lull-stack-check-')
-checks += 24
+checks += 60 + 63 + 12 + 3 + 8
+check(stack.index('guard let placement = clearTrayPlacement(') < stack.index('supplyOrdinal += 1'),
+      'Only a successful clear-tray placement advances the supply ordinal')
+check('if snapshots.isEmpty {\n            lastWakeCelebration' in stack
+      and 'supplyVariation = Int.random(in: 0..<7)' in block(stack, 'private func rebuildWorld'),
+      'New sessions choose variation; rotation restores pieces without resetting its ordinal')
+check('stack.towerSong' in block(stack, 'private func stopTowerCelebration')
+      and 'stopTowerCelebration()' in block(stack, 'override func teardownToyAudio'),
+      'The scene owns the brief song and bird teardown')
 
 print(f'Mix-Up/Stack: {checks} checks passed ({len(names)} friends, {len(names) ** 3} combinations); '
       'device interaction testing still required.')

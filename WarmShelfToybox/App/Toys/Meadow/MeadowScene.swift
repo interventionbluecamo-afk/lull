@@ -65,6 +65,8 @@ final class MeadowScene: BaseToyScene {
     private var trailNode: SKShapeNode?   // the bright living core
     private var trailHalo: SKShapeNode?   // the soft translucent magic around it
     private var petalBudget = 0           // live drifting petals, capped
+    private var flowerTrail = MeadowFlowerTrail()
+    private var flowerTrailNodes: [SKNode] = []
     // Spring is PAINTED where she's led — a soft mossy bloom laid inside her aura as she
     // moves (founder: a beautiful aura creating spring, not a loop to close).
     private var paintRadius: CGFloat = 60
@@ -129,7 +131,7 @@ final class MeadowScene: BaseToyScene {
         // A rotation must NEVER cost the child their garden (founder, June 12).
         // World coordinates are rotation-stable (worldSize keys off max(w,h)), so
         // every painted patch, flower, woken landmark and the wanderer herself carry over.
-        let snap: MeadowSnap? = springPaths.isEmpty && paintedSpringPoints.isEmpty ? nil : MeadowSnap(
+        let snap: MeadowSnap? = springPaths.isEmpty && paintedSpringPoints.isEmpty && flowerTrail.positions.isEmpty ? nil : MeadowSnap(
             paths: springPaths,
             paintStamps: paintedSpringPoints,
             area: springArea,
@@ -138,6 +140,7 @@ final class MeadowScene: BaseToyScene {
             snailPos: snail?.position ?? .zero,
             trail: trailPoints,
             flowerSpots: flowers.compactMap { $0.parent != nil ? $0.position : nil },
+            flowerTrail: flowerTrail,
             landmarksAwake: landmarks.map { $0.isAwake }
         )
         rebuild(restoring: snap)
@@ -152,6 +155,7 @@ final class MeadowScene: BaseToyScene {
         let snailPos: CGPoint
         let trail: [CGPoint]
         let flowerSpots: [CGPoint]
+        let flowerTrail: MeadowFlowerTrail
         let landmarksAwake: [Bool]
     }
 
@@ -181,6 +185,7 @@ final class MeadowScene: BaseToyScene {
         if snap == nil { buildHomeSpring() }   // a restored garden brings its own home
         buildLandmarks()
         buildSnail()
+        buildFlowerTrail()
 
         goldenVeil.size = size
         goldenVeil.position = CGPoint(x: size.width / 2, y: size.height / 2)
@@ -200,6 +205,11 @@ final class MeadowScene: BaseToyScene {
             bloomMomentFired = snap.bloomFired
             updateSpringGlow(allowMoment: false)
             for p in snap.flowerSpots { bloomRosette(at: p, silent: true) }
+            flowerTrail = snap.flowerTrail
+            for (slot, position) in flowerTrail.positions.enumerated() {
+                flowerTrailNodes[slot].position = position
+                flowerTrailNodes[slot].isHidden = false
+            }
             for (lm, awake) in zip(landmarks, snap.landmarksAwake) where awake {
                 lm.wake(instantly: true)
             }
@@ -270,21 +280,21 @@ final class MeadowScene: BaseToyScene {
             let moonlit = night && ToyArt.texture(slot) == nil   // day art moonlit until night art lands
             addTiles(of: tex, to: groundLayer, tint: moonlit ? UIColor(hex: 0x2A2E4A) : nil)
         } else {
-            let ground = SKShapeNode(rectOf: worldSize, cornerRadius: 90)
+            let extent = MeadowWorldGeometry.groundSize(worldSize: worldSize)
+            let ground = SKShapeNode(rectOf: extent)
             ground.fillColor = base
-            ground.strokeColor = (night ? UIColor(hex: 0x83849A) : UIColor(hex: 0x9EA374)).withAlpha(0.55)
-            ground.lineWidth = 14
+            ground.strokeColor = .clear
             groundLayer.addChild(ground)
-            ProceduralTexture.applyClayFill(to: ground, base: base, size: worldSize)
+            ProceduralTexture.applyClayFill(to: ground, base: base, size: extent)
         }
 
         if night {
             // Moonlight pools softly over the sleeping world.
-            let moonVeil = SKShapeNode(rectOf: CGSize(width: worldSize.width * 1.04, height: worldSize.height * 1.04), cornerRadius: 90)
+            let moonVeil = SKShapeNode(rectOf: MeadowWorldGeometry.groundSize(worldSize: worldSize))
             moonVeil.fillColor = UIColor(hex: 0x20243A).withAlpha(0.12)
             moonVeil.strokeColor = .clear
             moonVeil.zPosition = 20
-            worldNode.addChild(moonVeil)
+            groundLayer.addChild(moonVeil)
         }
 
         // Sleeping tufts and pebbles drifted across the whole world — quiet landmarks
@@ -320,14 +330,15 @@ final class MeadowScene: BaseToyScene {
         let side = max(256, min(ts.width, ts.height))
         let nx = Int(ceil(worldSize.width / side)), ny = Int(ceil(worldSize.height / side))
         let originX = -CGFloat(nx) * side / 2, originY = -CGFloat(ny) * side / 2
-        for i in 0..<nx {
-            for j in 0..<ny {
+        // One extra ring bleeds beyond the invisible play bounds, so the felt has no rim.
+        for i in -1..<(nx + 1) {
+            for j in -1..<(ny + 1) {
                 let tile = SKSpriteNode(texture: tex)
                 tile.size = CGSize(width: side, height: side)
                 tile.position = CGPoint(x: originX + (CGFloat(i) + 0.5) * side,
                                         y: originY + (CGFloat(j) + 0.5) * side)
-                if i % 2 == 1 { tile.xScale = -1 }
-                if j % 2 == 1 { tile.yScale = -1 }
+                if !i.isMultiple(of: 2) { tile.xScale = -1 }
+                if !j.isMultiple(of: 2) { tile.yScale = -1 }
                 if let tint { tile.color = tint; tile.colorBlendFactor = tintFactor }
                 parent.addChild(tile)
             }
@@ -627,10 +638,7 @@ final class MeadowScene: BaseToyScene {
 
     /// The world node's offset, kept so the world always covers the whole screen.
     private func clampWorldOffset(_ p: CGPoint) -> CGPoint {
-        let halfW = worldSize.width / 2, halfH = worldSize.height / 2
-        guard halfW * 2 > size.width, halfH * 2 > size.height else { return p }
-        return CGPoint(x: min(max(p.x, size.width - halfW), halfW),
-                       y: min(max(p.y, size.height - halfH), halfH))
+        MeadowWorldGeometry.cameraOffset(p, worldSize: worldSize, canvas: size)
     }
 
     // MARK: - Touch (lead the snail; world coords via the scrolling node)
@@ -670,7 +678,7 @@ final class MeadowScene: BaseToyScene {
                 leadTouch = touch
                 removeAction(forKey: "watchme")
                 removeAction(forKey: "trailRest")   // the journey resumes; the dew stays
-                snailTarget = p
+                snailTarget = MeadowWorldGeometry.leadTarget(p, worldSize: worldSize)
                 setSnailAwake(true)
                 tone("meadow.wake", minInterval: 0.4)
                 HapticsManager.shared.impact(style: .soft, intensity: 0.16)
@@ -682,7 +690,9 @@ final class MeadowScene: BaseToyScene {
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = leadTouch, touches.contains(touch) else { return }
-        snailTarget = worldNode.convert(touch.location(in: self), from: self)
+        snailTarget = MeadowWorldGeometry.leadTarget(
+            worldNode.convert(touch.location(in: self), from: self), worldSize: worldSize
+        )
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -839,13 +849,12 @@ final class MeadowScene: BaseToyScene {
     }
 
     private func clampToWorld(_ p: CGPoint) -> CGPoint {
-        let m: CGFloat = 50
-        return CGPoint(x: min(max(p.x, -worldSize.width/2 + m), worldSize.width/2 - m),
-                       y: min(max(p.y, -worldSize.height/2 + m), worldSize.height/2 - m))
+        MeadowWorldGeometry.position(p, worldSize: worldSize)
     }
 
     /// Each step: her aura paints spring, while the light trail shows where she just came from.
     private func walkStep(at p: CGPoint) {
+        stampTrailFlower(behind: p)
         // She wakes whatever her aura reaches — the ladybug herself is the magic.
         for lm in landmarks where !lm.isAwake
             && hypot(p.x - lm.position.x, p.y - lm.position.y) < paintRadius + 28 {
@@ -871,6 +880,72 @@ final class MeadowScene: BaseToyScene {
         if trailPoints.count > 30 { trailPoints.removeFirst(trailPoints.count - 30) }
         redrawTrail()
         spawnTrailPetal(at: p)
+    }
+
+    /// A fixed set of small felt blooms follows the walk. Old blooms are reused rather
+    /// than accumulating nodes, and the painted garden keeps its own lasting flowers.
+    private func buildFlowerTrail() {
+        flowerTrail = MeadowFlowerTrail()
+        flowerTrailNodes.removeAll()
+        let palette = [WarmShelfPalette.petal, WarmShelfPalette.butter, WarmShelfPalette.lavender,
+                       WarmShelfPalette.paperHighlight, WarmShelfPalette.waterBlue]
+        for slot in 0..<MeadowFlowerTrail.capacity {
+            let flower = SKNode()
+            let color = palette[slot % palette.count]
+            let bloomColor = isNight
+                ? color.blended(with: UIColor(hex: 0x6E7287), fraction: 0.5) : color
+            if let art = ToyArt.sprite("meadow-rosette", fit: CGSize(width: 21, height: 21)) {
+                art.color = bloomColor
+                art.colorBlendFactor = 0.55
+                flower.addChild(art)
+            } else {
+                for petalIndex in 0..<5 {
+                    let angle = CGFloat(petalIndex) * .pi * 2 / 5
+                    let petal = SKShapeNode(ellipseOf: CGSize(width: 9, height: 6))
+                    petal.position = CGPoint(x: cos(angle) * 4.5, y: sin(angle) * 4.5)
+                    petal.zRotation = angle
+                    petal.strokeColor = .clear
+                    ProceduralTexture.applyClayFill(to: petal, base: bloomColor, size: CGSize(width: 9, height: 6))
+                    flower.addChild(petal)
+                }
+                let heart = SKShapeNode(circleOfRadius: 2.4)
+                heart.fillColor = WarmShelfPalette.paperHighlight
+                heart.strokeColor = .clear
+                flower.addChild(heart)
+            }
+            flower.zPosition = 0.7
+            flower.zRotation = CGFloat(slot % 7 - 3) * 0.12
+            flower.isHidden = true
+            lifeLayer.addChild(flower)
+            flowerTrailNodes.append(flower)
+        }
+    }
+
+    private func stampTrailFlower(behind point: CGPoint) {
+        guard let slot = flowerTrail.stamp(behind: point, heading: snail?.zRotation ?? 0) else { return }
+        let flower = flowerTrailNodes[slot]
+        flower.removeAllActions()
+        flower.position = flowerTrail.positions[slot]
+        flower.isHidden = false
+        flower.alpha = 1
+        flower.setScale(1)
+        guard !AmbientAnimator.reduceMotion else { return }
+        flower.setScale(0.2)
+        let open = SKAction.scale(to: 1.07, duration: 0.20)
+        let settle = SKAction.scale(to: 1, duration: 0.24)
+        open.timingMode = .easeOut
+        settle.timingMode = .easeInEaseOut
+        flower.run(.sequence([open, settle]), withKey: "flowerTrail.grow")
+    }
+
+    private func resetFlowerTrail() {
+        flowerTrail = MeadowFlowerTrail()
+        for flower in flowerTrailNodes {
+            flower.removeAllActions()
+            flower.isHidden = true
+            flower.alpha = 1
+            flower.setScale(1)
+        }
     }
 
     /// The living wake (founder, June 13 — the super-hex spirit in our voice): a
@@ -1233,6 +1308,7 @@ final class MeadowScene: BaseToyScene {
     /// First frost: the child blows the dandelion and winter tucks the meadow back in —
     /// petals lift away, the green sleeps, the little home garden remains. Begin again.
     private func firstFrost() {
+        resetFlowerTrail()
         dandelion?.run(.sequence([.fadeOut(withDuration: 0.5), .removeFromParent()]))
         dandelion = nil
         removeAction(forKey: "meadow.dandelionOffer")
@@ -1712,6 +1788,67 @@ private final class MeadowLandmark: SKNode {
 }
 
 /// The reset puff stays within the reachable felt world, including at camera edges.
+/// Scene-independent geometry keeps the camera covered and eases a lead near soft bounds.
+enum MeadowWorldGeometry {
+    static let overscan: CGFloat = 96
+    static func groundSize(worldSize: CGSize) -> CGSize {
+        CGSize(width: worldSize.width + overscan * 2, height: worldSize.height + overscan * 2)
+    }
+
+    static func position(_ point: CGPoint, worldSize: CGSize) -> CGPoint {
+        let limitX = max(0, worldSize.width / 2 - 50)
+        let limitY = max(0, worldSize.height / 2 - 50)
+        return CGPoint(x: min(max(point.x, -limitX), limitX),
+                       y: min(max(point.y, -limitY), limitY))
+    }
+
+    static func leadTarget(_ point: CGPoint, worldSize: CGSize) -> CGPoint {
+        func soften(_ value: CGFloat, extent: CGFloat) -> CGFloat {
+            guard value.isFinite else { return 0 }
+            let limit = max(0, extent / 2 - 50)
+            let band = min(180, limit * 0.25)
+            guard band > 0 else { return 0 }
+            let start = limit - band
+            let distance = abs(value)
+            guard distance > start else { return value }
+            let eased = start + band * (1 - exp(-(distance - start) / band))
+            return value < 0 ? -eased : eased
+        }
+        return CGPoint(x: soften(point.x, extent: worldSize.width),
+                       y: soften(point.y, extent: worldSize.height))
+    }
+
+    static func cameraOffset(_ point: CGPoint, worldSize: CGSize, canvas: CGSize) -> CGPoint {
+        let halfW = worldSize.width / 2, halfH = worldSize.height / 2
+        guard worldSize.width > canvas.width, worldSize.height > canvas.height else { return point }
+        return CGPoint(x: min(max(point.x, canvas.width - halfW), halfW),
+                       y: min(max(point.y, canvas.height - halfH), halfH))
+    }
+}
+
+/// Slots and walking distance are saved with the garden; no flower is lost on rotation.
+struct MeadowFlowerTrail {
+    static let capacity = 64
+    static let spacing: CGFloat = 26
+    private(set) var positions: [CGPoint] = []
+    private(set) var nextSlot = 0
+    private(set) var lastWalkPoint: CGPoint?
+
+    mutating func stamp(behind point: CGPoint, heading: CGFloat) -> Int? {
+        guard point.x.isFinite, point.y.isFinite, heading.isFinite else { return nil }
+        if let lastWalkPoint,
+           hypot(point.x - lastWalkPoint.x, point.y - lastWalkPoint.y) < Self.spacing { return nil }
+        lastWalkPoint = point
+        let slot = nextSlot
+        let side: CGFloat = slot.isMultiple(of: 2) ? 5 : -5
+        let bloom = CGPoint(x: point.x - cos(heading) * 22 - sin(heading) * side,
+                            y: point.y - sin(heading) * 22 + cos(heading) * side)
+        if positions.count < Self.capacity { positions.append(bloom) } else { positions[slot] = bloom }
+        nextSlot = (slot + 1) % Self.capacity
+        return slot
+    }
+}
+
 enum MeadowDandelionGeometry {
     static func position(preferred: CGPoint, worldSize: CGSize) -> CGPoint {
         let margin = min(64, min(worldSize.width, worldSize.height) * 0.25)

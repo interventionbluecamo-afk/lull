@@ -42,6 +42,8 @@ final class StackScene: BaseToyScene {
         let wasAwake: Bool
         let normalizedX: CGFloat
         let heightAboveGround: CGFloat
+        let chainRoot: Int?
+        let chainOffsetX: CGFloat
     }
 
     private var isFrozen = false
@@ -56,6 +58,12 @@ final class StackScene: BaseToyScene {
     private var lastSpawnTime: TimeInterval = -10
     private var nextSupplySlot = 0
     private weak var supplyTray: SKShapeNode?
+    private var supplyOrdinal = 1
+    private var supplyVariation = Int.random(in: 0..<7)
+    private var towerCandidate: ObjectIdentifier?
+    private var towerCandidateSince: TimeInterval = 0
+    private var celebratedTower: ObjectIdentifier?
+    private var towerBird: SKNode?
     private var dragInvitation: SKNode?
     private var hasTouchedStone = false
     private let dragHintKey = "hint.stack.drag.v2"
@@ -86,9 +94,11 @@ final class StackScene: BaseToyScene {
         return CGRect(x: centerX - w / 2, y: groundLineY, width: w, height: 60 * pieceScale)
     }
 
+    private var basePositions: [CGFloat] { StackSupplyPlan.baseFractions(for: size).map { $0 * size.width } }
+    private var safeTowerTopY: CGFloat { safePlayRect().maxY - 54 * pieceScale }
     private var wakeThresholdY: CGFloat {
-        let landscape = size.width > size.height
-        return groundLineY + (landscape ? 166 : 196) * pieceScale
+        StackTowerGeometry.wakeThreshold(groundY: groundLineY, maximumTopY: safeTowerTopY,
+                                         scale: pieceScale, landscape: size.width > size.height)
     }
 
     override func didMove(to view: SKView) {
@@ -120,20 +130,30 @@ final class StackScene: BaseToyScene {
         let snapshots: [PieceSnapshot]
         if let oldSize, oldSize.width > 0, !pieces.isEmpty {
             let oldGround = groundLineY(for: oldSize)
-            snapshots = pieces.map { piece in
-                PieceSnapshot(
+            let oldScale = (min(oldSize.width, oldSize.height) / 410).clamped(to: 0.82...1.7)
+            let oldTrayWidth = min(oldSize.width * 0.36, 220)
+            let oldTray = CGRect(x: oldSize.width * 0.76 - oldTrayWidth / 2, y: oldGround,
+                                 width: oldTrayWidth, height: 60 * oldScale)
+            let stones = towerSnapshot()
+            snapshots = pieces.enumerated().map { index, piece in
+                let root = StackTowerGeometry.supportedChain(to: index, stones: stones,
+                    groundY: oldGround, tray: oldTray).first
+                return PieceSnapshot(
                     kind: piece.kind,
                     color: piece.baseColor,
                     isSignatureHero: piece.isSignatureHero,
                     wasAwake: piece.isAwake,
                     normalizedX: piece.position.x / oldSize.width,
-                    heightAboveGround: piece.position.y - oldGround
+                    heightAboveGround: piece.position.y - oldGround,
+                    chainRoot: root,
+                    chainOffsetX: root.map { (piece.position.x - pieces[$0].position.x) / oldScale } ?? 0
                 )
             }
         } else {
             snapshots = []
         }
 
+        stopTowerCelebration()
         activeTouches.removeAll()
         movingState.removeAll()
         speedPeak.removeAll()
@@ -147,6 +167,8 @@ final class StackScene: BaseToyScene {
         if snapshots.isEmpty {
             lastWakeCelebration = -10
             hasTouchedStone = false
+            supplyOrdinal = 1
+            supplyVariation = Int.random(in: 0..<7)
         }
         pieces.removeAll()
         removeAction(forKey: "stackDragHint")
@@ -178,6 +200,17 @@ final class StackScene: BaseToyScene {
     }
 
     private func restorePieces(from snapshots: [PieceSnapshot]) {
+        let widths = snapshots.map { $0.kind.bodySize(scale: pieceScale).width }
+        let desiredX = snapshots.map { snapshot in
+            snapshot.chainRoot.map { snapshots[$0].normalizedX * size.width + snapshot.chainOffsetX * pieceScale }
+                ?? snapshot.normalizedX * size.width
+        }
+        let supplyLeft = snapshots.indices.filter {
+            snapshots[$0].chainRoot == nil && (trayRect.minX...trayRect.maxX).contains(desiredX[$0])
+        }.map { desiredX[$0] - widths[$0] / 2 }.min()
+            ?? (trayRect.midX - StackPieceKind.pebble.bodySize(scale: pieceScale).width / 2)
+        let restoredX = StackRestorePlan.separatedCenters(desiredX, widths: widths,
+            roots: snapshots.map { $0.chainRoot }, rightLimit: supplyLeft - 6)
         for (index, snapshot) in snapshots.enumerated() {
             let piece = StackPieceNode(
                 kind: snapshot.kind,
@@ -192,7 +225,7 @@ final class StackScene: BaseToyScene {
             let halfWidth = piece.bodySize.width / 2
             let halfHeight = piece.bodySize.height / 2
             piece.position = CGPoint(
-                x: (snapshot.normalizedX * size.width).clamped(to: halfWidth...(size.width - halfWidth)),
+                x: restoredX[index].clamped(to: halfWidth...(size.width - halfWidth)),
                 y: (groundLineY + snapshot.heightAboveGround).clamped(
                     to: (groundLineY + halfHeight + 2)...(size.height - halfHeight)
                 )
@@ -414,6 +447,15 @@ final class StackScene: BaseToyScene {
         tray.alpha = 0.78
         worldLayer.addChild(tray)
         supplyTray = tray
+        for x in basePositions {
+            let pad = SKShapeNode(ellipseOf: CGSize(width: 138 * pieceScale, height: 24 * pieceScale))
+            pad.fillColor = WarmShelfPalette.sage.withAlpha(0.20)
+            pad.strokeColor = WarmShelfPalette.paperHighlight.withAlpha(0.48)
+            pad.lineWidth = 2 * pieceScale
+            pad.position = CGPoint(x: x, y: groundLineY + 2 * pieceScale)
+            pad.zPosition = 0.8
+            worldLayer.addChild(pad)
+        }
         let lipPath = CGMutablePath()
         lipPath.move(to: CGPoint(x: -trayWidth * 0.46, y: -3 * pieceScale))
         lipPath.addQuadCurve(to: CGPoint(x: trayWidth * 0.46, y: -3 * pieceScale),
@@ -451,13 +493,15 @@ final class StackScene: BaseToyScene {
     /// A wide base on the left and one loose stone in the supply tray. Starting
     /// with the move still to make lets the child discover stacking immediately.
     private func spawnOpeningPile() {
-        let kinds: [StackPieceKind] = [.pebble, .bean]
-        let colors: [UIColor] = [WarmShelfPalette.terracotta, WarmShelfPalette.sage]
+        let kinds = Array(repeating: StackPieceKind.pebble, count: basePositions.count) + [.bean]
+        let colors: [UIColor] = basePositions.count == 2
+            ? [WarmShelfPalette.terracotta, WarmShelfPalette.sand, WarmShelfPalette.sage]
+            : [WarmShelfPalette.terracotta, WarmShelfPalette.sage]
         for (i, (kind, color)) in zip(kinds, colors).enumerated() {
             let piece = StackPieceNode(kind: kind, color: color.withAlpha(0.96),
                                        scale: pieceScale, isSignatureHero: i == 0)
             if i == 0 { hasSignatureHero = true }
-            piece.position = CGPoint(x: i == 0 ? size.width * 0.34 : trayRect.midX,
+            piece.position = CGPoint(x: i < basePositions.count ? basePositions[i] : trayRect.midX,
                                      y: groundLineY + piece.bodySize.height * 0.5 + 4)
             piece.physicsBody?.isDynamic = false
             pieceLayer.addChild(piece)
@@ -490,7 +534,7 @@ final class StackScene: BaseToyScene {
     private func showDragInvitationIfNeeded() {
         guard !hasTouchedStone, !LullDemoState.shared.hasSeenHint(dragHintKey),
               let base = pieces.first(where: { $0.isSignatureHero }),
-              let loose = pieces.first(where: { !$0.isSignatureHero }) else { return }
+              let loose = pieces.first(where: { trayRect.contains(CGPoint(x: $0.position.x, y: groundLineY + 10)) }) else { return }
         LullDemoState.shared.markHintSeen(dragHintKey)
         let start = loose.position
         let end = CGPoint(x: base.position.x, y: base.topY + loose.bodySize.height / 2 + 2)
@@ -547,10 +591,10 @@ final class StackScene: BaseToyScene {
         guard !animated || lastUpdate - lastSpawnTime >= 0.30 else { return }
 
         let isHero = !hasSignatureHero
-        let pieceIndex = pieces.count
-        let kindSequence: [StackPieceKind] = [.pebble, .pebble, .bean, .loaf, .pebble, .bean, .stone]
-        let kind = isHero ? StackPieceKind.pebble : kindSequence[pieceIndex % kindSequence.count]
-        let color = isHero ? WarmShelfPalette.terracotta : warmColors[pieceIndex % warmColors.count]
+        let kind = isHero ? StackPieceKind.pebble
+            : StackPieceKind.allCases[StackSupplyPlan.kindIndex(ordinal: supplyOrdinal, variation: supplyVariation)]
+        let color = isHero ? WarmShelfPalette.terracotta
+            : warmColors[(supplyOrdinal + supplyVariation) % warmColors.count]
         let piece = StackPieceNode(
             kind: kind,
             color: color.withAlpha(0.96),
@@ -580,6 +624,7 @@ final class StackScene: BaseToyScene {
             lastSpawnTime = lastUpdate
         }
         hasSignatureHero = hasSignatureHero || isHero
+        supplyOrdinal += 1   // A blocked tray or cancelled refill never consumes the next shape.
 
         piece.position = CGPoint(x: placement.x, y: restY)
         pieceLayer.addChild(piece)
@@ -692,13 +737,14 @@ final class StackScene: BaseToyScene {
 
             if let piece = topPiece(at: point), !activeTouches.values.contains(where: { $0 === piece }) {
                 dismissDragInvitation()
+                stopTowerCelebration()
                 piece.removeAction(forKey: "appearance")
                 piece.alpha = 1
                 piece.setScale(1)
                 // Bring the whole tower back to life so pulling a low stone can topple the rest.
                 unfreezeAll()
                 activeTouches[touch] = piece
-                if piece === awakePiece { piece.sleep(); awakePiece = nil }
+                if piece === awakePiece { awakePiece = nil }
                 piece.beginHold()
                 piece.zPosition = 60
                 AudioManager.shared.playStackLift()   // haptic fires inside
@@ -814,8 +860,8 @@ final class StackScene: BaseToyScene {
             replenishPileIfNeeded()
         }
 
-        // No autonomous resets: when every stone is stacked, the tower simply stands and
-        // sleeps. The knockdown is the child's favourite verb — the world never steals it.
+        // No autonomous resets: when every stone is stacked, the tower simply stands with
+        // its awake friends. The knockdown is the child's favourite verb — the world never steals it.
         idleAccumulator += delta
         if idleAccumulator > 2.6 {
             idleAccumulator = 0
@@ -862,20 +908,19 @@ final class StackScene: BaseToyScene {
         let tumbling = pieces.filter { ($0.speed2D > 150 || $0.spin > 6) && $0.physicsBody?.isDynamic ?? false }
         guard tumbling.count >= 2 else { return }
         lastKnockover = currentTime
+        stopTowerCelebration()
 
         for piece in tumbling {
             piece.reactToKnockover()
         }
         let cx = tumbling.map { $0.position.x }.reduce(0, +) / CGFloat(tumbling.count)
         let dustOrigin = CGPoint(x: cx, y: groundLineY + 6)
-        // Double burst — sand + cream — for a satisfying cloud of chaos.
-        ParticleManager.softBurst(in: self, at: dustOrigin, color: WarmShelfPalette.sand, count: 14)
-        ParticleManager.softBurst(in: self, at: dustOrigin, color: WarmShelfPalette.warmCream, count: 8)
-        // Each tumbling piece reacts with glee so every part of the collapse is celebrated.
-        for (index, piece) in tumbling.enumerated() {
-            piece.playTowerPulse(delay: Double(index) * 0.04, isTop: false)
+        if !AmbientAnimator.reduceMotion {
+            ParticleManager.softBurst(in: self, at: dustOrigin, color: WarmShelfPalette.sand, count: 6)
+            ParticleManager.softBurst(in: self, at: dustOrigin, color: WarmShelfPalette.warmCream, count: 3)
         }
-        AudioManager.shared.playStackKnockover()
+        tumbling.first?.dizzy()
+        AudioManager.shared.play(cue: "stack.knockover", volume: 0.55)
         HapticsManager.shared.play(score: .stackKnockover)
     }
 
@@ -952,64 +997,112 @@ final class StackScene: BaseToyScene {
         if Bool.random() { piece.yawn() } else { piece.blink() }
     }
 
-    private func updateWake() {
-        let resting = pieces.filter { piece in
-            activeTouches.values.contains(where: { $0 === piece }) == false
-            && piece.speed2D < 12
-            && isResting(piece)
-        }
-        let topmost = resting.max(by: { $0.topY < $1.topY })
-
-        for piece in pieces where piece !== topmost && piece !== awakePiece {
-            piece.setWakeAnticipation(0)
-        }
-
-        guard let top = topmost, top.topY > wakeThresholdY else {
-            if let topmost {
-                let anticipationStart = wakeThresholdY - 70 * pieceScale
-                let progress = (topmost.topY - anticipationStart) / max(1, wakeThresholdY - anticipationStart)
-                topmost.setWakeAnticipation(progress)
-            }
-            if let awake = awakePiece { awake.sleep(); awakePiece = nil }
-            return
-        }
-
-        if awakePiece !== top {
-            awakePiece?.sleep()
-            awakePiece = top
-            top.wake()
-            if lastUpdate - lastWakeCelebration > 2.4 {
-                lastWakeCelebration = lastUpdate
-                celebrateWake(at: top.position)
-            }
+    private func towerSnapshot() -> [StackTowerGeometry.Stone] {
+        pieces.enumerated().map { index, piece in
+            StackTowerGeometry.Stone(index: index, center: piece.position, size: piece.bodySize,
+                settled: piece.speed2D < 14 && piece.spin < 0.5 && piece.action(forKey: "appearance") == nil,
+                held: activeTouches.values.contains(where: { $0 === piece }),
+                rotation: piece.kind.isRound ? 0 : piece.zRotation)
         }
     }
 
-    private func celebrateWake(at point: CGPoint) {
-        stageCelebrationUntil = lastUpdate + 0.72
-        let tower = pieces
-            .filter { piece in activeTouches.values.contains(where: { $0 === piece }) == false }
-            .sorted { $0.position.y < $1.position.y }
-        for (index, piece) in tower.enumerated() {
-            let wakeSettleDelay = piece === awakePiece ? 0.34 : 0
-            piece.playTowerPulse(delay: Double(index) * 0.045 + wakeSettleDelay, isTop: piece === awakePiece)
+    private func updateWake() {
+        let stones = towerSnapshot()
+        var bestChain: [Int] = []
+        for stone in stones {
+            guard !stone.held else { continue }
+            let chain = StackTowerGeometry.supportedChain(to: stone.index, stones: stones,
+                                                          groundY: groundLineY, tray: trayRect)
+            let piece = pieces[stone.index]
+            if !chain.isEmpty {
+                piece.wake()   // A placed friend stays awake when the next stone joins it.
+                if chain.count >= StackTowerGeometry.minimumCount(landscape: size.width > size.height),
+                   stone.topY > wakeThresholdY, stone.topY <= safeTowerTopY,
+                   bestChain.isEmpty || stone.topY > pieces[bestChain.last!].topY {
+                    bestChain = chain
+                }
+            } else if stone.settled, (trayRect.minX...trayRect.maxX).contains(stone.center.x) {
+                piece.sleep()
+            }
         }
+        guard let topIndex = bestChain.last else {
+            if towerBird != nil || celebratedTower != nil { stopTowerCelebration() }
+            towerCandidate = nil
+            awakePiece = nil
+            return
+        }
+        let top = pieces[topIndex]
+        let id = ObjectIdentifier(top)
+        if towerCandidate != id {
+            if towerBird != nil || celebratedTower != nil { stopTowerCelebration() }
+            towerCandidate = id
+            towerCandidateSince = lastUpdate
+        }
+        awakePiece = top
+        if AmbientAnimator.reduceMotion, let bird = towerBird {
+            bird.removeAction(forKey: "stack.birdArrival")
+            bird.position = CGPoint(x: top.position.x, y: top.topY + 2)
+            bird.alpha = 1
+        }
+        guard activeTouches.isEmpty, lastUpdate - towerCandidateSince > 0.45,
+              celebratedTower != id, lastUpdate - lastWakeCelebration > 2.4 else { return }
+        celebratedTower = id
+        lastWakeCelebration = lastUpdate
+        celebrateTower(bestChain.map { pieces[$0] }, top: top)
+    }
 
-        let capstonePoint = CGPoint(x: point.x, y: point.y + 30 * pieceScale)
-        TouchFeedbackAnimator.bubblePopRing(in: self, at: capstonePoint, radius: 30 * pieceScale, color: WarmShelfPalette.butter)
-        for index in 0..<3 {
-            let mote = SKShapeNode(circleOfRadius: CGFloat.random(in: 2...3.6))
-            mote.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.7)
-            mote.strokeColor = .clear
-            mote.position = capstonePoint
-            mote.zPosition = 90
-            addChild(mote)
-            let angle = CGFloat(index) / 3 * .pi * 2
-            let move = SKAction.moveBy(x: cos(angle) * 40, y: sin(angle) * 28 + 18, duration: 0.7)
-            move.timingMode = .easeOut
-            mote.run(.sequence([.group([move, .fadeOut(withDuration: 0.7)]), .removeFromParent()]))
+    private func celebrateTower(_ tower: [StackPieceNode], top: StackPieceNode) {
+        stageCelebrationUntil = lastUpdate + 0.72
+        let birdSize = CGSize(width: 36 * pieceScale, height: 36 * pieceScale)
+        if let art = ToyArt.sprite("window-bird", fit: birdSize) {
+            let bird = SKNode()
+            bird.name = "stackTowerBird"
+            art.anchorPoint = CGPoint(x: 0.5, y: 0)
+            bird.addChild(art)
+            bird.zPosition = 95
+            let landing = CGPoint(x: top.position.x, y: top.topY + 2)
+            bird.position = landing
+            bird.alpha = 0
+            pieceLayer.addChild(bird)
+            towerBird = bird
+            if !AmbientAnimator.reduceMotion {
+                bird.position = CGPoint(x: max(safePlayRect().minX + birdSize.width / 2, landing.x - 36 * pieceScale), y: landing.y + 16 * pieceScale)
+                let arrive = SKAction.move(to: landing, duration: 0.55)
+                arrive.timingMode = .easeOut
+                bird.run(.group([arrive, .fadeIn(withDuration: 0.40)]), withKey: "stack.birdArrival")
+            } else {
+                bird.run(.fadeIn(withDuration: 0.25), withKey: "stack.birdArrival")
+            }
         }
-        AudioManager.shared.playStackWake()   // haptic fires inside
+        var song: [SKAction] = []
+        for (index, piece) in tower.enumerated() {
+            song.append(.run { [weak self, weak piece] in
+                guard let self, let piece, self.activeTouches.isEmpty else { return }
+                piece.playTowerPulse(delay: 0, isTop: piece === top)
+                AudioManager.shared.play(cue: "note.kalimba.\(5 + index % 5)",
+                    pan: AudioManager.pan(x: piece.position.x, width: self.size.width), volume: 0.32)
+            })
+            song.append(.wait(forDuration: 0.10))
+        }
+        song.append(.run { AudioManager.shared.play(cue: "bird", volume: 0.38) })
+        run(.sequence(song), withKey: "stack.towerSong")
+        HapticsManager.shared.softTap()
+    }
+
+    private func stopTowerCelebration() {
+        removeAction(forKey: "stack.towerSong")
+        towerBird?.removeAllActions()
+        towerBird?.removeFromParent()
+        towerBird = nil
+        towerCandidate = nil
+        celebratedTower = nil
+        stageCelebrationUntil = -10
+        pieces.forEach { $0.stopFeedback() }
+    }
+
+    override func teardownToyAudio() {
+        stopTowerCelebration()
+        super.teardownToyAudio()
     }
 
     private func updateStageFocus() {
@@ -1021,9 +1114,9 @@ final class StackScene: BaseToyScene {
         let progress = ((top.topY - groundLineY) / max(1, wakeThresholdY - groundLineY)).clamped(to: 0...1)
         let celebrating = lastUpdate < stageCelebrationUntil
         towerWallGlow?.alpha = 0.48 + progress * 0.24 + (celebrating ? 0.18 : 0)
-        towerWallGlow?.yScale = 0.92 + progress * 0.12
+        towerWallGlow?.yScale = AmbientAnimator.reduceMotion ? 1 : 0.92 + progress * 0.12
         towerFloorGlow?.alpha = 0.56 + progress * 0.18 + (celebrating ? 0.12 : 0)
-        towerFloorGlow?.xScale = 0.96 + progress * 0.08
+        towerFloorGlow?.xScale = AmbientAnimator.reduceMotion ? 1 : 0.96 + progress * 0.08
     }
 
     private func replenishPileIfNeeded() {
@@ -1063,5 +1156,84 @@ final class StackScene: BaseToyScene {
 private extension Comparable {
     func clamped(to limits: ClosedRange<Self>) -> Self {
         min(max(self, limits.lowerBound), limits.upperBound)
+    }
+}
+
+// Small value helpers let supply fit and rooted-tower payoffs be checked without physics playback.
+enum StackSupplyPlan {
+    static func baseFractions(for size: CGSize) -> [CGFloat] {
+        size.width > size.height ? [0.22, 0.46] : [0.34]
+    }
+    static func kindIndex(ordinal: Int, variation: Int) -> Int {
+        let kinds = [2, 1, 0, 2, 3, 0, 1]
+        let index = ((ordinal + variation) % kinds.count + kinds.count) % kinds.count
+        return kinds[index]
+    }
+}
+
+enum StackTowerGeometry {
+    struct Stone {
+        let index: Int
+        let center: CGPoint
+        let size: CGSize
+        let settled: Bool
+        let held: Bool
+        let rotation: CGFloat
+        var bottomY: CGFloat { center.y - size.height / 2 }
+        var topY: CGFloat { center.y + size.height / 2 }
+    }
+    static func minimumCount(landscape: Bool) -> Int { landscape ? 2 : 3 }
+    static func wakeThreshold(groundY: CGFloat, maximumTopY: CGFloat,
+                              scale: CGFloat, landscape: Bool) -> CGFloat {
+        groundY + min((landscape ? 166 : 196) * scale, max(0, maximumTopY - groundY) * 0.70)
+    }
+    static func supportedChain(to index: Int, stones: [Stone], groundY: CGFloat, tray: CGRect) -> [Int] {
+        func descend(_ index: Int, visited: Set<Int>) -> [Int] {
+            guard !visited.contains(index), let stone = stones.first(where: { $0.index == index }),
+                  stone.settled, !stone.held, abs(atan2(sin(stone.rotation), cos(stone.rotation))) < 0.38,
+                  !(tray.minX...tray.maxX).contains(stone.center.x) else { return [] }
+            if stone.bottomY <= groundY + 14 { return [index] }
+            let lower = stones.filter {
+                $0.index != index && $0.center.y < stone.center.y
+                    && abs($0.topY - stone.bottomY) < 18
+                    && abs($0.center.x - stone.center.x) < ($0.size.width + stone.size.width) * 0.38
+            }.sorted { $0.topY > $1.topY }
+            for support in lower {
+                let chain = descend(support.index, visited: visited.union([index]))
+                if !chain.isEmpty { return chain + [index] }
+            }
+            return []
+        }
+        return descend(index, visited: [])
+    }
+}
+
+// Rotation translates each rooted chain together, leaving its relative offsets and heights intact.
+enum StackRestorePlan {
+    static func separatedCenters(_ centers: [CGFloat], widths: [CGFloat], roots: [Int?],
+                                 rightLimit: CGFloat) -> [CGFloat] {
+        let groups = Set(roots.compactMap { $0 }).sorted { centers[$0] < centers[$1] }.map { root in
+            let members = roots.indices.filter { roots[$0] == root }
+            return (members: members,
+                    minX: members.map { centers[$0] - widths[$0] / 2 }.min()!,
+                    maxX: members.map { centers[$0] + widths[$0] / 2 }.max()!)
+        }
+        guard groups.count >= 2 else { return centers }
+        var previousRight: CGFloat = -2
+        let needsPacking = groups.contains { group in
+            defer { previousRight = group.maxX }
+            return group.minX < previousRight + 6 || group.maxX > rightLimit
+        }
+        guard needsPacking else { return centers }
+        let needed = groups.reduce(CGFloat(0)) { $0 + $1.maxX - $1.minX } + CGFloat(groups.count - 1) * 6
+        guard needed <= rightLimit - 4 else { return centers }
+        var result = centers
+        var cursor: CGFloat = 4
+        for group in groups {
+            let shift = cursor - group.minX
+            group.members.forEach { result[$0] += shift }
+            cursor += group.maxX - group.minX + 6
+        }
+        return result
     }
 }

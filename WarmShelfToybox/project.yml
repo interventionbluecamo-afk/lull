@@ -20,6 +20,15 @@ targets:
         excludes:
           - "**/README.md"
           - "**/.gitkeep"
+    preBuildScripts:
+      - name: Refresh Feed catalog
+        script: python3 "$SRCROOT/Tools/refresh_feed_catalog.py"
+        basedOnDependencyAnalysis: false
+        inputFiles:
+          - "$(SRCROOT)/Tools/refresh_feed_catalog.py"
+          - "$(SRCROOT)/App/Resources/Assets.xcassets"
+        outputFiles:
+          - "$(SRCROOT)/App/Resources/FeedCatalog.json"
     info:
       path: App/Info.plist
       properties:

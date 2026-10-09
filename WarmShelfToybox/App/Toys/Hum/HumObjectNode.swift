@@ -34,6 +34,11 @@ final class HumObjectNode: SKNode {
     private let shimmerKey = "hum.shimmer"
     private let bodyPulseKey = "hum.bodyPulse"
     private let glowPulseKey = "hum.glowPulse"
+    private let barMotionKey = "hum.barMotion"
+    private let restRestartKey = "hum.restRestart"
+    private let heldGlowKey = "hum.heldGlow"
+    private let barRipple = SKShapeNode(rect: CGRect(x: -25, y: -77, width: 50, height: 154), cornerRadius: 20)
+    private var heldIntensity: CGFloat = 1
 
     init(kind: ObjectKind, pitchIndex: Int, sizeScale: CGFloat = 1.0, tint: UIColor? = nil) {
         self.kind = kind
@@ -50,8 +55,10 @@ final class HumObjectNode: SKNode {
         self.breatheKey = "hum.\(kind).rest"
         self.idleKey = "hum.\(kind).idle"
 
-        let glow = SKShapeNode(circleOfRadius: glowR)
-        glow.fillColor = color.withAlpha(0.18)
+        let glow = kind == .bar
+            ? SKShapeNode(rect: CGRect(x: -28, y: -80, width: 56, height: 160), cornerRadius: 23)
+            : SKShapeNode(circleOfRadius: glowR)
+        glow.fillColor = (kind == .bar ? WarmShelfPalette.butter : color).withAlpha(0.18)
         glow.strokeColor = .clear
         glow.alpha = 0
         self.glowNode = glow
@@ -65,6 +72,17 @@ final class HumObjectNode: SKNode {
         sizeRoot.addChild(glowNode)
         sizeRoot.addChild(artRoot)
         artRoot.addChild(bodyNode)
+        if kind == .bar {
+            glow.zPosition = -1
+            glow.glowWidth = 5
+            barRipple.fillColor = .clear
+            barRipple.strokeColor = WarmShelfPalette.butter.withAlpha(0.60)
+            barRipple.lineWidth = 2.5
+            barRipple.glowWidth = 3
+            barRipple.alpha = 0
+            barRipple.zPosition = 3
+            sizeRoot.addChild(barRipple)
+        }
         buildFace()
         startResting()
     }
@@ -331,6 +349,7 @@ final class HumObjectNode: SKNode {
     }
 
     private func runPupilNotice() {
+        guard !AmbientAnimator.reduceMotion else { return }
         for pupil in pupils {
             pupil.removeAction(forKey: "hum.pupil")
             let dilate = SKAction.scale(to: 1.22, duration: 0.16)
@@ -344,7 +363,7 @@ final class HumObjectNode: SKNode {
     // MARK: - Ambient breathing
 
     private func startResting() {
-        guard !AmbientAnimator.reduceMotion else { return }
+        guard !isHeld, !AmbientAnimator.reduceMotion else { return }
         removeAction(forKey: breatheKey)
         artRoot.removeAction(forKey: idleKey)
         let dur = Double.random(in: 4.0...6.0)
@@ -353,8 +372,10 @@ final class HumObjectNode: SKNode {
         up.timingMode = .easeInEaseOut
         dn.timingMode = .easeInEaseOut
         let delay = Double.random(in: 0...1.3)
-        run(.sequence([.wait(forDuration: delay),
-                       .repeatForever(.sequence([up, dn]))]), withKey: breatheKey)
+        let breathingRoot: SKNode = kind == .bar ? bodyNode : self
+        breathingRoot.removeAction(forKey: breatheKey)
+        breathingRoot.run(.sequence([.wait(forDuration: delay),
+                                    .repeatForever(.sequence([up, dn]))]), withKey: breatheKey)
         startIdlePersonality(after: delay + 0.2)
     }
 
@@ -405,37 +426,41 @@ final class HumObjectNode: SKNode {
 
     // MARK: - Touch states
 
-    func noticeAndHold() {
+    func noticeAndHold(intensity: CGFloat = 1) {
         isHeld = true
+        heldIntensity = HumStrikeExpression.clampedIntensity(intensity)
         removeAction(forKey: breatheKey)
+        bodyNode.removeAction(forKey: breatheKey)
+        removeAction(forKey: restRestartKey)
         removeAction(forKey: sighKey)
-        artRoot.removeAction(forKey: idleKey)
         removeAction(forKey: "returnHome")
+        artRoot.removeAction(forKey: idleKey)
+        artRoot.removeAction(forKey: shimmerKey)
+        artRoot.removeAction(forKey: "hum.peek")
+        artRoot.removeAction(forKey: "hum.strumHop")
         showEyes(open: true, duration: 0.18)
         showMouth(singing: true, duration: 0.16)
 
-        let fadeIn = SKAction.fadeAlpha(to: 1, duration: 0.18)
-        fadeIn.timingMode = .easeOut
-        glowNode.run(fadeIn)
-
+        glowNode.removeAction(forKey: glowPulseKey)
+        glowNode.removeAction(forKey: heldGlowKey)
         if kind == .bar {
-            // A real key press: the bar dips into the rail and the clay squashes, then is held
-            // compressed — quick to press in (the asymmetry law). Springs back in settleHome.
-            let dip = SKAction.move(to: CGPoint(x: homePosition.x, y: homePosition.y - 12), duration: 0.08)
-            dip.timingMode = .easeOut
-            run(dip, withKey: "hum.hold")
-            let squash = SKAction.group([
-                .scaleY(to: 0.90, duration: 0.08),
-                .scaleX(to: 1.06, duration: 0.08)
+            setScale(1)
+            let motion = HumStrikeExpression.press(intensity: heldIntensity, reduceMotion: AmbientAnimator.reduceMotion)
+            let press = SKAction.group([
+                .move(to: CGPoint(x: 0, y: -motion.depth), duration: motion.duration),
+                .scaleX(to: motion.widthScale, y: motion.heightScale, duration: motion.duration),
+                .rotate(toAngle: 0, duration: motion.duration)
             ])
-            squash.timingMode = .easeOut
-            artRoot.run(squash, withKey: idleKey)
+            press.timingMode = .easeOut
+            artRoot.run(press, withKey: barMotionKey)
+            startHeldGlow()
         } else {
-            artRoot.run(SKAction.group([
+            glowNode.run(.fadeAlpha(to: 1, duration: 0.18), withKey: heldGlowKey)
+            artRoot.run(.group([
                 .move(to: .zero, duration: 0.12),
                 .rotate(toAngle: 0, duration: 0.12),
-                .scale(to: 1.0, duration: 0.12)
-            ]))
+                .scale(to: 1, duration: 0.12)
+            ]), withKey: idleKey)
             let up = SKAction.scale(to: 1.08, duration: 0.12)
             up.timingMode = .easeOut
             run(up, withKey: "hum.hold")
@@ -444,70 +469,128 @@ final class HumObjectNode: SKNode {
 
     func settleHome() {
         isHeld = false
+        removeAction(forKey: "hum.hold")
+        removeAction(forKey: restRestartKey)
+        glowNode.removeAction(forKey: glowPulseKey)
+        glowNode.removeAction(forKey: heldGlowKey)
         stopShimmer()
         showEyes(open: false, duration: 0.34)
         showMouth(singing: false, duration: 0.42)
-
-        let fadeOut = SKAction.fadeAlpha(to: 0, duration: 1.2)
-        fadeOut.timingMode = .easeInEaseOut
-        glowNode.run(fadeOut)
+        glowNode.run(.fadeOut(withDuration: 0.42), withKey: heldGlowKey)
 
         if kind == .bar {
-            // Spring the key back up — slower than the press, with a cute little overshoot bob.
-            let up = SKAction.move(to: homePosition, duration: 0.26)
-            up.timingMode = .easeOut
-            run(up, withKey: "returnHome")
-            let unsquash = SKAction.group([
-                .scaleY(to: 1.0, duration: 0.22),
-                .scaleX(to: 1.0, duration: 0.22)
-            ])
-            unsquash.timingMode = .easeOut
-            let bob = SKAction.sequence([
-                .scaleY(to: 1.04, duration: 0.10),
-                .scaleY(to: 1.0, duration: 0.16)
-            ])
-            artRoot.run(.sequence([unsquash, bob]), withKey: idleKey)
-            run(.sequence([.wait(forDuration: 0.5), .run { [weak self] in self?.startResting() }]))
+            artRoot.removeAction(forKey: idleKey)
+            artRoot.removeAction(forKey: shimmerKey)
+            if AmbientAnimator.reduceMotion {
+                artRoot.removeAction(forKey: barMotionKey)
+                artRoot.position = .zero
+                artRoot.zRotation = 0
+                artRoot.setScale(1)
+                bodyNode.setScale(1)
+            } else {
+                let lift = SKAction.group([
+                    .move(to: CGPoint(x: 0, y: 2 + heldIntensity), duration: 0.16),
+                    .scaleX(to: 0.99, y: 1.025, duration: 0.16)
+                ])
+                let settle = SKAction.group([
+                    .move(to: .zero, duration: 0.24),
+                    .scale(to: 1, duration: 0.24)
+                ])
+                lift.timingMode = .easeOut
+                settle.timingMode = .easeInEaseOut
+                artRoot.run(.sequence([lift, settle]), withKey: barMotionKey)
+            }
+            run(.sequence([.wait(forDuration: 0.48), .run { [weak self] in
+                self?.startResting()
+            }]), withKey: restRestartKey)
             return
         }
 
         playLittleSigh()
-
-        let settle = SKAction.scale(to: 1.0, duration: 0.95)
+        let settle = SKAction.scale(to: 1, duration: 0.95)
         settle.timingMode = .easeInEaseOut
         run(settle, withKey: "hum.hold")
-
         let drift = SKAction.move(to: homePosition, duration: 2.2)
         drift.timingMode = .easeInEaseOut
         run(drift, withKey: "returnHome")
-
-        run(.sequence([.wait(forDuration: 1.0), .run { [weak self] in
+        run(.sequence([.wait(forDuration: 1), .run { [weak self] in
             self?.startResting()
-        }]))
+        }]), withKey: restRestartKey)
     }
 
-    func playSoundPulse(intensity: CGFloat = 1.0) {
-        guard !AmbientAnimator.reduceMotion else { return }
+    private func startHeldGlow() {
+        guard kind == .bar, isHeld else { return }
+        glowNode.removeAction(forKey: heldGlowKey)
+        let warm = SKAction.fadeAlpha(to: 0.76, duration: 0.20)
+        if AmbientAnimator.reduceMotion {
+            glowNode.run(warm, withKey: heldGlowKey)
+            return
+        }
+        let brighten = SKAction.fadeAlpha(to: 0.92, duration: 0.92)
+        let soften = SKAction.fadeAlpha(to: 0.58, duration: 0.92)
+        brighten.timingMode = .easeInEaseOut
+        soften.timingMode = .easeInEaseOut
+        glowNode.run(.sequence([warm, .repeatForever(.sequence([brighten, soften]))]), withKey: heldGlowKey)
+    }
+
+    func playSoundPulse(intensity: CGFloat = 1) {
+        let intensity = intensity.isFinite ? min(1.45, max(0.12, intensity)) : 1
         bodyNode.removeAction(forKey: bodyPulseKey)
         glowNode.removeAction(forKey: glowPulseKey)
+        glowNode.removeAction(forKey: heldGlowKey)
+        if kind == .bar {
+            barRipple.removeAllActions()
+            barRipple.setScale(1)
+            barRipple.alpha = min(1, intensity * 0.84)
+            let fade = SKAction.fadeOut(withDuration: 0.48 + Double(intensity) * 0.10)
+            if AmbientAnimator.reduceMotion {
+                barRipple.run(fade, withKey: "hum.ripple")
+            } else {
+                let expand = SKAction.scale(to: 1.06 + intensity * 0.08, duration: 0.58)
+                expand.timingMode = .easeOut
+                barRipple.run(.group([expand, fade]), withKey: "hum.ripple")
+            }
+        }
+        if !AmbientAnimator.reduceMotion {
+            let bodyUp = SKAction.scale(to: 1 + 0.035 * intensity, duration: 0.10)
+            let bodyDown = SKAction.scale(to: 1, duration: 0.30)
+            bodyUp.timingMode = .easeOut
+            bodyDown.timingMode = .easeInEaseOut
+            bodyNode.run(.sequence([bodyUp, bodyDown]), withKey: bodyPulseKey)
+        }
+        let brighten = SKAction.fadeAlpha(to: min(1, intensity * 0.82), duration: 0.08)
+        let fade = SKAction.fadeAlpha(to: isHeld ? 0.64 : 0, duration: 0.40)
+        glowNode.run(.sequence([brighten, fade, .run { [weak self] in
+            self?.startHeldGlow()
+        }]), withKey: glowPulseKey)
+    }
 
-        let bodyUp = SKAction.scale(to: 1.0 + 0.045 * intensity, duration: 0.12)
-        let bodyDown = SKAction.scale(to: 1.0, duration: 0.38)
-        bodyUp.timingMode = .easeOut
-        bodyDown.timingMode = .easeInEaseOut
-        bodyNode.run(.sequence([bodyUp, bodyDown]), withKey: bodyPulseKey)
+    func resumeRestingFeedback() {
+        guard !isHeld else { return }
+        startResting()
+    }
 
-        let glowUp = SKAction.group([
-            .scale(to: 1.0 + 0.16 * intensity, duration: 0.18),
-            .fadeAlpha(to: min(1.0, 0.72 + 0.12 * intensity), duration: 0.18)
-        ])
-        let glowDown = SKAction.group([
-            .scale(to: 1.0, duration: 0.62),
-            .fadeAlpha(to: isHeld ? 1.0 : 0.0, duration: 0.62)
-        ])
-        glowUp.timingMode = .easeOut
-        glowDown.timingMode = .easeInEaseOut
-        glowNode.run(.sequence([glowUp, glowDown]), withKey: glowPulseKey)
+    /// Clear visuals before the scene pauses; no delayed pulse can revive a released key.
+    func resetFeedback() {
+        isHeld = false
+        removeAllActions()
+        artRoot.removeAllActions()
+        bodyNode.removeAllActions()
+        glowNode.removeAllActions()
+        barRipple.removeAllActions()
+        position = homePosition
+        setScale(1)
+        artRoot.position = .zero
+        artRoot.zRotation = 0
+        artRoot.setScale(1)
+        bodyNode.position = .zero
+        bodyNode.setScale(1)
+        glowNode.alpha = 0
+        glowNode.setScale(1)
+        barRipple.alpha = 0
+        barRipple.setScale(1)
+        showEyes(open: false, duration: 0)
+        showMouth(singing: false, duration: 0)
     }
 
     func playDuetPulse() {
@@ -655,4 +738,38 @@ final class HumObjectNode: SKNode {
     }
 
     var toneDecay: Double { kind == .pebble ? 0.8 : 1.8 }
+}
+
+// Visual expression stays bounded independently of device sampling rate or audio playback.
+enum HumStrikeExpression {
+    struct Press {
+        let depth: CGFloat
+        let widthScale: CGFloat
+        let heightScale: CGFloat
+        let duration: TimeInterval
+    }
+    static let effectLimit = 64
+
+    static func clampedIntensity(_ value: CGFloat) -> CGFloat {
+        value.isFinite ? min(1.45, max(0.72, value)) : 1
+    }
+
+    static func intensity(speed: CGFloat, interval: TimeInterval?) -> CGFloat {
+        let speed = speed.isFinite ? min(1, max(0, speed) / 1200) : 0
+        let cadence: CGFloat
+        if let interval, interval.isFinite, interval >= 0 {
+            cadence = CGFloat(min(1, max(0, (0.45 - interval) / 0.38)))
+        } else {
+            cadence = 0
+        }
+        return clampedIntensity(0.88 + speed * 0.35 + cadence * 0.22)
+    }
+
+    static func press(intensity: CGFloat, reduceMotion: Bool) -> Press {
+        let intensity = clampedIntensity(intensity)
+        return Press(depth: reduceMotion ? 0 : 6 + intensity * 5,
+                     widthScale: reduceMotion ? 1 : 1 + intensity * 0.035,
+                     heightScale: reduceMotion ? 1 : 1 - intensity * 0.065,
+                     duration: reduceMotion ? 0 : 0.065)
+    }
 }

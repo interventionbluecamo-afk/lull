@@ -61,6 +61,8 @@ final class HumScene: BaseToyScene {
     private var objects: [HumObjectNode] = []
     private var touchToObject: [UITouch: HumObjectNode] = [:]
     private var lastTouchPositions: [UITouch: CGPoint] = [:]
+    private var lastTouchTimes: [UITouch: TimeInterval] = [:]
+    private var lastStrikeTime: TimeInterval?
     private var trailAccumulators: [UITouch: CGFloat] = [:]
     /// Held-note tokens from AudioManager.startHeldNote, per bar being held.
     private var activeToneIDs: [ObjectIdentifier: Int] = [:]
@@ -249,6 +251,12 @@ final class HumScene: BaseToyScene {
         objects.forEach { $0.removeFromParent() }
         objects.removeAll()
         touchToObject.removeAll()
+        lastTouchPositions.removeAll()
+        lastTouchTimes.removeAll()
+        lastStrikeTime = nil
+        trailAccumulators.removeAll()
+        humHoldTimers.values.forEach { $0.invalidate() }
+        humHoldTimers.removeAll()
         // Stop any still-ringing sustains before dropping their handles, so a rebuild can't orphan a note.
         activeToneIDs.values.forEach { AudioManager.shared.releaseHeldNote($0, fade: 0.1) }
         activeToneIDs.removeAll()
@@ -578,7 +586,7 @@ final class HumScene: BaseToyScene {
                 continue
             }
 
-            // A xylophone: a touch STRIKES the one bar under the finger. Bars never move.
+            // A touch strikes one key; its visual body dips while its column stays fixed.
             if let bar = barUnderFinger(point) {
                 strikeBar(bar, for: touch)
             } else {
@@ -590,10 +598,17 @@ final class HumScene: BaseToyScene {
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         for touch in touches {
             guard let current = touchToObject[touch] else { continue }
-            guard let bar = barUnderFinger(touch.location(in: self)), bar !== current else { continue }
+            let point = touch.location(in: self)
+            let elapsed = touch.timestamp - (lastTouchTimes[touch] ?? touch.timestamp)
+            let previous = lastTouchPositions[touch] ?? point
+            let speed = elapsed > 0
+                ? hypot(point.x - previous.x, point.y - previous.y) / CGFloat(elapsed) : 0
+            lastTouchPositions[touch] = point
+            lastTouchTimes[touch] = touch.timestamp
+            guard let bar = barUnderFinger(point), bar !== current else { continue }
             // A glissando releases this finger's ownership; another finger may still hold the bar.
             releaseObject(for: touch)
-            strikeBar(bar, for: touch)
+            strikeBar(bar, for: touch, speed: speed)
         }
     }
 
@@ -610,14 +625,18 @@ final class HumScene: BaseToyScene {
         lastStrumCheck.removeValue(forKey: touch)
     }
 
-    /// Strike one bar: it wakes, bounces, and rings out. No sustained drone, no dragging —
-    /// a xylophone, not a held object.
-    private func strikeBar(_ bar: HumObjectNode, for touch: UITouch) {
+    /// Playing speed changes the key's expression while the note keeps its familiar voice.
+    private func strikeBar(_ bar: HumObjectNode, for touch: UITouch, speed: CGFloat = 0) {
+        let interval = lastStrikeTime.map { touch.timestamp - $0 }
+        let intensity = HumStrikeExpression.intensity(speed: speed, interval: interval)
+        lastStrikeTime = touch.timestamp
+        lastTouchPositions[touch] = touch.location(in: self)
+        lastTouchTimes[touch] = touch.timestamp
         let alreadyHeld = touchToObject.values.contains { $0 === bar }
         touchToObject[touch] = bar
-        bar.noticeAndHold()
-        bar.playSoundPulse(intensity: 1.1)
-        spawnSoundRing(at: bar.position, color: bar.objectColor, radius: primaryRingRadius)
+        bar.noticeAndHold(intensity: intensity)
+        bar.playSoundPulse(intensity: intensity)
+        spawnSoundRing(at: bar.position, color: bar.objectColor, radius: primaryRingRadius * (0.82 + intensity * 0.18))
         playHumOnset(for: bar)
         if !alreadyHeld {
             startSustainedTone(for: bar)
@@ -641,6 +660,7 @@ final class HumScene: BaseToyScene {
     /// A couple of soft note-motes lift off a struck bar and fade — quiet sparkle, not confetti.
     private func spawnNoteMotes(at point: CGPoint, color: UIColor, count: Int) {
         guard !AmbientAnimator.reduceMotion else { return }
+        reserveSoundFXSlots(count)
         for _ in 0..<count {
             let mote = SKShapeNode(circleOfRadius: CGFloat.random(in: 2.0...3.6))
             mote.fillColor = color.withAlpha(0.5)
@@ -704,6 +724,7 @@ final class HumScene: BaseToyScene {
     private func releaseObject(for touch: UITouch) {
         guard let obj = touchToObject.removeValue(forKey: touch) else { return }
         lastTouchPositions.removeValue(forKey: touch)
+        lastTouchTimes.removeValue(forKey: touch)
         trailAccumulators.removeValue(forKey: touch)
         guard !touchToObject.values.contains(where: { $0 === obj }) else { return }
 
@@ -770,11 +791,20 @@ final class HumScene: BaseToyScene {
                 activeToneIDs.removeValue(forKey: id)
                 sustainStartTimes.removeValue(forKey: id)
                 if aged {
-                    for (t, b) in touchToObject where ObjectIdentifier(b) == id { touchToObject.removeValue(forKey: t) }
+                    for (touch, bar) in touchToObject where ObjectIdentifier(bar) == id {
+                        touchToObject.removeValue(forKey: touch)
+                        lastTouchPositions.removeValue(forKey: touch)
+                        lastTouchTimes.removeValue(forKey: touch)
+                    }
                     if let bar = objects.first(where: { ObjectIdentifier($0) == id }) { bar.settleHome(); stopHeldSparkle(for: bar) }
                 }
             }
         }
+    }
+
+    override func resumeToyAfterRest() {
+        super.resumeToyAfterRest()
+        objects.forEach { $0.resumeRestingFeedback() }
     }
 
     override func teardownToyAudio() {
@@ -787,15 +817,20 @@ final class HumScene: BaseToyScene {
         humHoldTimers.removeAll()
         touchToObject.removeAll()
         lastTouchPositions.removeAll()
+        lastTouchTimes.removeAll()
+        lastStrikeTime = nil
         trailAccumulators.removeAll()
         strumTouches.removeAll()
         lastStrumCheck.removeAll()
         activePairs.removeAll()
         for obj in objects {
             stopHeldSparkle(for: obj)
-            if obj.isHeld { obj.settleHome() }
+            obj.resetFeedback()
         }
+        soundFXLayer.removeAllChildren()
+        harmonyGlow.removeAction(forKey: "glow")
         harmonyGlow.alpha = 0
+        lastHarmonyHeld = -1
         noTouchSince = 0
         padActive = false
     }
@@ -1007,8 +1042,17 @@ final class HumScene: BaseToyScene {
         mote.run(.sequence([.group([drift, fade]), .removeFromParent()]))
     }
 
+    private func reserveSoundFXSlots(_ count: Int) {
+        while soundFXLayer.children.count + count > HumStrikeExpression.effectLimit,
+              let oldest = soundFXLayer.children.first {
+            oldest.removeAllActions()
+            oldest.removeFromParent()
+        }
+    }
+
     private func spawnSoundRing(at point: CGPoint, color: UIColor, radius: CGFloat) {
         guard !AmbientAnimator.reduceMotion else { return }
+        reserveSoundFXSlots(1)
         let root = SKNode()
         root.position = point
         soundFXLayer.addChild(root)
@@ -1338,22 +1382,10 @@ final class HumScene: BaseToyScene {
         ])
         bar.run(.repeatForever(emit), withKey: "heldSparkle")
 
-        if bar.childNode(withName: "heldGlow") == nil {
-            let glow = SKShapeNode(circleOfRadius: 74)
-            glow.name = "heldGlow"
-            glow.fillColor = bar.objectColor.withAlpha(0.3)
-            glow.strokeColor = .clear
-            glow.blendMode = .add
-            glow.zPosition = -1
-            glow.alpha = 0
-            bar.addChild(glow)
-            glow.run(.fadeAlpha(to: 1, duration: 0.2))
-            glow.run(.repeatForever(.sequence([.scale(to: 1.18, duration: 0.85), .scale(to: 0.94, duration: 0.85)])), withKey: "breathe")
-        }
+        // The bar owns its persistent breathing glow; only short-lived motes live here.
     }
 
     private func stopHeldSparkle(for bar: HumObjectNode) {
         bar.removeAction(forKey: "heldSparkle")
-        bar.childNode(withName: "heldGlow")?.run(.sequence([.fadeOut(withDuration: 0.3), .removeFromParent()]))
     }
 }

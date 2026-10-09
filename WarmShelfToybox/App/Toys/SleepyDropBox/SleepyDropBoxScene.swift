@@ -45,6 +45,9 @@ final class SleepyDropBoxScene: BaseToyScene {
     private var playSpots: [CGPoint] = []
     private let pieceKinds: [DropTreasureNode.Kind] = [.berry, .triangle, .cube, .star]
     private var playSlotOrder = [0, 1, 2, 3]
+    private var socketSlotOrder = [0, 1, 2, 3]
+    private var completedRounds = 0
+    private var changingBox = false
     private var returningDestinations: [DropTreasureNode.Kind: CGPoint] = [:]
 
     // Touch
@@ -135,6 +138,11 @@ final class SleepyDropBoxScene: BaseToyScene {
 
     private func rebuild() {
         guard size.width > 160, size.height > 160 else { return }
+        removeAction(forKey: "box.exchange")
+        changingBox = false
+        frontLayer.removeAllActions(); panelLayer.removeAllActions()
+        frontLayer.position = .zero; panelLayer.position = .zero
+        frontLayer.alpha = 1; panelLayer.alpha = 1
         removeAction(forKey: "lullaby")
         removeAction(forKey: "box.sleep")
         removeAction(forKey: "drawer.close")
@@ -171,7 +179,7 @@ final class SleepyDropBoxScene: BaseToyScene {
         if let shellTex {
             usesPlainShell = true
             buildPlainShell(shellTex)
-        } else if let bodyTex {
+        } else if let bodyTex, socketSlotOrder == [0, 1, 2, 3] {
             usesPlainShell = false
             // Warm Clay box (Docs/SleepyBoxSlice.md): one authored body carries the holes
             // and drawer slot; the living face and all interactions stay procedural.
@@ -431,8 +439,9 @@ final class SleepyDropBoxScene: BaseToyScene {
             (CGPoint(x: c.x - dx, y: c.y - dy), CGSize(width: r * 2.12, height: r * 2.12), WarmShelfPalette.sage,      .square,   .cube),
             (CGPoint(x: c.x + dx, y: c.y - dy), CGSize(width: r * 2.30, height: r * 2.30), WarmShelfPalette.waterBlue, .star,     .star)
         ]
-        for spec in specs {
-            var opening = Opening(center: spec.pos, size: spec.size,
+        for (index, spec) in specs.enumerated() {
+            let center = specs[socketSlotOrder[index]].pos
+            var opening = Opening(center: center, size: spec.size,
                                   felt: usesPlainShell ? woodDark : spec.felt,
                                   shape: spec.shape, accepts: spec.accepts, rim: nil)
             buildCarvedOpening(&opening)
@@ -688,7 +697,7 @@ final class SleepyDropBoxScene: BaseToyScene {
         let n = 4
         // Equal, generous footprints keep all four silhouettes fully on-screen, including
         // the moment a shape grows slightly on pickup. Completed rounds rearrange which
-        // shape occupies each footprint; socket fits stay the same.
+        // shape occupies each footprint; each socket keeps its matching shape.
         let spread = min(boxW * 0.82, size.width - r * 2.6)
 
         // A real shallow wooden dish the treasures live in — visible back wall, floor, and a lit
@@ -818,6 +827,7 @@ final class SleepyDropBoxScene: BaseToyScene {
         for touch in touches {
             let p = touch.location(in: self)
             if dragTouch == nil, drawerTouch == nil, consumeShelfReturnTouch(at: p) { return }
+            guard !changingBox else { continue }
 
             // A treasure under the finger ALWAYS wins — so a piece sitting near the drawer (common on
             // iPhone, where everything is closer) is still grabbable and never triggers the drawer.
@@ -969,7 +979,7 @@ final class SleepyDropBoxScene: BaseToyScene {
     // MARK: - Drop in
 
     private func dropPiece(_ piece: DropTreasureNode, into index: Int) {
-        guard treasures.contains(where: { $0 === piece }),
+        guard !changingBox, treasures.contains(where: { $0 === piece }),
               !insideKinds.contains(piece.kind), openings.indices.contains(index) else { return }
         let opening = openings[index]
         insideKinds.append(piece.kind)
@@ -1091,10 +1101,19 @@ final class SleepyDropBoxScene: BaseToyScene {
     // MARK: - Drawer tumble-out
 
     private func tumbleOut() {
-        guard !insideKinds.isEmpty else { return }
+        guard !changingBox, !insideKinds.isEmpty else { return }
         let kinds = insideKinds
         if kinds.count == pieceKinds.count {
             playSlotOrder = SleepyBoxRoundLayout.shuffledSlots(playSlotOrder)
+            completedRounds += 1
+            if SleepyBoxRoundLayout.shouldExchange(after: completedRounds) {
+                socketSlotOrder = SleepyBoxRoundLayout.shuffledSlots(socketSlotOrder)
+                changingBox = true
+                // Let the four treasures settle and the drawer close before the next box arrives.
+                run(.sequence([.wait(forDuration: 1.25), .run { [weak self] in
+                    self?.exchangeBox()
+                }]), withKey: "box.exchange")
+            }
         }
         insideKinds.removeAll()
         setBoxMood(.surprised)
@@ -1147,6 +1166,48 @@ final class SleepyDropBoxScene: BaseToyScene {
                 self?.tumblePiece(piece, to: dest)
             }]), withKey: "drawer.return.\(kind)")
         }
+    }
+
+    /// Move only the box furniture, leaving the room and the child's returned shapes still.
+    /// A rotation calls rebuild(), completing this exchange at its new socket layout safely.
+    private func exchangeBox() {
+        drawerTouch = nil
+        drawer.position.y = drawerClosedY
+        drawerTargetY = drawerClosedY
+        let outside = treasures.map { ($0.kind, $0.position) }
+        let moving = [frontLayer, panelLayer] + boxLayer.children.filter { $0.zPosition >= -0.5 && $0.zPosition <= 0 }
+        let duration: TimeInterval = AmbientAnimator.reduceMotion ? 0.16 : 0.32
+        for node in moving {
+            let away: SKAction = AmbientAnimator.reduceMotion
+                ? .fadeOut(withDuration: duration)
+                : .moveBy(x: -size.width, y: 0, duration: duration)
+            away.timingMode = .easeInEaseOut
+            node.run(away)
+        }
+        run(.sequence([.wait(forDuration: duration), .run { [weak self] in
+            guard let self else { return }
+            self.rebuild()
+            self.changingBox = true
+            for (kind, position) in outside {
+                self.treasures.first(where: { $0.kind == kind })?.position = position
+            }
+            let incoming = [self.frontLayer, self.panelLayer] + self.boxLayer.children.filter { $0.zPosition >= -0.5 && $0.zPosition <= 0 }
+            for node in incoming {
+                if AmbientAnimator.reduceMotion {
+                    let restingAlpha = node.alpha
+                    node.alpha = 0
+                    node.run(.fadeAlpha(to: restingAlpha, duration: duration))
+                } else {
+                    node.position.x += self.size.width
+                    let arrive = SKAction.moveBy(x: -self.size.width, y: 0, duration: duration)
+                    arrive.timingMode = .easeInEaseOut
+                    node.run(arrive)
+                }
+            }
+            self.run(.sequence([.wait(forDuration: duration), .run { [weak self] in
+                self?.changingBox = false
+            }]), withKey: "box.exchange")
+        }]), withKey: "box.exchange")
     }
 
     private func tumblePiece(_ piece: DropTreasureNode, to dest: CGPoint) {
@@ -1326,6 +1387,10 @@ final class SleepyDropBoxScene: BaseToyScene {
 
 /// A new complete round keeps one of each shape while changing their loose tray order.
 enum SleepyBoxRoundLayout {
+    static func shouldExchange(after completedRounds: Int) -> Bool {
+        completedRounds > 0 && completedRounds.isMultiple(of: 2)
+    }
+
     static func shuffledSlots(_ current: [Int]) -> [Int] {
         guard current.count > 1 else { return current }
         var next = current.shuffled()

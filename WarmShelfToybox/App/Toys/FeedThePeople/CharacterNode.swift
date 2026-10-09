@@ -85,13 +85,14 @@ final class CharacterNode: SKNode {
     // "scarf" is parked: its generation came back a realistic tall adult (small head,
     // ~3.7:1 body) instead of the round chibi friend the others are — off-model in rotation.
     // Revive it once a chibi regen lands (see Docs/ArtAsks.md).
-    static let castMembers = ["sprout", "grandmother", "knithat"]
+    static var castMembers: [String] {
+        FeedCastCatalog.completeCast(FeedCastCatalog.entries) { ToyArt.texture($0) != nil }.map(\.name)
+    }
     let castMember: String?
     private var artSprite: SKSpriteNode?
-    private static let castFriendlyNames: [String: String] = [
-        "sprout": "the little one", "grandmother": "the grandmother",
-        "knithat": "the kid in the knit hat", "scarf": "the friend in the scarf"
-    ]
+    private static var castFriendlyNames: [String: String] {
+        Dictionary(FeedCastCatalog.entries.map { ($0.name, $0.friendlyName) }, uniquingKeysWith: { first, _ in first })
+    }
 
     private var bodyNode: SKShapeNode!
     private var headNode: SKShapeNode!
@@ -188,7 +189,7 @@ final class CharacterNode: SKNode {
         if let member = castMember, let art = artSprite {
             return art.convert(Self.artMouthPoint(member: member, spriteSize: art.size, anchorPoint: art.anchorPoint), to: scene)
         }
-        return convert(CGPoint(x: 0, y: headRadius * 0.08), to: scene)
+        return convert(CGPoint(x: 0, y: FeedServingRules.proceduralMouthY(headRadius: headRadius)), to: scene)
     }
 
     var snapRadius: CGFloat {
@@ -206,6 +207,9 @@ final class CharacterNode: SKNode {
         let mouth: CGFloat
 
         static func of(_ member: String) -> CastRig {
+            if let entry = FeedCastCatalog.entries.first(where: { $0.name == member }) {
+                return CastRig(headWidth: entry.headWidth, headCentre: entry.headCentre, mouth: entry.mouth)
+            }
             switch member {
             case "grandmother": return CastRig(headWidth: 0.875, headCentre: 0.40, mouth: 0.505)
             case "knithat":     return CastRig(headWidth: 0.933, headCentre: 0.48, mouth: 0.573)
@@ -552,7 +556,12 @@ final class CharacterNode: SKNode {
     /// Lets the scene fan out thought bubbles so neighbours never overlap, with the scene
     /// supplying a clamped local Y so bubbles never clip off the top (esp. in landscape).
     func arrangeThoughtBubble(at localPosition: CGPoint) {
-        thoughtBubble?.position = localPosition
+        guard let bubble = thoughtBubble else { return }
+        bubble.removeAction(forKey: "ambientIdleDrift")
+        bubble.removeAction(forKey: "ambientIdleDriftLoop")
+        bubble.position = localPosition
+        AmbientAnimator.idleDrift(node: bubble, x: headRadius * 0.028,
+                                  y: headRadius * 0.040, duration: 7.2, delay: 0.4)
     }
     var thoughtBubbleHalfHeight: CGFloat { headRadius * 0.78 }
     var defaultThoughtBubbleLocalY: CGFloat { headRadius * 1.7 }
@@ -612,13 +621,6 @@ final class CharacterNode: SKNode {
             wantIcons.append((kind, foodIcon))
         }
 
-        AmbientAnimator.idleDrift(
-            node: root,
-            x: headRadius * 0.028,
-            y: headRadius * 0.040,
-            duration: 7.2,
-            delay: 0.4
-        )
         AmbientAnimator.breathe(node: root, scale: 1.026, duration: 6.4)
     }
 
@@ -1424,6 +1426,42 @@ final class CharacterNode: SKNode {
             sway.timingMode = .easeInEaseOut
             back.timingMode = .easeInEaseOut
             run(.sequence([sway, back]), withKey: "slowSway")
+        }
+    }
+}
+
+/// Build-time catalog refresh finds complete six-frame families. New friends use a provisional
+/// sprout rig until their registered art landmarks are measured in refresh_feed_catalog.py.
+enum FeedCastCatalog {
+    struct Entry: Decodable {
+        let name: String
+        let friendlyName: String
+        let headWidth: CGFloat
+        let headCentre: CGFloat
+        let mouth: CGFloat
+    }
+    private struct Catalog: Decodable { let version: Int; let cast: [Entry] }
+    static let entries: [Entry] = {
+        guard let url = Bundle.main.url(forResource: "FeedCatalog", withExtension: "json"),
+              let data = try? Data(contentsOf: url), let entries = decode(data) else {
+            return [Entry(name: "sprout", friendlyName: "the little one", headWidth: 0.893, headCentre: 0.44, mouth: 0.520),
+                    Entry(name: "grandmother", friendlyName: "the grandmother", headWidth: 0.875, headCentre: 0.40, mouth: 0.505),
+                    Entry(name: "knithat", friendlyName: "the kid in the knit hat", headWidth: 0.933, headCentre: 0.48, mouth: 0.573)]
+        }
+        return entries
+    }()
+    static func completeCast(_ entries: [Entry], textureExists: (String) -> Bool) -> [Entry] {
+        entries.filter { entry in
+            entry.name != "scarf" && (1...6).allSatisfy { textureExists("feed-cast-\(entry.name)-\($0)") }
+        }
+    }
+
+    static func decode(_ data: Data) -> [Entry]? {
+        guard let catalog = try? JSONDecoder().decode(Catalog.self, from: data), catalog.version == 1 else { return nil }
+        return catalog.cast.filter {
+            !$0.name.isEmpty && $0.name != "scarf" && $0.headWidth.isFinite && $0.headWidth > 0 && $0.headWidth <= 1
+                && $0.headCentre.isFinite && (0...1).contains($0.headCentre)
+                && $0.mouth.isFinite && (0...1).contains($0.mouth)
         }
     }
 }

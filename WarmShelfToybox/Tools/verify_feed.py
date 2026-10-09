@@ -53,7 +53,7 @@ final class CharacterModel {
  var needsMoreFood: Bool { bitesRemaining > 0 }
  func transitionTo(_ m: CharacterMood) { mood = m }
  func runHappyShimmy() {}
-'''+methods+'\n}\n'+block(fs,'enum FeedServingRules')+r'''
+'''+methods+'\n}\n'+block(cs,'enum FeedCastCatalog')+'\n'+block(fs,'enum FeedServingRules')+r'''
 var checks = 0
 func check(_ p: @autoclosure () -> Bool) { precondition(p()); checks += 1 }
 let c = CharacterModel()
@@ -140,7 +140,65 @@ for (bounds,head,origin) in [
  check(world.x - head * 0.86 >= bounds.minX - 0.001)
  if bounds.height < 400 { check(point.x > head * 1.2); check(point.y < head) }
 }
-print("PASS: \(checks) request-state, mouth-landmark, serving-bound, recovery-timing and rotation-layout checks using extracted production methods")
+
+// Replacement friends start offscreen. Bubble offsets must be derived from their final home,
+// not their temporary arrival position, and must remain legal once the friend gets there.
+let landscapeBounds = CGRect(x:73,y:35,width:706,height:344)
+let home = CGPoint(x:426,y:290)
+for arrival in [CGPoint(x:-214,y:290), CGPoint(x:1066,y:290)] {
+ let origin = FeedServingRules.bubbleLayoutOrigin(current:arrival,home:home)
+ check(origin == home)
+ let local = FeedServingRules.thoughtBubblePosition(desiredLocalY:82 * 1.7,
+   preferredSide:0,headRadius:82,halfHeight:82 * 0.78,
+   characterPosition:origin,visibleBounds:landscapeBounds)
+ let arrived = CGPoint(x:home.x + local.x,y:home.y + local.y)
+ check(arrived.x - 82 * 0.86 >= landscapeBounds.minX)
+ check(arrived.x + 82 * 0.86 <= landscapeBounds.maxX)
+ check(arrived.y + 82 * 0.78 <= landscapeBounds.maxY)
+}
+check(FeedServingRules.bubbleLayoutOrigin(current:home,home:nil) == home)
+// A finger on the pictured mouth may be holding the food's edge. Every illustrated shape
+// remains accepted at landscape sizes, while a remote food cannot be served by a mouth tap.
+for radius: CGFloat in [78.4,82.74,104,128] {
+ for food in [CGSize(width:64,height:98), CGSize(width:79,height:84),
+              CGSize(width:104,height:68), CGSize(width:73,height:95)] {
+  let mouth = CGPoint(x:426,y:245)
+  for offset in [CGPoint(x:food.width * 0.5,y:0),CGPoint(x:0,y:food.height * 0.5),
+                 CGPoint(x:-food.width * 0.5,y:0),CGPoint(x:0,y:-food.height * 0.5)] {
+   let center = CGPoint(x:mouth.x + offset.x,y:mouth.y + offset.y)
+   check(FeedServingRules.acceptsFood(center:center,finger:mouth,mouth:mouth,
+     headRadius:radius,foodSize:food))
+  }
+  check(!FeedServingRules.acceptsFood(center:CGPoint(x:mouth.x + 500,y:mouth.y),
+    finger:mouth,mouth:mouth,headRadius:radius,foodSize:food))
+  check(!FeedServingRules.acceptsFood(center:CGPoint(x:mouth.x + 500,y:mouth.y),
+    finger:CGPoint(x:mouth.x + 500,y:mouth.y),mouth:mouth,headRadius:radius,foodSize:food))
+ }
+ check(FeedServingRules.proceduralMouthY(headRadius:radius) == -radius * 0.08)
+}
+// Every new scene rotates a four-item window; empty/small pools remain legal and unique.
+for count in 1...10 {
+ let pool = Array(0..<count)
+ for offset in -2...20 {
+  let menu = FeedServingRules.menu(from:pool,offset:offset)
+  check(menu.count == min(4,count))
+  check(Set(menu).count == menu.count)
+  check(menu.allSatisfy { pool.contains($0) })
+ }
+}
+check(FeedServingRules.menu(from:[Int](),offset:0).isEmpty)
+check(FeedServingRules.menu(from:Array(0..<8),offset:0) != FeedServingRules.menu(from:Array(0..<8),offset:1))
+// A new cast may use explicit measured landmarks. All six runtime textures are required.
+let catalogData = Data(#"{"version":1,"cast":[{"name":"newfriend","friendlyName":"the new friend","headWidth":0.9,"headCentre":0.42,"mouth":0.54}]}"#.utf8)
+let catalog = FeedCastCatalog.decode(catalogData)!
+check(catalog.count == 1 && catalog[0].mouth == 0.54)
+let allFrames = Set((1...6).map { "feed-cast-newfriend-\($0)" })
+check(FeedCastCatalog.completeCast(catalog) { allFrames.contains($0) }.count == 1)
+check(FeedCastCatalog.completeCast(catalog) { allFrames.subtracting(["feed-cast-newfriend-6"]).contains($0) }.isEmpty)
+check(FeedCastCatalog.decode(Data(#"{"version":2,"cast":[]}"#.utf8)) == nil)
+check(FeedCastCatalog.decode(Data(#"{"version":1,"cast":[{"name":"scarf","friendlyName":"parked","headWidth":0.9,"headCentre":0.4,"mouth":0.5}]}"#.utf8))!.isEmpty)
+print("PASS: \(checks) Feed request, mouth/edge, arrival bubble, menu, catalog, timing and rotation checks using extracted production methods")
+
 '''
 with tempfile.TemporaryDirectory(prefix="lull-feed-verification-") as temporary_directory:
     temporary_path = Path(temporary_directory)

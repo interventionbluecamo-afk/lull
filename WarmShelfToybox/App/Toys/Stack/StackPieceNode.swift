@@ -44,6 +44,7 @@ final class StackPieceNode: SKNode {
     let isSignatureHero: Bool
 
     private(set) var isAwake = false
+    private(set) var isHeld = false
     private var expression: StackExpression = .sleeping
 
     private var faceLayer = SKNode()
@@ -63,6 +64,52 @@ final class StackPieceNode: SKNode {
     private var capstoneHomePosition = CGPoint.zero
     private var capstoneHomeAngle: CGFloat = -0.12
     private var pupilRadius: CGFloat = 3
+
+    /// One neutral wool surface shared by every shape and tinted by its palette color.
+    /// Fibres are baked once; no per-piece grain nodes or per-frame rasterization.
+    private static let feltTexture: SKTexture = {
+        let side: CGFloat = 96
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 2
+        format.opaque = true
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: format)
+        let image = renderer.image { context in
+            let cg = context.cgContext
+            UIColor(white: 0.96, alpha: 1).setFill()
+            cg.fill(CGRect(x: 0, y: 0, width: side, height: side))
+            let colors = [UIColor(white: 1, alpha: 1).cgColor,
+                          UIColor(white: 0.96, alpha: 1).cgColor,
+                          UIColor(white: 0.91, alpha: 1).cgColor] as CFArray
+            if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                                         colors: colors, locations: [0, 0.56, 1]) {
+                cg.drawRadialGradient(gradient,
+                                      startCenter: CGPoint(x: side * 0.36, y: side * 0.30), startRadius: 0,
+                                      endCenter: CGPoint(x: side * 0.5, y: side * 0.52), endRadius: side * 0.82,
+                                      options: [.drawsAfterEndLocation])
+            }
+            var seed: UInt64 = 0x5F317A91
+            func sample() -> CGFloat {
+                seed = seed &* 6364136223846793005 &+ 1442695040888963407
+                return CGFloat((seed >> 32) & 0xFFFF) / 65535
+            }
+            cg.setLineCap(.round)
+            for index in 0..<340 {
+                let point = CGPoint(x: sample() * side, y: sample() * side)
+                let angle = sample() * .pi * 2
+                let length = 0.7 + sample() * 2.6
+                cg.setLineWidth(0.30 + sample() * 0.35)
+                cg.setStrokeColor(UIColor(white: index.isMultiple(of: 3) ? 0.62 : 1,
+                                          alpha: index.isMultiple(of: 3) ? 0.085 : 0.20).cgColor)
+                cg.move(to: point)
+                cg.addLine(to: CGPoint(x: point.x + cos(angle) * length,
+                                      y: point.y + sin(angle) * length))
+                cg.strokePath()
+            }
+        }
+        let texture = SKTexture(image: image)
+        texture.filteringMode = .linear
+        return texture
+    }()
 
     init(kind: StackPieceKind, color: UIColor, scale: CGFloat, isSignatureHero: Bool = false) {
         self.kind = kind
@@ -85,48 +132,19 @@ final class StackPieceNode: SKNode {
         // Shadow is cast on the ground by the scene (see StackScene.updateShadows),
         // so it stays flat and never rotates with the body.
         glow = SKShapeNode(rect: rect.insetBy(dx: -8, dy: -8), cornerRadius: radius + 8)
-        glow.fillColor = WarmShelfPalette.butter.withAlpha(0.0)
+        glow.fillColor = WarmShelfPalette.butter.withAlpha(0.20)
+        glow.alpha = 0
         glow.strokeColor = .clear
         glow.zPosition = -0.5
         addChild(glow)
 
-        if let art = StackPieceNode.stoneArt(for: kind, bodySize: bodySize) {
-            // Warm Clay body: the neutral felt stone tinted to this piece's palette
-            // colour — material from the art, identity from the colour, the living face
-            // on top. Every piece keeps its own hue; the magic keeps (founder note).
-            art.color = baseColor
-            art.colorBlendFactor = 0.85
-            addChild(art)
-            if isSignatureHero { buildSignatureDetails() }
-        } else {
-            let body = SKShapeNode(rect: rect, cornerRadius: radius)
-            // Baked clay gradient reads through the silhouette; fillColor stays neutral so the
-            // texture's own colour shows, preserving the piece's subtle translucency via alpha.
-            var baseAlpha: CGFloat = 1
-            _ = baseColor.getRed(nil, green: nil, blue: nil, alpha: &baseAlpha)
-            body.fillColor = UIColor(white: 1, alpha: baseAlpha)
-            body.fillTexture = ProceduralTexture.radialClayTexture(base: baseColor, size: rect.size)
-            body.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.10)
-            body.lineWidth = max(1, bodySize.width * 0.009)
-            addChild(body)
-
-            ProceduralTexture.addMatteClayDepth(
-                to: self,
-                in: rect,
-                cornerRadius: radius,
-                zPosition: 0.78,
-                highlightAlpha: isSignatureHero ? 0.32 : 0.25,
-                shadeAlpha: 0.066,
-                rimAlpha: 0.045,
-                speckleCount: isSignatureHero ? 5 : 3
-            )
-
-            if isSignatureHero {
-                buildSignatureDetails()
-            } else {
-                buildClayDimples()
-            }
-        }
+        let body = SKShapeNode(rect: rect, cornerRadius: radius)
+        body.fillColor = baseColor
+        body.fillTexture = Self.feltTexture
+        body.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.07)
+        body.lineWidth = max(0.8, bodySize.width * 0.007)
+        addChild(body)
+        if isSignatureHero { buildSignatureDetails() }
 
         faceLayer.zPosition = 2
         addChild(faceLayer)
@@ -194,8 +212,8 @@ final class StackPieceNode: SKNode {
         openMouth.alpha = 0
         faceLayer.addChild(openMouth)
 
-        // Keep the authored performance separate from the physics node. The stone stays
-        // exactly under the child's finger while its clay body can anticipate and follow.
+        // Keep the felt performance separate from the physics node. The body stays
+        // exactly under the child's finger while its artwork anticipates and follows.
         let artwork = children
         for child in artwork {
             child.removeFromParent()
@@ -227,7 +245,7 @@ final class StackPieceNode: SKNode {
         }
     }
 
-    /// The signature friend is identifiable before its face is readable: terracotta clay,
+    /// The signature friend is identifiable before its face is readable: terracotta felt,
     /// a cream moon patch, and one tiny balancing stone. These are identity cues, not rewards.
     private func buildSignatureDetails() {
         let patchRadius = min(bodySize.width, bodySize.height) * 0.13
@@ -270,24 +288,16 @@ final class StackPieceNode: SKNode {
         capstoneHomePosition = capstoneRoot.position
         capstoneHomeAngle = capstoneRoot.zRotation
 
-        if let capArt = ToyArt.sprite("stack-capstone", fit: CGSize(width: capstoneSize.width * 1.06, height: capstoneSize.height * 1.3)) {
-            capstoneRoot.addChild(capArt)
-        } else {
+        do {
             let capstone = SKShapeNode(
                 rectOf: capstoneSize,
                 cornerRadius: capstoneSize.height * 0.48
             )
             capstone.fillColor = WarmShelfPalette.butter.withAlpha(0.96)
+            capstone.fillTexture = Self.feltTexture
             capstone.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.10)
             capstone.lineWidth = max(0.8, bodySize.width * 0.008)
             capstoneRoot.addChild(capstone)
-
-            let capstoneGlow = SKShapeNode(ellipseOf: CGSize(width: capstoneSize.width * 0.48, height: capstoneSize.height * 0.30))
-            capstoneGlow.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.46)
-            capstoneGlow.strokeColor = .clear
-            capstoneGlow.position = CGPoint(x: -capstoneSize.width * 0.12, y: capstoneSize.height * 0.18)
-            capstoneGlow.zPosition = 0.1
-            capstoneRoot.addChild(capstoneGlow)
 
             for x in [-0.18, 0.18] {
                 let dimple = SKShapeNode(circleOfRadius: max(0.7, bodySize.width * 0.012))
@@ -347,40 +357,64 @@ final class StackPieceNode: SKNode {
 
     func apply(_ next: StackExpression, animated: Bool = true) {
         expression = next
+        leftLid.setScale(1)
+        rightLid.setScale(1)
+        openMouth.setScale(1)
         let d = animated ? 0.18 : 0.0
         func set(_ node: SKShapeNode?, _ a: CGFloat) {
-            node?.run(.fadeAlpha(to: a, duration: d))
+            node?.removeAction(forKey: "blink")
+            node?.removeAction(forKey: "yawn")
+            node?.run(.fadeAlpha(to: a, duration: d), withKey: "expression")
+        }
+        func eyeScale(_ scale: CGFloat) {
+            for eye in [leftEye, rightEye] {
+                eye.removeAction(forKey: "expressionScale")
+                if AmbientAnimator.reduceMotion {
+                    eye.setScale(1)
+                } else {
+                    eye.run(.scale(to: scale, duration: d), withKey: "expressionScale")
+                }
+            }
         }
         switch next {
         case .sleeping:
             set(leftLid, 1); set(rightLid, 1)
-            leftPupil.run(.fadeAlpha(to: 0, duration: d)); rightPupil.run(.fadeAlpha(to: 0, duration: d))
+            set(leftPupil, 0); set(rightPupil, 0)
             set(smile, isSignatureHero ? 0.56 : 0)
             set(openMouth, 0)
             set(cheekLeft, isSignatureHero ? 0.38 : 0)
             set(cheekRight, isSignatureHero ? 0.38 : 0)
-            leftEye.run(.scale(to: 1, duration: d)); rightEye.run(.scale(to: 1, duration: d))
+            eyeScale(1)
         case .awake:
             set(leftLid, 0); set(rightLid, 0)
-            leftPupil.run(.fadeAlpha(to: 1, duration: d)); rightPupil.run(.fadeAlpha(to: 1, duration: d))
+            set(leftPupil, 1); set(rightPupil, 1)
             set(smile, 0.5); set(openMouth, 0); set(cheekLeft, 0); set(cheekRight, 0)
-            leftEye.run(.scale(to: 1, duration: d)); rightEye.run(.scale(to: 1, duration: d))
+            eyeScale(1)
             lookToward(.zero)
         case .happy:
             set(leftLid, 0); set(rightLid, 0)
-            leftPupil.run(.fadeAlpha(to: 1, duration: d)); rightPupil.run(.fadeAlpha(to: 1, duration: d))
+            set(leftPupil, 1); set(rightPupil, 1)
             set(smile, 1); set(openMouth, 0); set(cheekLeft, 0.9); set(cheekRight, 0.9)
-            leftEye.run(.scale(to: 1.05, duration: d)); rightEye.run(.scale(to: 1.05, duration: d))
+            eyeScale(1.05)
         case .surprised:
             set(leftLid, 0); set(rightLid, 0)
-            leftPupil.run(.fadeAlpha(to: 1, duration: d)); rightPupil.run(.fadeAlpha(to: 1, duration: d))
+            set(leftPupil, 1); set(rightPupil, 1)
             set(smile, 0); set(openMouth, 1); set(cheekLeft, 0); set(cheekRight, 0)
-            leftEye.run(.scale(to: 1.3, duration: d)); rightEye.run(.scale(to: 1.3, duration: d))
+            eyeScale(1.3)
         }
     }
 
     /// Pupils drift toward a direction (e.g. the finger, or the way it's flying).
     func lookToward(_ direction: CGVector) {
+        if AmbientAnimator.reduceMotion {
+            leftPupil.removeAction(forKey: "look")
+            rightPupil.removeAction(forKey: "look")
+            leftPupil.removeAction(forKey: "dizzy")
+            rightPupil.removeAction(forKey: "dizzy")
+            leftPupil.position = .zero
+            rightPupil.position = .zero
+            return
+        }
         let len = hypot(direction.dx, direction.dy)
         let limit = pupilRadius * 0.9
         let offset: CGPoint
@@ -398,34 +432,58 @@ final class StackPieceNode: SKNode {
     func blink() {
         guard expression != .sleeping else {
             // A sleepy flutter — lids dip and rise.
+            guard !AmbientAnimator.reduceMotion else {
+                leftLid.removeAction(forKey: "blink")
+                rightLid.removeAction(forKey: "blink")
+                leftLid.setScale(1)
+                rightLid.setScale(1)
+                return
+            }
             let dip = SKAction.sequence([.scaleY(to: 0.7, duration: 0.12), .scaleY(to: 1, duration: 0.18)])
-            leftLid.run(dip); rightLid.run(dip)
+            leftLid.run(dip, withKey: "blink"); rightLid.run(dip, withKey: "blink")
             return
         }
         let blink = SKAction.sequence([
             .group([.fadeAlpha(to: 1, duration: 0.06)]),
             .group([.fadeAlpha(to: 0, duration: 0.1)])
         ])
-        leftLid.run(blink); rightLid.run(blink)
+        leftLid.run(blink, withKey: "blink"); rightLid.run(blink, withKey: "blink")
     }
 
     func yawn() {
-        guard expression == .sleeping else { return }
-        openMouth.removeAllActions()
+        guard expression == .sleeping, !isHeld else { return }
+        if AmbientAnimator.reduceMotion {
+            cancelArtMotion()
+            resetArtPose()
+            openMouth.setScale(1)
+            openMouth.run(.sequence([.fadeAlpha(to: 0.35, duration: 0.5), .fadeOut(withDuration: 0.4)]), withKey: "yawn")
+            return
+        }
+        artLayer.removeAction(forKey: "pieceBreathe")
         let seq = SKAction.sequence([
             .group([.fadeAlpha(to: 0.5, duration: 0.5), .scale(to: 1.8, duration: 0.5)]),
             .group([.fadeAlpha(to: 0, duration: 0.4), .scale(to: 1.0, duration: 0.4)])
         ])
-        openMouth.run(seq)
+        openMouth.run(seq, withKey: "yawn")
         let squeeze = SKAction.sequence([.scaleX(to: 1.04, y: 0.96, duration: 0.5), .scale(to: 1.0, duration: 0.4)])
-        artLayer.run(squeeze, withKey: "yawn")
+        artLayer.run(.sequence([squeeze, .run { [weak self] in
+            guard let self, !self.isHeld, !self.isAwake else { return }
+            self.breatheSleepily()
+        }]), withKey: "yawn")
     }
 
     func dizzy() {
+        guard !isHeld else { return }
+        removeAction(forKey: "dizzyRecovery")
+        removeAction(forKey: "calmDown")
+        cancelArtMotion()
+        resetArtPose()
+        leftPupil.removeAction(forKey: "look")
+        rightPupil.removeAction(forKey: "look")
         // A tumble leaves it briefly dizzy: pupils wobble, little stars orbit.
         apply(.surprised)
         guard !AmbientAnimator.reduceMotion else {
-            run(.sequence([.wait(forDuration: 0.45), .run { [weak self] in self?.apply(.awake) }]))
+            scheduleRestFace(after: 0.45, key: "dizzyRecovery")
             return
         }
         let wobble = SKAction.sequence([
@@ -433,10 +491,11 @@ final class StackPieceNode: SKNode {
             .moveBy(x: -pupilRadius * 2, y: 0, duration: 0.16),
             .moveBy(x: pupilRadius, y: 0, duration: 0.08)
         ])
-        leftPupil.run(.repeat(wobble, count: 2))
-        rightPupil.run(.repeat(wobble, count: 2))
+        leftPupil.run(.repeat(wobble, count: 2), withKey: "dizzy")
+        rightPupil.run(.repeat(wobble, count: 2), withKey: "dizzy")
         for i in 0..<2 {
             let star = SKShapeNode(circleOfRadius: pupilRadius * 0.7)
+            star.name = "stackDizzyStar"
             star.fillColor = WarmShelfPalette.butter.withAlpha(0.8)
             star.strokeColor = .clear
             star.zPosition = 5
@@ -449,24 +508,81 @@ final class StackPieceNode: SKNode {
             }
             star.run(.sequence([.group([orbit, .fadeOut(withDuration: 0.9)]), .removeFromParent()]))
         }
-        run(.sequence([.wait(forDuration: 0.9), .run { [weak self] in self?.apply(.awake) }]))
+        scheduleRestFace(after: 0.9, key: "dizzyRecovery")
     }
 
     // MARK: - Lifecycle reactions
 
+    private func resetArtPose() {
+        artLayer.position = .zero
+        artLayer.zRotation = 0
+        artLayer.setScale(1)
+        capstoneLayer?.position = capstoneHomePosition
+        capstoneLayer?.zRotation = capstoneHomeAngle
+    }
+
+    private func cancelArtMotion() {
+        for key in ["pieceBreathe", "awakeBreathe", "towerPulse", "wakePerformance",
+                    "carryPose", "landingSquish", "liftAnticipation", "knockoverJoy",
+                    "yawn", "sleepPose"] {
+            artLayer.removeAction(forKey: key)
+        }
+        capstoneLayer?.removeAction(forKey: "capstoneCarry")
+        capstoneLayer?.removeAction(forKey: "capstoneRebalance")
+    }
+
+    private func setGlow(awake: Bool) {
+        glow.run(.fadeAlpha(to: awake ? 1 : 0, duration: awake ? 0.4 : 0.3), withKey: "pieceGlow")
+    }
+
+    private func scheduleRestFace(after delay: TimeInterval, key: String) {
+        run(.sequence([.wait(forDuration: delay), .run { [weak self] in
+            guard let self, !self.isHeld, self.speed2D < 8 else { return }
+            self.apply(self.isAwake ? .happy : .sleeping)
+            if self.isAwake { self.startAwakeBreathe() } else { self.breatheSleepily() }
+        }]), withKey: key)
+    }
+
+    /// Cancel pending performances without changing the scene's placed/supply state.
+    func stopFeedback() {
+        for key in ["calmDown", "holdFace", "dizzyRecovery", "shelfInvitation", "straighten"] {
+            removeAction(forKey: key)
+        }
+        cancelArtMotion()
+        glow.removeAction(forKey: "pieceGlow")
+        glow.alpha = isAwake ? 1 : 0
+        let pupils: [SKShapeNode] = [leftPupil, rightPupil]
+        for pupil in pupils {
+            pupil.removeAction(forKey: "look")
+            pupil.removeAction(forKey: "dizzy")
+            pupil.position = .zero
+        }
+        faceLayer.children.filter { $0.name == "stackDizzyStar" }.forEach { $0.removeFromParent() }
+        resetArtPose()
+        apply(isHeld || isAwake ? .happy : .sleeping, animated: false)
+        if !isHeld {
+            if isAwake { startAwakeBreathe() } else { breatheSleepily() }
+        }
+    }
+
     func beginHold() {
+        isHeld = true
         physicsBody?.isDynamic = false
         physicsBody?.velocity = .zero
         physicsBody?.angularVelocity = 0
-        artLayer.removeAction(forKey: "pieceBreathe")
-        artLayer.removeAction(forKey: "awakeBreathe")
-        artLayer.removeAction(forKey: "towerPulse")
-        artLayer.removeAction(forKey: "wakePerformance")
-        artLayer.removeAction(forKey: "carryPose")
-        artLayer.removeAction(forKey: "landingSquish")
+        stopFeedback()
         apply(.surprised)
         rebalanceCapstone(intensity: 0.7)
-        run(.sequence([.wait(forDuration: 0.16), .run { [weak self] in if self?.expression == .surprised { self?.apply(.happy) } }]), withKey: "holdFace")
+        run(.sequence([.wait(forDuration: 0.16), .run { [weak self] in
+            guard let self, self.isHeld else { return }
+            self.apply(.happy)
+        }]), withKey: "holdFace")
+
+        guard !AmbientAnimator.reduceMotion else {
+            resetArtPose()
+            zRotation = 0
+            return
+        }
 
         let gather = SKAction.scaleX(to: 1.045, y: 0.94, duration: 0.055)
         let spring = SKAction.scaleX(to: 0.985, y: 1.075, duration: 0.105)
@@ -481,10 +597,15 @@ final class StackPieceNode: SKNode {
         run(straighten, withKey: "straighten")
     }
 
-    /// The physics node tracks the finger exactly; the clay artwork leans and lags by a
+    /// The physics node tracks the finger exactly; the felt artwork leans and lags by a
     /// few points so carrying feels authored without introducing control latency.
     func poseForCarry(_ direction: CGVector) {
-        guard !AmbientAnimator.reduceMotion else { return }
+        guard isHeld else { return }
+        guard !AmbientAnimator.reduceMotion else {
+            cancelArtMotion()
+            resetArtPose()
+            return
+        }
         let length = hypot(direction.dx, direction.dy)
         guard length > 0.5 else { return }
 
@@ -513,9 +634,19 @@ final class StackPieceNode: SKNode {
     }
 
     func endHold() {
+        isHeld = false
+        removeAction(forKey: "holdFace")
+        artLayer.removeAction(forKey: "liftAnticipation")
         physicsBody?.isDynamic = true
         physicsBody?.velocity = .zero
         physicsBody?.angularVelocity = 0
+        apply(.happy)
+
+        guard !AmbientAnimator.reduceMotion else {
+            cancelArtMotion()
+            resetArtPose()
+            return
+        }
 
         let passCenter = SKAction.group([
             .rotate(toAngle: artLayer.zRotation * -0.22, duration: 0.11, shortestUnitArc: true),
@@ -534,37 +665,55 @@ final class StackPieceNode: SKNode {
     }
 
     func reactFalling() {
-        guard expression != .surprised else { return }
+        guard !isHeld, expression != .surprised else { return }
+        removeAction(forKey: "calmDown")
+        removeAction(forKey: "dizzyRecovery")
+        leftPupil.removeAction(forKey: "dizzy")
+        rightPupil.removeAction(forKey: "dizzy")
         apply(.surprised)
         lookToward(CGVector(dx: 0, dy: -1))
     }
 
     func reactLanded(hard: Bool) {
+        guard !isHeld else { return }
+        removeAction(forKey: "dizzyRecovery")
         squish(intensity: hard ? 1.0 : 0.6)
         rebalanceCapstone(intensity: hard ? 1.0 : 0.55)
         apply(.happy)
         blink()
-        // Drift back to a calm sleepy state if it stays put.
-        run(.sequence([.wait(forDuration: 1.6), .run { [weak self] in
-            guard let self else { return }
-            if self.speed2D < 8 && !self.isAwake { self.apply(.sleeping); self.breatheSleepily() }
-        }]), withKey: "calmDown")
+        scheduleRestFace(after: 1.6, key: "calmDown")
     }
 
     func reactToKnockover() {
+        guard !isHeld else { return }
+        removeAction(forKey: "calmDown")
+        removeAction(forKey: "dizzyRecovery")
+        cancelArtMotion()
+        resetArtPose()
         apply(.happy)
-        guard !AmbientAnimator.reduceMotion else { return }
-        artLayer.removeAction(forKey: "knockoverJoy")
+        guard !AmbientAnimator.reduceMotion else {
+            scheduleRestFace(after: 0.45, key: "calmDown")
+            return
+        }
         let open = SKAction.scaleX(to: 1.08, y: 1.04, duration: 0.11)
         let settle = SKAction.scale(to: 1.0, duration: 0.20)
         open.timingMode = .easeOut
         settle.timingMode = .easeInEaseOut
-        artLayer.run(.sequence([open, settle]), withKey: "knockoverJoy")
+        artLayer.run(.sequence([open, settle, .run { [weak self] in
+            guard let self, !self.isHeld else { return }
+            if self.isAwake { self.startAwakeBreathe() } else { self.breatheSleepily() }
+        }]), withKey: "knockoverJoy")
         rebalanceCapstone(intensity: 0.8)
+        scheduleRestFace(after: 1.6, key: "calmDown")
     }
 
     func squish(intensity: CGFloat = 1.0) {
-        artLayer.removeAction(forKey: "landingSquish")
+        guard !isHeld else { return }
+        cancelArtMotion()
+        guard !AmbientAnimator.reduceMotion else {
+            resetArtPose()
+            return
+        }
         let amount = min(0.22, 0.10 + intensity * 0.10)
         let down = SKAction.scaleX(to: 1.0 + amount, y: 1.0 - amount, duration: 0.07)
         let rebound = SKAction.scaleX(to: 0.98, y: 1.05, duration: 0.10)
@@ -572,11 +721,14 @@ final class StackPieceNode: SKNode {
         down.timingMode = .easeOut
         rebound.timingMode = .easeOut
         up.timingMode = .easeInEaseOut
-        artLayer.run(.sequence([down, rebound, up]), withKey: "landingSquish")
+        artLayer.run(.sequence([down, rebound, up, .run { [weak self] in
+            guard let self, !self.isHeld else { return }
+            if self.isAwake { self.startAwakeBreathe() } else { self.breatheSleepily() }
+        }]), withKey: "landingSquish")
     }
 
     func breatheSleepily(delay: TimeInterval = 0) {
-        guard !AmbientAnimator.reduceMotion else { return }
+        guard !isHeld, !isAwake, !AmbientAnimator.reduceMotion else { return }
         guard artLayer.action(forKey: "pieceBreathe") == nil else { return }
         let up = SKAction.scale(to: 1.015, duration: 1.9)
         let down = SKAction.scale(to: 1.0, duration: 1.9)
@@ -588,12 +740,14 @@ final class StackPieceNode: SKNode {
     func wake() {
         guard !isAwake else { return }
         isAwake = true
-        artLayer.removeAction(forKey: "pieceBreathe")
         removeAction(forKey: "calmDown")
+        removeAction(forKey: "dizzyRecovery")
+        setGlow(awake: true)
+        guard !isHeld else { return }
+        cancelArtMotion()
+        openMouth.removeAction(forKey: "yawn")
+        resetArtPose()
         apply(.surprised)
-        glow.run(.customAction(withDuration: 0.4) { node, t in
-            (node as? SKShapeNode)?.fillColor = WarmShelfPalette.butter.withAlpha(0.20 * (t / 0.4))
-        })
 
         if AmbientAnimator.reduceMotion {
             apply(.happy)
@@ -603,7 +757,10 @@ final class StackPieceNode: SKNode {
                 .scaleX(to: 0.98, y: 1.08, duration: 0.13),
                 .moveBy(x: 0, y: 5, duration: 0.13)
             ])
-            let notice = SKAction.run { [weak self] in self?.apply(.happy) }
+            let notice = SKAction.run { [weak self] in
+                guard let self, self.isAwake, !self.isHeld else { return }
+                self.apply(.happy)
+            }
             let rest = SKAction.group([
                 .scale(to: 1.0, duration: 0.22),
                 .move(to: .zero, duration: 0.22)
@@ -621,14 +778,16 @@ final class StackPieceNode: SKNode {
     /// A tower-wide breath makes the signature payoff feel caused by the stack instead
     /// of pasted on as particles.
     func playTowerPulse(delay: TimeInterval, isTop: Bool) {
+        guard !isHeld else { return }
+        cancelArtMotion()
+        resetArtPose()
+        apply(.happy)
         guard !AmbientAnimator.reduceMotion else { return }
-        artLayer.removeAction(forKey: "pieceBreathe")
-        artLayer.removeAction(forKey: "awakeBreathe")
         let gather = SKAction.scaleX(to: 1.025, y: 0.975, duration: 0.07)
         let lift = SKAction.scaleX(to: 0.985, y: isTop ? 1.075 : 1.045, duration: 0.10)
         let settle = SKAction.scale(to: 1.0, duration: 0.18)
         let resumeIdle = SKAction.run { [weak self] in
-            guard let self else { return }
+            guard let self, !self.isHeld else { return }
             if self.isAwake {
                 self.startAwakeBreathe()
             } else {
@@ -645,28 +804,55 @@ final class StackPieceNode: SKNode {
         guard isSignatureHero, !AmbientAnimator.reduceMotion else { return }
         run(.sequence([
             .wait(forDuration: delay),
-            .run { [weak self] in self?.wake() },
+            .run { [weak self] in
+                guard let self, !self.isHeld, !self.isAwake else { return }
+                self.apply(.happy)
+                self.playTowerPulse(delay: 0, isTop: true)
+            },
             .wait(forDuration: 0.72),
-            .run { [weak self] in self?.sleep() },
+            .run { [weak self] in
+                guard let self, !self.isHeld, !self.isAwake else { return }
+                self.apply(.sleeping)
+            },
             .wait(forDuration: 0.28),
             .run { [weak self] in self?.yawn() }
         ]), withKey: "shelfInvitation")
     }
 
     func sleep() {
-        guard isAwake else { return }
+        let needsSleep = isAwake || expression != .sleeping
         isAwake = false
-        artLayer.removeAction(forKey: "awakeBreathe")
+        guard !isHeld else {
+            setGlow(awake: false)
+            return
+        }
+        guard needsSleep else { return }
+        removeAction(forKey: "calmDown")
+        removeAction(forKey: "dizzyRecovery")
+        cancelArtMotion()
         apply(.sleeping)
-        glow.run(.customAction(withDuration: 0.3) { node, t in
-            (node as? SKShapeNode)?.fillColor = WarmShelfPalette.butter.withAlpha(0.20 * (1 - t / 0.3))
-        })
-        artLayer.run(.scale(to: 1.0, duration: 0.2))
-        breatheSleepily()
+        setGlow(awake: false)
+        if AmbientAnimator.reduceMotion {
+            resetArtPose()
+        } else {
+            let rest = SKAction.group([.scale(to: 1.0, duration: 0.2),
+                                       .move(to: .zero, duration: 0.2),
+                                       .rotate(toAngle: 0, duration: 0.2)])
+            artLayer.run(rest, withKey: "sleepPose")
+            breatheSleepily(delay: 0.2)
+            rebalanceCapstone(intensity: 0.4)
+        }
     }
 
     private func rebalanceCapstone(intensity: CGFloat) {
-        guard let capstoneLayer, !AmbientAnimator.reduceMotion else { return }
+        guard let capstoneLayer else { return }
+        guard !AmbientAnimator.reduceMotion else {
+            capstoneLayer.removeAction(forKey: "capstoneCarry")
+            capstoneLayer.removeAction(forKey: "capstoneRebalance")
+            capstoneLayer.position = capstoneHomePosition
+            capstoneLayer.zRotation = capstoneHomeAngle
+            return
+        }
         let amount = 0.07 * min(max(intensity, 0.4), 1.0)
         capstoneLayer.removeAction(forKey: "capstoneCarry")
         let tip = SKAction.rotate(toAngle: capstoneHomeAngle + amount, duration: 0.12, shortestUnitArc: true)
@@ -681,7 +867,7 @@ final class StackPieceNode: SKNode {
     }
 
     private func startAwakeBreathe(delay: TimeInterval = 0) {
-        guard !AmbientAnimator.reduceMotion else { return }
+        guard isAwake, !isHeld, !AmbientAnimator.reduceMotion else { return }
         artLayer.removeAction(forKey: "awakeBreathe")
         let up = SKAction.scale(to: 1.04, duration: 0.6)
         let down = SKAction.scale(to: 1.0, duration: 0.6)
@@ -694,8 +880,9 @@ final class StackPieceNode: SKNode {
     }
 
     func setWakeAnticipation(_ progress: CGFloat) {
-        guard !isAwake else { return }
+        guard !isAwake, !isHeld else { return }
         let clamped = min(max(progress, 0), 1)
-        glow.fillColor = WarmShelfPalette.butter.withAlpha(0.13 * clamped)
+        guard glow.action(forKey: "pieceGlow") == nil else { return }
+        glow.alpha = 0.65 * clamped
     }
 }

@@ -20,6 +20,7 @@ final class FeedScene: BaseToyScene {
 
     private var characters: [CharacterNode] = []
     private var characterShadows: [ObjectIdentifier: SKSpriteNode] = [:]
+    private var characterHomes: [ObjectIdentifier: CGPoint] = [:]
     private var activeFoodTouches: [UITouch: FoodNode] = [:]
     private var feedsSinceVisitorChange = 0
     private var foodSourcePosition: CGPoint {
@@ -53,7 +54,7 @@ final class FeedScene: BaseToyScene {
     /// A different friend than last time, when the authored cast is available.
     private var lastCastMember: String?
     private func rollCastMember() -> String? {
-        guard ToyArt.texture("feed-cast-sprout-1") != nil else { return nil }
+        guard !CharacterNode.castMembers.isEmpty else { return nil }
         let pool = CharacterNode.castMembers.filter { $0 != lastCastMember }
         let pick = pool.randomElement() ?? CharacterNode.castMembers.randomElement()
         lastCastMember = pick
@@ -98,7 +99,16 @@ final class FeedScene: BaseToyScene {
         characterBaseScale(for: size)
     }
 
-    private let availableFoodKinds: [FoodKind] = [.apple, .carrot, .banana, .egg]
+    private static var nextMenuOffset = 0
+    // Chosen once per scene; rebuilding for orientation keeps the visitor's menu intact.
+    private lazy var availableFoodKinds: [FoodKind] = {
+        let order: [FoodKind] = [.apple, .carrot, .banana, .egg, .bread, .berry, .cookie, .cup, .grape, .pear]
+        let illustrated = order.filter { ToyArt.texture($0.artSlot) != nil }
+        let pool = illustrated.isEmpty ? Array(order.prefix(4)) : illustrated
+        let menu = FeedServingRules.menu(from: pool, offset: Self.nextMenuOffset)
+        Self.nextMenuOffset = (Self.nextMenuOffset + 1) % max(1, pool.count)
+        return menu
+    }()
 
     /// The shopkeeper's counter, measured on `feed-counter.png` (y from the TOP): the plank's
     /// top face runs 0.04…0.34 and its front edge 0.40…0.68; 6% at each end is the rounded
@@ -332,6 +342,7 @@ final class FeedScene: BaseToyScene {
 
         activeFoodTouches.removeAll()
         characterShadows.removeAll()
+        characterHomes.removeAll()
         worldLayer.removeFromParent()
 
         buildSereneBackdrop()
@@ -390,7 +401,9 @@ final class FeedScene: BaseToyScene {
             // forcing an above-head minimum that clips it off the screen.
             let localPosition = FeedServingRules.thoughtBubblePosition(
                 desiredLocalY: desired, preferredSide: side, headRadius: character.headRadius,
-                halfHeight: character.thoughtBubbleHalfHeight, characterPosition: character.position,
+                halfHeight: character.thoughtBubbleHalfHeight,
+                characterPosition: FeedServingRules.bubbleLayoutOrigin(current: character.position,
+                    home: characterHomes[ObjectIdentifier(character)]),
                 visibleBounds: visibleBounds)
             character.arrangeThoughtBubble(at: localPosition)
         }
@@ -859,6 +872,7 @@ final class FeedScene: BaseToyScene {
                 if overshoot > 0 { home.y -= min(overshoot, stand * 0.5) }
             }
         }
+        characterHomes[ObjectIdentifier(character)] = home
         if let arrivalSide {
             character.position = CGPoint(
                 x: arrivalSide < 0 ? -spec.radius * 2.6 : size.width + spec.radius * 2.6,
@@ -884,10 +898,9 @@ final class FeedScene: BaseToyScene {
             leanIn.timingMode = .easeInEaseOut
             leanOut.timingMode = .easeInEaseOut
             center.timingMode = .easeInEaseOut
-            character.run(.group([
-                move,
-                fade,
-                .sequence([leanIn, leanOut, leanIn, center])
+            character.run(.sequence([
+                .group([move, fade, .sequence([leanIn, leanOut, leanIn, center])]),
+                .run { [weak self] in self?.arrangeThoughtBubbles() }
             ]), withKey: "arrival")
         }
 
@@ -1212,7 +1225,7 @@ final class FeedScene: BaseToyScene {
             let foodPoint = food.convert(CGPoint.zero, to: self)
             if food.dragTravel >= FeedServingRules.minimumDragTravel,
                let character = nearestHungryCharacter(to: foodPoint),
-               character.mouthDistance(to: foodPoint) < character.snapRadius {
+               canServe(food, to: character, foodPoint: foodPoint, fingerPoint: point) {
                 if food.action(forKey: "snapPulse") == nil {
                     let grow = SKAction.scale(to: 1.16, duration: 0.14); grow.timingMode = .easeOut
                     let shrink = SKAction.scale(to: 1.08, duration: 0.18); shrink.timingMode = .easeInEaseOut
@@ -1270,17 +1283,26 @@ final class FeedScene: BaseToyScene {
     private func finishFoodDrag(for touch: UITouch, cancelled: Bool = false) {
         guard let food = activeFoodTouches.removeValue(forKey: touch) else { return }
         food.removeAction(forKey: "snapPulse")
+        let fingerPoint = touch.location(in: self)
+        if !cancelled { food.drag(to: fingerPoint, in: self, bounds: dragBounds(for: food)) }
 
         let foodPoint = food.convert(CGPoint.zero, to: self)
         if !cancelled, food.dragTravel >= FeedServingRules.minimumDragTravel,
            let character = nearestHungryCharacter(to: foodPoint),
            let mouthPoint = character.mouthScenePosition,
-           character.mouthDistance(to: foodPoint) < character.snapRadius {
+           canServe(food, to: character, foodPoint: foodPoint, fingerPoint: fingerPoint) {
             // Every food is warmly accepted. The pictured request remains until matched.
             feed(food, to: character, mouthPoint: mouthPoint)
         } else {
             returnFoodHome(food)
         }
+    }
+
+    private func canServe(_ food: FoodNode, to character: CharacterNode,
+                          foodPoint: CGPoint, fingerPoint: CGPoint) -> Bool {
+        guard let mouth = character.mouthScenePosition else { return false }
+        return FeedServingRules.acceptsFood(center: foodPoint, finger: fingerPoint, mouth: mouth,
+                                           headRadius: character.headRadius, foodSize: food.foodSize)
     }
 
     private func returnFoodHome(_ food: FoodNode) {
@@ -1489,6 +1511,7 @@ final class FeedScene: BaseToyScene {
                 guard let self else { return }
                 if let character {
                     self.removeCharacterShadow(for: character)
+                    self.characterHomes.removeValue(forKey: ObjectIdentifier(character))
                     character.removeFromParent()
                     self.characters.removeAll { node in node === character }
                 }
@@ -1657,6 +1680,31 @@ enum FeedServingRules {
         let desiredY = besideHead ? min(desiredLocalY, headRadius * 0.2) : desiredLocalY
         return CGPoint(x: min(max(desiredX, minX), maxX),
                        y: min(max(desiredY, minY), maxLocalY))
+    }
+
+    static func bubbleLayoutOrigin(current: CGPoint, home: CGPoint?) -> CGPoint { home ?? current }
+
+    static func menu<T>(from pool: [T], offset: Int) -> [T] {
+        guard !pool.isEmpty else { return [] }
+        let start = ((offset % pool.count) + pool.count) % pool.count
+        return (0..<min(4, pool.count)).map { pool[(start + $0) % pool.count] }
+    }
+
+    static func proceduralMouthY(headRadius: CGFloat) -> CGFloat { -headRadius * 0.08 }
+
+    /// A grabbed edge can reach the mouth before the food's centre does.
+    static func acceptsFood(center: CGPoint, finger: CGPoint, mouth: CGPoint,
+                            headRadius: CGFloat, foodSize: CGSize) -> Bool {
+        let radius = snapRadius(headRadius: headRadius)
+        let halfW = max(0, foodSize.width * 0.5)
+        let halfH = max(0, foodSize.height * 0.5)
+        let dx = max(0, abs(center.x - mouth.x) - halfW)
+        let dy = max(0, abs(center.y - mouth.y) - halfH)
+        let edgeNearMouth = hypot(dx, dy) <= radius * 0.65
+        let fingerNearMouth = hypot(finger.x - mouth.x, finger.y - mouth.y) <= radius
+        let fingerOnFood = abs(finger.x - center.x) <= halfW + 18
+            && abs(finger.y - center.y) <= halfH + 18
+        return edgeNearMouth || (fingerNearMouth && fingerOnFood)
     }
 
     static func snapRadius(headRadius: CGFloat) -> CGFloat {

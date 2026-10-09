@@ -9,6 +9,10 @@ enum FoodKind: CaseIterable, Equatable {
     case banana
     case cookie
     case cup
+    case grape
+    case pear
+
+    var artSlot: String { "feed-\(accessibilityName)" }
 
     var baseSize: CGSize {
         switch self {
@@ -28,6 +32,10 @@ enum FoodKind: CaseIterable, Equatable {
             return CGSize(width: 52, height: 52)
         case .cup:
             return CGSize(width: 46, height: 58)
+        case .grape:
+            return CGSize(width: 60, height: 68)
+        case .pear:
+            return CGSize(width: 62, height: 80)
         }
     }
 
@@ -49,6 +57,10 @@ enum FoodKind: CaseIterable, Equatable {
             return WarmShelfPalette.sand
         case .cup:
             return WarmShelfPalette.waterBlue
+        case .grape:
+            return WarmShelfPalette.lavender
+        case .pear:
+            return UIColor(hex: 0xB2C26A)
         }
     }
 
@@ -62,6 +74,8 @@ enum FoodKind: CaseIterable, Equatable {
         case .banana: return "banana"
         case .cookie: return "cookie"
         case .cup: return "cup"
+        case .grape: return "grape"
+        case .pear: return "pear"
         }
     }
 }
@@ -179,18 +193,7 @@ final class FoodNode: SKNode {
         HapticsManager.shared.blockRelease()
     }
 
-    private static func artSlot(for kind: FoodKind) -> String? {
-        switch kind {
-        case .apple: return "feed-apple"
-        case .carrot: return "feed-carrot"
-        case .banana: return "feed-banana"
-        case .egg: return "feed-egg"
-        case .bread: return "feed-bread"
-        case .berry: return "feed-berry"
-        case .cookie: return "feed-cookie"
-        case .cup: return "feed-cup"
-        }
-    }
+    private static func artSlot(for kind: FoodKind) -> String? { kind.artSlot }
 
     private func buildFood() {
         let shadowSize = CGSize(width: foodSize.width * 0.98, height: max(12, foodSize.height * 0.24))
@@ -225,6 +228,10 @@ final class FoodNode: SKNode {
             addCookie()
         case .cup:
             addCup()
+        case .grape:
+            addBerry()
+        case .pear:
+            addApple()
         }
 
         addCuteFace()
@@ -244,6 +251,8 @@ final class FoodNode: SKNode {
         case .bread:  center = CGPoint(x: 0, y: -foodSize.height * 0.02); faceWidth = foodSize.height * 0.62
         case .carrot: center = CGPoint(x: 0, y: -foodSize.height * 0.04); faceWidth = foodSize.width * 0.40
         case .banana: center = CGPoint(x: 0, y: foodSize.height * 0.10); faceWidth = foodSize.width * 0.34
+        case .grape:  center = CGPoint(x: 0, y: -foodSize.height * 0.02); faceWidth = foodSize.width * 0.52
+        case .pear:   center = CGPoint(x: 0, y: -foodSize.height * 0.06); faceWidth = foodSize.width * 0.48
         case .cup:    return
         }
 

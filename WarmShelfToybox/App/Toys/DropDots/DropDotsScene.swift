@@ -2,7 +2,7 @@ import SpriteKit
 import QuartzCore
 
 /// Drop Dots — a big, warm wooden gravity toy. A toddler grabs a chunky clay token from the tray,
-/// drops it into one of five fat column mouths, and watches it fall and stack. When three of a kind
+/// drops it into one of four generous column mouths, and watches it fall and stack. When three of a kind
 /// line up the board quietly glows; pull the chunky tab and every token tumbles out so you can do it
 /// all again. No score, no winning, no opponent — just "put the big dot in, it fell, I made
 /// something, again." All motion is authored (no physics), so tokens land in exact, tidy slots.
@@ -223,7 +223,7 @@ final class DropDotsScene: BaseToyScene {
     private let particleLayer = SKNode()
 
     // MARK: - Model
-    private let cols = 5, rows = 4
+    private let cols = 4, rows = 4
     private var grid: [[DropDotToken?]] = []
     private var traySlots: [CGPoint] = []
     private var trayTokens: [DropDotToken?] = []
@@ -234,6 +234,7 @@ final class DropDotsScene: BaseToyScene {
     // the visible tray; drop them, and tap a settled dot to send it back.
     private let totalTokens = 5
     private var reserveCount = 0
+    private var trayPalette = Array(0..<5).shuffled()
 
     // MARK: - Geometry
     private var cell: CGFloat = 60
@@ -336,7 +337,7 @@ final class DropDotsScene: BaseToyScene {
         let channelLen = CGFloat(rows) * stackPitch + stackPitch * 0.6
         var artNatH: CGFloat = 0
         if let tex = artTex {
-            let artW = cell * CGFloat(cols - 1) / (BoardArt.mouthFx4 - BoardArt.mouthFx0)
+            let artW = BoardArt.sourceWidth(cell: cell)
             artNatH = tex.size().height * (artW / max(1, tex.size().width))
             boardH = (BoardArt.channelTopFy + (1 - BoardArt.channelFloorFy)) * artNatH + channelLen
         }
@@ -365,7 +366,7 @@ final class DropDotsScene: BaseToyScene {
         // row of rainbow coin-slots. (Any token drops into any column; colour isn't a rule.)
         // In art mode each painted felt ring keeps its own sampled colour (used by the front lips).
         columnRimColors = artBoard
-            ? [0xC55B2F, 0xF2A935, 0x897E3D, 0x707868, 0x835D59].map { UIColor(hex: $0) }
+            ? [0xC55B2F, 0xF2A935, 0x707868, 0x835D59].map { UIColor(hex: $0) }
             : Array(repeating: UIColor(hex: 0xC58A48), count: cols)
 
         buildBoard(mouthH: mouthH)
@@ -438,7 +439,7 @@ final class DropDotsScene: BaseToyScene {
 
     private func cellX(_ c: Int) -> CGFloat { gridOriginX + cell * (CGFloat(c) + 0.5) }
     /// Where a dot RESTS in column c: the painted channel's centre on the authored board
-    /// (see BoardArt.channelFx), the mouth line on the procedural one.
+    /// and its mouth, measured from the same runtime strip.
     private func stackX(_ c: Int) -> CGFloat { stackXs.indices.contains(c) ? stackXs[c] : cellX(c) }
     /// Centre-to-centre spacing of stacked dots: touching, with a hair of give.
     private var stackPitch: CGFloat { tokenR * 1.95 }
@@ -562,15 +563,30 @@ final class DropDotsScene: BaseToyScene {
         }
     }
 
-    /// The authored board, fitted to the grid (inverse of Sleepy Box's buildArtBox: gameplay
-    /// geometry stays byte-identical; the ART conforms). Measured from the keyed PNG
-    /// (x from left, y from TOP, 2026-06-11): five mouth holes at fx 0.107…0.862 on the
-    /// fy 0.096 line; rings + channel arcs end by fy 0.22; the bottom rail begins fy 0.88.
+    /// Four columns composed from the authored board. Measurements use the runtime PNG
+    /// (x from left, y from top); the live dot centres follow each painted channel.
     /// The painted channels run longer than 4 rows, so the shaft band is pre-sliced and
     /// compressed (the Hum-frame move) — rings and rail stay perfectly true.
     private enum BoardArt {
-        static let mouthFx0: CGFloat = 0.107
-        static let mouthFx4: CGFloat = 0.862
+        // Measured on the shipping 882×1347 PNG, not the obsolete original sheet.
+        // Omit the centre channel by composing four texture strips at runtime; the
+        // painted mouth and channel in each strip share the same live column centre.
+        static let sourceCenters: [CGFloat] = [0.144, 0.323, 0.500, 0.678, 0.853]
+        static let sourceColumns = [0, 1, 3, 4]
+        static let sourceEdges: [CGFloat] = [0, 0.2335, 0.4115, 0.589, 0.7655, 1]
+        static func sourceWidth(cell: CGFloat) -> CGFloat { cell / 0.178 }
+        static func sourceCenter(_ column: Int) -> CGFloat { sourceCenters[sourceColumns[column]] }
+        static func stripSpan(_ column: Int, cell: CGFloat) -> ClosedRange<CGFloat> {
+            let bounds = sourceBounds(column)
+            let origin = CGFloat(column) * cell
+            let width = sourceWidth(cell: cell)
+            let bleed = (cell * 0.02 + 1) / 2
+            return (origin + (bounds.lowerBound - sourceCenter(column)) * width - bleed)...(origin + (bounds.upperBound - sourceCenter(column)) * width + bleed)
+        }
+        static func sourceBounds(_ column: Int) -> ClosedRange<CGFloat> {
+            let source = sourceColumns[column]
+            return sourceEdges[source]...sourceEdges[source + 1]
+        }
         static let mouthFy: CGFloat = 0.096
         static let capTopFy: CGFloat = 0.22
         static let capBotFy: CGFloat = 0.88
@@ -586,22 +602,21 @@ final class DropDotsScene: BaseToyScene {
         static let railBottomFy: CGFloat = 0.99
         static let throatTopFy: CGFloat = 0.104
         static let throatBottomFy: CGFloat = 0.174
-        // The painted channels are NOT under their rings: the rings sit on a 0.189 pitch,
-        // the channels on 0.178 (measured wall to wall at mid-shaft). A dot falls from its
-        // ring and comes to rest in the middle of its channel, never on a channel wall.
-        static let channelFx: [CGFloat] = [0.143, 0.321, 0.499, 0.677, 0.854]
+
     }
 
     private func buildArtBoard(_ tex: SKTexture) {
         let nat = tex.size()
         // Width: the four mouth pitches must equal four grid cells exactly.
-        let artW = cell * CGFloat(cols - 1) / (BoardArt.mouthFx4 - BoardArt.mouthFx0)
+        let artW = BoardArt.sourceWidth(cell: cell)
         let natH = nat.height * (artW / max(1, nat.width))
         let capTopH = BoardArt.capTopFy * natH
         let capBotH = (1 - BoardArt.capBotFy) * natH
 
         // Align: leftmost mouth on cellX(0); the mouth line on mouthY; sprite top above it.
-        let artMinX = cellX(0) - BoardArt.mouthFx0 * artW
+        let artMinX = cellX(0) - BoardArt.sourceCenter(0) * artW
+        let artMaxX = cellX(cols - 1) + (1 - BoardArt.sourceCenter(cols - 1)) * artW
+        let composedW = artMaxX - artMinX
         let spriteTopY = mouthY + BoardArt.mouthFy * natH
         // The channel's painted floor lives just inside the bottom cap: put that exact
         // painted line on gridBottomY, the floor cellY stacks from, so the bottom dot
@@ -609,12 +624,11 @@ final class DropDotsScene: BaseToyScene {
         let bottomCapTopY = gridBottomY + (BoardArt.channelFloorFy - BoardArt.capBotFy) * natH
         let midH = max(cell * 0.2, spriteTopY - capTopH - bottomCapTopY)
         let spriteBottomY = bottomCapTopY - capBotH
-        let midX = artMinX + artW / 2
         railCenterY = bottomCapTopY - ((BoardArt.railTopFy + BoardArt.railBottomFy) / 2 - BoardArt.capBotFy) * natH
-        stackXs = BoardArt.channelFx.map { artMinX + $0 * artW }
+        stackXs = (0..<cols).map { cellX($0) }
         railHeight = (BoardArt.railBottomFy - BoardArt.railTopFy) * natH
 
-        boardRect = CGRect(x: artMinX, y: spriteBottomY, width: artW, height: spriteTopY - spriteBottomY)
+        boardRect = CGRect(x: artMinX, y: spriteBottomY, width: composedW, height: spriteTopY - spriteBottomY)
 
         let shadow = SKSpriteNode(texture: ProceduralTexture.softClayShadow(size: CGSize(width: boardRect.width * 1.1, height: boardRect.height * 0.3)))
         shadow.position = CGPoint(x: boardRect.midX, y: boardRect.minY - cell * 0.05)
@@ -623,12 +637,18 @@ final class DropDotsScene: BaseToyScene {
 
         // Three bands from one texture (unit rects, origin bottom-left).
         func band(_ unitRect: CGRect, height: CGFloat, topY: CGFloat, z: CGFloat, in layer: SKNode) {
-            let sprite = SKSpriteNode(texture: SKTexture(rect: unitRect, in: tex))
-            sprite.size = CGSize(width: artW, height: height)
-            sprite.anchorPoint = CGPoint(x: 0.5, y: 1.0)
-            sprite.position = CGPoint(x: midX, y: topY)
-            sprite.zPosition = z
-            layer.addChild(sprite)
+            for column in 0..<cols {
+                let bounds = BoardArt.sourceBounds(column)
+                let width = bounds.upperBound - bounds.lowerBound
+                let crop = CGRect(x: bounds.lowerBound, y: unitRect.minY, width: width, height: unitRect.height)
+                let sprite = SKSpriteNode(texture: SKTexture(rect: crop, in: tex))
+                let span = BoardArt.stripSpan(column, cell: cell)
+                sprite.size = CGSize(width: span.upperBound - span.lowerBound, height: height)
+                sprite.anchorPoint = CGPoint(x: 0.5, y: 1)
+                sprite.position = CGPoint(x: cellX(0) + (span.lowerBound + span.upperBound) / 2, y: topY)
+                sprite.zPosition = z
+                layer.addChild(sprite)
+            }
         }
         // Shaft first (slightly oversized into both caps so filtering can never open a seam).
         band(CGRect(x: 0, y: 1 - BoardArt.capBotFy, width: 1, height: BoardArt.capBotFy - BoardArt.capTopFy),
@@ -668,7 +688,7 @@ final class DropDotsScene: BaseToyScene {
             // down into the channel top, re-rendered in place in the front layer. A
             // dropped dot sinks into the ring, passes behind the wood and reappears in
             // its channel — it goes INTO the toy instead of sliding over its face.
-            let fx = BoardArt.mouthFx0 + (BoardArt.mouthFx4 - BoardArt.mouthFx0) * CGFloat(c) / CGFloat(cols - 1)
+            let fx = BoardArt.sourceCenter(c)
             let lipWFrac = BoardArt.ringOuterW * 1.3
             let lipTopFy = BoardArt.throatTopFy
             let lipHFrac = BoardArt.throatBottomFy - BoardArt.throatTopFy
@@ -678,7 +698,7 @@ final class DropDotsScene: BaseToyScene {
                               height: lipHFrac)
             let lip = SKSpriteNode(texture: SKTexture(rect: unit, in: tex))
             lip.size = CGSize(width: lipWFrac * artW, height: lipHFrac * natH)
-            lip.position = CGPoint(x: artMinX + (unit.midX) * artW,
+            lip.position = CGPoint(x: cellX(c) + (unit.midX - fx) * artW,
                                    y: spriteTopY - (lipTopFy + lipHFrac / 2) * natH)
             frontLayer.addChild(lip)
         }
@@ -754,7 +774,7 @@ final class DropDotsScene: BaseToyScene {
         #if DEBUG
         if ProcessInfo.processInfo.environment["LULL_DEBUG_DROPDOTS_GOLD"] == "1" { golden = true }
         #endif
-        let token = DropDotToken(feltIndex: Int.random(in: 0..<DropDotToken.felts.count), radius: tokenR,
+        let token = DropDotToken(feltIndex: trayPalette[slot % trayPalette.count], radius: tokenR,
                                  isGolden: golden)
         token.position = position ?? traySlots[slot]
         token.zPosition = 5

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		6A1CCAA26CBE11CF9CF564FB /* FeedCatalog.json in Resources */ = {isa = PBXBuildFile; fileRef = 50F741D0BBF7B3579304E01D /* FeedCatalog.json */; };
 		00972C35E5AE9D6074628727 /* ClayBlockNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64FDEAAF7AC93380BF514916 /* ClayBlockNode.swift */; };
 		03A012C22EAF5D97FF8B5EB5 /* DraggableNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF5BB6BAAAC8DE8EBD829BB0 /* DraggableNode.swift */; };
 		0933BE57DC40AE3930FF3FAE /* SoftDropPieceNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = C33CD378C3D483B2D0F22479 /* SoftDropPieceNode.swift */; };
@@ -83,6 +84,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		50F741D0BBF7B3579304E01D /* FeedCatalog.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = FeedCatalog.json; sourceTree = "<group>"; };
 		04CAF64EE4E752F6FA9D085A /* ToyShelfViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToyShelfViewController.swift; sourceTree = "<group>"; };
 		08ED9C47AB7832615DC9085E /* PhysicsCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysicsCategory.swift; sourceTree = "<group>"; };
 		0B885BA05D5AB12FC2C0E7CD /* ClayBlockKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClayBlockKind.swift; sourceTree = "<group>"; };
@@ -175,6 +177,7 @@
 			isa = PBXGroup;
 			children = (
 				140B2A30EC27BA16FCFA5DBE /* Assets.xcassets */,
+				50F741D0BBF7B3579304E01D /* FeedCatalog.json */,
 				1D6D56DF9713DAD38192A0A1 /* Audio */,
 				216AE06183FAF058D9BD07C4 /* Reference */,
 			);
@@ -465,6 +468,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 20A36241E5A6F0A2AAD6CCA2 /* Build configuration list for PBXNativeTarget "Lull" */;
 			buildPhases = (
+				6A5F776AA51C7C8B60204512 /* Refresh Feed catalog */,
 				2A9AF1297D4A465E9C64559D /* Sources */,
 				2F32AA108EA42C7336F06542 /* Resources */,
 			);
@@ -512,6 +516,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				BC224731F5BBCF8A27D96111 /* Assets.xcassets in Resources */,
+				6A1CCAA26CBE11CF9CF564FB /* FeedCatalog.json in Resources */,
 				800C218A40A0A36DEB58BADA /* LaunchScreen.storyboard in Resources */,
 				82F4E4E60ADD9D6D64C48059 /* PrivacyInfo.xcprivacy in Resources */,
 				327DCF555326E4240A6BA6F6 /* onboarding-ref-1.png in Resources */,
@@ -521,6 +526,31 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		6A5F776AA51C7C8B60204512 /* Refresh Feed catalog */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Tools/refresh_feed_catalog.py",
+				"$(SRCROOT)/App/Resources/Assets.xcassets",
+			);
+			name = "Refresh Feed catalog";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/App/Resources/FeedCatalog.json",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "python3 \"$SRCROOT/Tools/refresh_feed_catalog.py\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		2A9AF1297D4A465E9C64559D /* Sources */ = {

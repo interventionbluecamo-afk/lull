@@ -61,6 +61,8 @@ check(BoardArt.sourceColumns.count == 4, "Exactly four painted channels")
 check(Set(BoardArt.sourceColumns).count == 4, "No duplicated channel strips")
 for cell: CGFloat in [24, 60, 88, 132] {
     let width = BoardArt.sourceWidth(cell: cell)
+    let opening = BoardArt.openingSize(cell: cell)
+    check(opening.width > cell * 0.68 && opening.height > cell * 0.68, "Every neutral mouth clears the 0.64-cell dot with visible space")
     for column in 0..<3 {
         check(BoardArt.stripSpan(column, cell: cell).upperBound >= BoardArt.stripSpan(column + 1, cell: cell).lowerBound, "Composed wood has no filtering seam at any supported size")
     }

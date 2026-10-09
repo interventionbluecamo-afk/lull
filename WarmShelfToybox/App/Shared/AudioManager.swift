@@ -6,7 +6,7 @@ import UIKit
 ///
 /// Every sound is a cue from `LullSoundBook` (rendered once from physical models, then cached),
 /// played on a small pool of voices that feed per-bus mixers, a shared small room, a gentle
-/// speaker EQ and a peak limiter, so no combination of toys can ever get loud or harsh.
+/// speaker EQ and a peak limiter that bound peaks and soften bright sounds.
 ///
 /// - Cues: `play(cue:)` with optional pan, volume and a sample-accurate delay.
 /// - Variation: most cues render several variants that rotate without immediate repeats.
@@ -363,7 +363,9 @@ final class AudioManager: LullTonePlayer {
         }
 
         /// Occasional creatures in the bed (outdoor rooms only).
-        var hasBirds: Bool { self == .glowboard || self == .bloom }
+        // Meadow feedback belongs to discoveries and touch. Unexplained timed chirps
+        // read as an occasional stray tone on the phone, so its room stays still.
+        var hasBirds: Bool { self == .bloom }
     }
 
     func startToyAmbient(_ voice: LullSoundVoice) {
@@ -559,8 +561,8 @@ final class AudioManager: LullTonePlayer {
         lowCut.bypass = false
         let soften = speakerEQ.bands[1]
         soften.filterType = .highShelf
-        soften.frequency = 9000
-        soften.gain = -2
+        soften.frequency = 2200
+        soften.gain = -5
         soften.bypass = false
 
         for bus in LullSoundBus.allCases {

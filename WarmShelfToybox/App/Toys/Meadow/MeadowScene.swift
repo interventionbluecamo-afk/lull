@@ -454,7 +454,9 @@ final class MeadowScene: BaseToyScene {
             (-0.23, -0.30, .pebbles),
             (0.31, 0.13, .pond),
             (-0.33, -0.07, .stump),
-            (0.10, -0.38, .rock)
+            (0.10, -0.38, .rock),
+            (-0.10, 0.13, .hedgehog),
+            (0.14, -0.10, .lily)
         ]
         for (fx, fy, kind) in spots {
             let lm = MeadowLandmark(kind: kind, night: night)
@@ -664,7 +666,7 @@ final class MeadowScene: BaseToyScene {
             if let lm = landmarks.first(where: { hypot(p.x - $0.position.x, p.y - $0.position.y) < 75 }) {
                 if lm.isAwake {
                     lm.delight()
-                    tone("note.glock.\(lm.kind.wakeDegree + 2)", minInterval: 0.3, volume: 0.55)
+                    tone("note.kalimba.\(lm.kind.wakeDegree)", minInterval: 0.45, volume: 0.40)
                 } else {
                     // Founder call (June 12): sleepy UNTIL tapped or run over — a tap
                     // wakes them now. Walking near them does the same.
@@ -1441,8 +1443,8 @@ final class MeadowScene: BaseToyScene {
 
     /// Each sleeper wakes on its own kalimba note, with a small sleepy "oh".
     private func wakeSound(_ kind: MeadowLandmark.Kind) {
-        tone("note.kalimba.\(kind.wakeDegree)", minInterval: 0.3)
-        AudioManager.shared.play(cue: "meadow.landmark.wake", volume: 0.7, delay: 0.04)
+        tone("note.kalimba.\(kind.wakeDegree)", minInterval: 0.45, volume: 0.45)
+        AudioManager.shared.play(cue: "meadow.landmark.wake", volume: 0.4, delay: 0.04)
     }
 
     // MARK: - Accessibility
@@ -1472,7 +1474,7 @@ final class MeadowScene: BaseToyScene {
 /// corner until then. Waking is recognition, not reward: eyes open, a sprout, one note.
 private final class MeadowLandmark: SKNode {
     enum Kind: CaseIterable {
-        case rock, stump, mushroom, pond, pebbles
+        case rock, stump, mushroom, pond, pebbles, hedgehog, lily
 
         var slot: String {
             switch self {
@@ -1481,6 +1483,8 @@ private final class MeadowLandmark: SKNode {
             case .mushroom: return "meadow-mushroom"
             case .pond: return "meadow-pond"
             case .pebbles: return "meadow-pebbles"
+            case .hedgehog: return "meadow-hedgehog"
+            case .lily: return "meadow-lily"
             }
         }
         /// Fit boxes for the runtime art. Rock, mushroom and pebbles are the top-down
@@ -1494,6 +1498,8 @@ private final class MeadowLandmark: SKNode {
             case .mushroom: return CGSize(width: 108, height: 107)
             case .pond: return CGSize(width: 126, height: 116)
             case .pebbles: return CGSize(width: 124, height: 102)
+            case .hedgehog: return CGSize(width: 106, height: 108)
+            case .lily: return CGSize(width: 110, height: 108)
             }
         }
         /// Each sleeper hums its own waking note.
@@ -1504,6 +1510,8 @@ private final class MeadowLandmark: SKNode {
             case .mushroom: return 17
             case .pond: return 12
             case .pebbles: return 15
+            case .hedgehog: return 13
+            case .lily: return 14
             }
         }
         /// Drawn from directly above, so it can be turned on the ground. Every kind is now
@@ -1514,7 +1522,7 @@ private final class MeadowLandmark: SKNode {
         var hasBakedShadow: Bool {
             switch self {
             case .stump, .pond: return true
-            case .rock, .mushroom, .pebbles: return false
+            case .rock, .mushroom, .pebbles, .hedgehog, .lily: return false
             }
         }
         var fallbackTint: UIColor {
@@ -1524,6 +1532,8 @@ private final class MeadowLandmark: SKNode {
             case .mushroom: return UIColor(hex: 0xC2552E)
             case .pond: return UIColor(hex: 0x74A4B4)
             case .pebbles: return UIColor(hex: 0xC9BFA4)
+            case .hedgehog: return UIColor(hex: 0xB48660)
+            case .lily: return UIColor(hex: 0x9AA66D)
             }
         }
     }
@@ -1659,7 +1669,7 @@ private final class MeadowLandmark: SKNode {
                 wakeFace.addChild(leaf)
             }
 
-        case .mushroom, .pond, .pebbles:
+        case .mushroom, .pond, .pebbles, .hedgehog, .lily:
             // Art is the norm for these (June 12 batch); the understudy is a soft
             // tinted clay blob wearing the standard sleeping/waking face.
             if artSprite == nil {
@@ -1681,12 +1691,12 @@ private final class MeadowLandmark: SKNode {
                 lid.lineWidth = 2.4
                 lid.lineCap = .round
                 lid.fillColor = .clear
-                lid.position = CGPoint(x: sx * 14, y: 4)
+                lid.position = CGPoint(x: sx * (kind == .hedgehog ? 9 : 14), y: 4)
                 sleepFace.addChild(lid)
                 let eye = SKShapeNode(circleOfRadius: 3.2)
                 eye.fillColor = WarmShelfPalette.cocoa.withAlpha(0.78)
                 eye.strokeColor = .clear
-                eye.position = CGPoint(x: sx * 14, y: 4)
+                eye.position = CGPoint(x: sx * (kind == .hedgehog ? 9 : 14), y: 4)
                 wakeFace.addChild(eye)
             }
             let grin = SKShapeNode()
@@ -1701,6 +1711,15 @@ private final class MeadowLandmark: SKNode {
             wakeFace.addChild(grin)
         }
 
+        // New discoveries keep their live expressions on the face/pad, never on the spines or flower.
+        if kind == .hedgehog {
+            sleepFace.position.y = -29
+            wakeFace.position.y = -29
+            sleepFace.setScale(0.68)
+        } else if kind == .lily {
+            sleepFace.position = CGPoint(x: -10, y: -5)
+            wakeFace.position = sleepFace.position
+        }
         sleepFace.zPosition = 2
         wakeFace.zPosition = 2
         wakeFace.alpha = 0

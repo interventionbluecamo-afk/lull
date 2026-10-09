@@ -526,6 +526,38 @@ final class MixUpScene: BaseToyScene {
 
     /// A quiet cream room and a plain wooden stand, using the same palette and
     /// soft material depth as the shelf. The character is the only ornament.
+    /// Quiet wool fibres are a shared static material, without ornamental scenery.
+    private static let roomFelt: SKTexture = {
+        let side: CGFloat = 96
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 2
+        format.opaque = true
+        let image = UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: format).image { context in
+            let cg = context.cgContext
+            cg.setFillColor(WarmShelfPalette.linen.cgColor)
+            cg.fill(CGRect(x: 0, y: 0, width: side, height: side))
+            var seed: UInt64 = 0xF317A5
+            func sample() -> CGFloat {
+                seed = seed &* 6364136223846793005 &+ 1442695040888963407
+                return CGFloat((seed >> 32) & 0xFFFF) / 65535
+            }
+            cg.setLineCap(.round)
+            for index in 0..<650 {
+                let p = CGPoint(x: sample() * side, y: sample() * side)
+                let angle = sample() * .pi * 2
+                let length = 0.7 + sample() * 2.0
+                cg.setStrokeColor((index.isMultiple(of: 3) ? WarmShelfPalette.cocoa.withAlpha(0.035) : UIColor.white.withAlpha(0.22)).cgColor)
+                cg.setLineWidth(0.3 + sample() * 0.45)
+                cg.move(to: p)
+                cg.addLine(to: CGPoint(x: p.x + cos(angle) * length, y: p.y + sin(angle) * length))
+                cg.strokePath()
+            }
+        }
+        let texture = SKTexture(image: image)
+        texture.filteringMode = .linear
+        return texture
+    }()
+
     private func addRoom() {
         let decor = roomDecorScale
         let wall = SKShapeNode(rect: CGRect(origin: .zero, size: size))
@@ -533,6 +565,16 @@ final class MixUpScene: BaseToyScene {
         wall.strokeColor = .clear
         wall.zPosition = 1
         stage.addChild(wall)
+        let tileSide: CGFloat = 96
+        for column in 0..<Int(ceil(size.width / tileSide)) {
+            for row in 0..<Int(ceil(size.height / tileSide)) {
+                let fibre = SKSpriteNode(texture: Self.roomFelt)
+                fibre.size = CGSize(width: tileSide + 0.5, height: tileSide + 0.5)
+                fibre.position = CGPoint(x: (CGFloat(column) + 0.5) * tileSide, y: (CGFloat(row) + 0.5) * tileSide)
+                fibre.zPosition = 1.02
+                stage.addChild(fibre)
+            }
+        }
 
         let light = SKSpriteNode(texture: ProceduralTexture.softRadialGlow)
         light.color = WarmShelfPalette.paperHighlight

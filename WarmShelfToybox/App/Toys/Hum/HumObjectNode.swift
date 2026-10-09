@@ -27,6 +27,11 @@ final class HumObjectNode: SKNode {
     private var pupils: [SKShapeNode] = []
     private var mouthRest: SKShapeNode?
     private var mouthOpen: SKShapeNode?
+    private var faceMouthWidth: CGFloat = 13
+    private var tapExpression = 0
+    private var eyebrows: [SKShapeNode] = []
+    private var cheeks: [SKShapeNode] = []
+    private let faceRestKey = "hum.faceRest"
 
     private let breatheKey: String
     private let idleKey: String
@@ -40,7 +45,7 @@ final class HumObjectNode: SKNode {
     private let barRipple = SKShapeNode(rect: CGRect(x: -25, y: -77, width: 50, height: 154), cornerRadius: 20)
     private var heldIntensity: CGFloat = 1
 
-    init(kind: ObjectKind, pitchIndex: Int, sizeScale: CGFloat = 1.0, tint: UIColor? = nil) {
+    init(kind: ObjectKind, pitchIndex: Int, sizeScale: CGFloat = 1.0, widthScale: CGFloat? = nil, tint: UIColor? = nil) {
         self.kind = kind
         self.pitchIndex = pitchIndex
         let (color, body, glowR) = Self.buildBody(kind: kind, tint: tint)
@@ -66,7 +71,8 @@ final class HumObjectNode: SKNode {
         super.init()
         isUserInteractionEnabled = false
         // sizeRoot carries the static size; self/artRoot/body keep animating around scale 1.
-        sizeRoot.setScale(sizeScale)
+        sizeRoot.xScale = widthScale ?? sizeScale
+        sizeRoot.yScale = sizeScale
         addChild(sizeRoot)
         sizeRoot.addChild(shadowNode)
         sizeRoot.addChild(glowNode)
@@ -252,7 +258,9 @@ final class HumObjectNode: SKNode {
 
             let eye = SKNode()
             eye.position = CGPoint(x: x, y: eyeY)
-            eye.setScale(0.01)
+            // Keep horizontal size intact: waking animates only the vertical eyelid.
+            eye.xScale = 1
+            eye.yScale = 0.01
             eye.alpha = 0
 
             let white = SKShapeNode(ellipseOf: CGSize(width: 10.5, height: 12.5))
@@ -276,6 +284,24 @@ final class HumObjectNode: SKNode {
 
             openEyes.append(eye)
             faceRoot.addChild(eye)
+            if kind == .bar {
+                let brow = SKShapeNode()
+                brow.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.65)
+                brow.lineWidth = 1.7
+                brow.lineCap = .round
+                brow.fillColor = .clear
+                brow.position = CGPoint(x: x, y: eyeY + 10)
+                brow.alpha = 0
+                eyebrows.append(brow)
+                faceRoot.addChild(brow)
+                let cheek = SKShapeNode(ellipseOf: CGSize(width: 7, height: 4))
+                cheek.fillColor = WarmShelfPalette.petal.withAlpha(0.65)
+                cheek.strokeColor = .clear
+                cheek.position = CGPoint(x: x * 1.1, y: eyeY - 8)
+                cheek.alpha = 0
+                cheeks.append(cheek)
+                faceRoot.addChild(cheek)
+            }
         }
 
         let mouthY: CGFloat
@@ -293,6 +319,7 @@ final class HumObjectNode: SKNode {
             mouthY = 20; mouthWidth = 13
         }
 
+        faceMouthWidth = mouthWidth
         let mouthPath = CGMutablePath()
         mouthPath.move(to: CGPoint(x: -mouthWidth * 0.5, y: 0))
         mouthPath.addQuadCurve(to: CGPoint(x: mouthWidth * 0.5, y: 0),
@@ -330,14 +357,54 @@ final class HumObjectNode: SKNode {
             let fade = SKAction.fadeAlpha(to: open ? 1 : 0, duration: duration)
             eye.run(.group([scale, fade]), withKey: "hum.eye.open")
         }
+        for detail in eyebrows + cheeks {
+            detail.removeAction(forKey: "hum.face.detail")
+            detail.run(.fadeAlpha(to: open ? 1 : 0, duration: duration), withKey: "hum.face.detail")
+        }
         if open {
+            configureAwakeExpression()
             runPupilNotice()
         } else {
             pupils.forEach { $0.removeAction(forKey: "hum.pupil") }
         }
     }
 
+    /// The child can read a reaction on a quick tap: three gentle, distinct expressions,
+    /// rather than changing only the body's scale. Geometry still changes with Reduce Motion.
+    private func configureAwakeExpression() {
+        guard kind == .bar else { return }
+        let expression = (pitchIndex + tapExpression) % 3
+        let width = faceMouthWidth
+        let path: CGPath
+        switch expression {
+        case 0: // a rounded "oh"
+            path = CGPath(ellipseIn: CGRect(x: -width * 0.31, y: -width * 0.31,
+                                           width: width * 0.62, height: width * 0.62), transform: nil)
+        case 1: // a broad little singing smile
+            let smile = CGMutablePath()
+            smile.move(to: CGPoint(x: -width * 0.50, y: width * 0.15))
+            smile.addQuadCurve(to: CGPoint(x: width * 0.50, y: width * 0.15),
+                               control: CGPoint(x: 0, y: -width * 0.67))
+            smile.addQuadCurve(to: CGPoint(x: -width * 0.50, y: width * 0.15),
+                               control: CGPoint(x: 0, y: -width * 0.03))
+            smile.closeSubpath()
+            path = smile
+        default: // small delighted oval
+            path = CGPath(ellipseIn: CGRect(x: -width * 0.44, y: -width * 0.22,
+                                           width: width * 0.88, height: width * 0.44), transform: nil)
+        }
+        mouthOpen?.path = path
+        for (index, brow) in eyebrows.enumerated() {
+            let curve = CGMutablePath()
+            curve.move(to: CGPoint(x: -4, y: 0))
+            curve.addQuadCurve(to: CGPoint(x: 4, y: expression == 2 && index == 1 ? 2 : 0),
+                               control: CGPoint(x: 0, y: expression == 0 ? 3.5 : 1.5))
+            brow.path = curve
+        }
+    }
+
     private func showMouth(singing: Bool, duration: TimeInterval) {
+        if singing { configureAwakeExpression() }
         let duration = AmbientAnimator.reduceMotion ? 0 : duration
         mouthRest?.removeAction(forKey: "hum.mouth.rest")
         mouthOpen?.removeAction(forKey: "hum.mouth.open")
@@ -367,8 +434,8 @@ final class HumObjectNode: SKNode {
         removeAction(forKey: breatheKey)
         artRoot.removeAction(forKey: idleKey)
         let dur = Double.random(in: 4.0...6.0)
-        let up = SKAction.scale(to: 1.015, duration: dur * 0.5)
-        let dn = SKAction.scale(to: 1.000, duration: dur * 0.5)
+        let up = kind == .bar ? SKAction.scaleY(to: 1.015, duration: dur * 0.5) : SKAction.scale(to: 1.015, duration: dur * 0.5)
+        let dn = kind == .bar ? SKAction.scaleY(to: 1, duration: dur * 0.5) : SKAction.scale(to: 1, duration: dur * 0.5)
         up.timingMode = .easeInEaseOut
         dn.timingMode = .easeInEaseOut
         let delay = Double.random(in: 0...1.3)
@@ -428,6 +495,8 @@ final class HumObjectNode: SKNode {
 
     func noticeAndHold(intensity: CGFloat = 1) {
         isHeld = true
+        tapExpression = (tapExpression + 1) % 3
+        removeAction(forKey: faceRestKey)
         heldIntensity = HumStrikeExpression.clampedIntensity(intensity)
         removeAction(forKey: breatheKey)
         bodyNode.removeAction(forKey: breatheKey)
@@ -438,8 +507,8 @@ final class HumObjectNode: SKNode {
         artRoot.removeAction(forKey: shimmerKey)
         artRoot.removeAction(forKey: "hum.peek")
         artRoot.removeAction(forKey: "hum.strumHop")
-        showEyes(open: true, duration: 0.18)
-        showMouth(singing: true, duration: 0.16)
+        showEyes(open: true, duration: 0.055)
+        showMouth(singing: true, duration: 0.055)
 
         glowNode.removeAction(forKey: glowPulseKey)
         glowNode.removeAction(forKey: heldGlowKey)
@@ -473,9 +542,13 @@ final class HumObjectNode: SKNode {
         removeAction(forKey: restRestartKey)
         glowNode.removeAction(forKey: glowPulseKey)
         glowNode.removeAction(forKey: heldGlowKey)
-        stopShimmer()
-        showEyes(open: false, duration: 0.34)
-        showMouth(singing: false, duration: 0.42)
+        stopShimmer(resetFace: false)
+        removeAction(forKey: faceRestKey)
+        run(.sequence([.wait(forDuration: 0.32), .run { [weak self] in
+            guard let self, !self.isHeld else { return }
+            self.showEyes(open: false, duration: 0.28)
+            self.showMouth(singing: false, duration: 0.34)
+        }]), withKey: faceRestKey)
         glowNode.run(.fadeOut(withDuration: 0.42), withKey: heldGlowKey)
 
         if kind == .bar {
@@ -639,6 +712,8 @@ final class HumObjectNode: SKNode {
     /// a sound pulse, then it eases back to rest (it is not held).
     func strum() {
         guard !isHeld else { return }
+        tapExpression = (tapExpression + 1) % 3
+        removeAction(forKey: faceRestKey)
         removeAction(forKey: "hum.strumReset")
         showEyes(open: true, duration: 0.10)
         showMouth(singing: true, duration: 0.10)
@@ -714,9 +789,9 @@ final class HumObjectNode: SKNode {
         artRoot.run(.repeatForever(.sequence([up, dn])), withKey: shimmerKey)
     }
 
-    func stopShimmer() {
+    func stopShimmer(resetFace: Bool = true) {
         artRoot.removeAction(forKey: shimmerKey)
-        if !isHeld {
+        if !isHeld && resetFace {
             showEyes(open: false, duration: 0.30)
             showMouth(singing: false, duration: 0.38)
         }

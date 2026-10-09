@@ -48,7 +48,7 @@ for room in ["room", "breeze", "airy", "night", "sleep"] {
 }
 '''
 
-TARGETS = {0: -31, 1: -26, 2: -25.5, 3: -27, 4: -47}
+TARGETS = {0: -33, 1: -29, 2: -27.5, 3: -29, 4: -47}
 SR = 48000
 
 
@@ -122,6 +122,18 @@ with tempfile.TemporaryDirectory() as directory:
             rms = active_rms(x)
             # Never louder than its bus (+3 dB); deliberately quiet cues (hovers, hints) may sit lower.
             check(-15 <= rms - TARGETS[bus] <= 3, f"{name} RMS {rms:.1f} dB vs bus target {TARGETS[bus]}")
+
+    # Phone feedback should remain rounded: Bubbles no longer has a high whistle
+    # or broadband click, and the commonly repeated toy cues stay below -30 dBFS.
+    for cue in ["bubble.small", "bubble.medium", "bubble.large", "bubble.rare", "sleepy.drop.0", "meadow.paint", "meadow.bloom"]:
+        x = sounds[f"{cue}#0"][1]
+        check(active_rms(x) < -30, f"{cue} stays gentle in repeated play")
+    for cue in ["bubble.small", "bubble.medium", "bubble.large"]:
+        x = sounds[f"{cue}#0"][1]
+        spectrum = np.abs(np.fft.rfft(x)) ** 2
+        frequencies = np.fft.rfftfreq(len(x), 1 / SR)
+        check(spectrum[frequencies > 1800].sum() / spectrum.sum() < 0.02,
+              f"{cue} has no sharp high-frequency pop")
 
     # Musical notes land on the C major pentatonic (degree 0 = C3), lifted to >= 196 Hz.
     pent = [0, 2, 4, 7, 9]

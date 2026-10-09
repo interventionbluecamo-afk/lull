@@ -14,12 +14,8 @@ final class DropDotsScene: BaseToyScene {
     // MARK: - Token
 
     final class DropDotToken: SKNode {
-        /// The five felt colours of the board's mouths, lit-side tones. A dot belongs
-        /// to the same rainbow as the rings (founder: "why are the dots different from
-        /// the hole colours?" — no reason; now they aren't). Colour is an AFFORDANCE,
-        /// never a rule: any dot still drops anywhere; matching is discovered, not asked.
-        // Lifted ~14% above the rings' lit tones: the cream puck's colorBlend is a
-        // multiply, so these land ON the ring colors after the texture takes its cut.
+        /// Five felt colours share four neutral funnels: every colour fits every hole.
+        /// The mouths carry no single-colour cue that promises a matching rule.
         static let felts: [UIColor] = [
             UIColor(hex: 0xDC6135),   // rust
             UIColor(hex: 0xFFC944),   // butter
@@ -83,7 +79,7 @@ final class DropDotsScene: BaseToyScene {
                 addChild(body)
                 art.zPosition = 0
                 art.color = isGolden ? DropDotToken.gold : color
-                art.colorBlendFactor = isGolden ? 0.55 : 0.95   // dots match their rings (founder: 0.72 read dusty)
+                art.colorBlendFactor = isGolden ? 0.55 : 0.95   // readable felt colour
                 body.addChild(art)
                 if isGolden {
                     let ring = SKShapeNode(circleOfRadius: r * 0.84)
@@ -362,12 +358,9 @@ final class DropDotsScene: BaseToyScene {
         }
         boardRect = CGRect(x: boardCenterX - boardW / 2, y: boardBottomY, width: boardW, height: boardH)
 
-        // Warm carved-wood funnels, all one honey tone — they belong to the calm clay world, not a
-        // row of rainbow coin-slots. (Any token drops into any column; colour isn't a rule.)
-        // In art mode each painted felt ring keeps its own sampled colour (used by the front lips).
-        columnRimColors = artBoard
-            ? [0xC55B2F, 0xF2A935, 0x707868, 0x835D59].map { UIColor(hex: $0) }
-            : Array(repeating: UIColor(hex: 0xC58A48), count: cols)
+        // Neutral warm felt collars accept every colour. Four channels and five dot
+        // colours must never suggest an impossible missing green matching hole.
+        columnRimColors = Array(repeating: UIColor(hex: 0xD5C5A5), count: cols)
 
         buildBoard(mouthH: mouthH)
         // buildBoard's art branch re-derives boardRect from the painted body, so the
@@ -590,7 +583,11 @@ final class DropDotsScene: BaseToyScene {
         static let mouthFy: CGFloat = 0.096
         static let capTopFy: CGFloat = 0.22
         static let capBotFy: CGFloat = 0.88
-        static let ringOuterW: CGFloat = 0.100   // painted ring outer width, fraction of art width
+        static let ringOuterW: CGFloat = 0.178   // neutral collar covers the complete painted colour ring
+        static func openingSize(cell: CGFloat) -> CGSize {
+            let ringWidth = ringOuterW * sourceWidth(cell: cell)
+            return CGSize(width: ringWidth * 0.71, height: ringWidth * 0.72)
+        }
         // Measured 2026-10-07 on the keyed PNG (y from TOP): the painted channels run from
         // their rounded tops at 0.168 to their rounded floors at 0.884; the bottom rail
         // spans 0.908…0.99 (its baked knob is painted out — the walnut pull is the one
@@ -600,7 +597,7 @@ final class DropDotsScene: BaseToyScene {
         static let channelFloorFy: CGFloat = 0.884
         static let railTopFy: CGFloat = 0.908
         static let railBottomFy: CGFloat = 0.99
-        static let throatTopFy: CGFloat = 0.104
+        static let throatTopFy: CGFloat = 0.163
         static let throatBottomFy: CGFloat = 0.174
 
     }
@@ -661,22 +658,53 @@ final class DropDotsScene: BaseToyScene {
         band(CGRect(x: 0, y: 0, width: 1, height: 1 - BoardArt.capBotFy),
              height: capBotH, topY: bottomCapTopY, z: 0, in: frontLayer)
 
-        // Live overlays the feel code indexes by column — exactly `cols` of each, in
-        // column order (gulp scales mouthRings, hover warms columnRims). The painted
-        // rings ARE the face here — no procedural marks on them (founder screenshot:
-        // the overlay eyes read as broken hooks inside the holes).
+        // Cover the old colour-specific rings with equal neutral felt collars.
+        // The opening sits behind the falling dot; the collar sits in front, so
+        // every dot visibly enters a generous mouth without a colour-matching cue.
         let ringW = BoardArt.ringOuterW * artW
         for c in 0..<cols {
             let x = cellX(c)
-            let ring = SKShapeNode(ellipseOf: CGSize(width: ringW, height: ringW))
-            ring.fillColor = .clear
-            ring.strokeColor = .clear
+            let ringSize = CGSize(width: ringW, height: ringW * 1.08)
+            let openingSize = BoardArt.openingSize(cell: cell)
+            let opening = SKShapeNode(ellipseOf: openingSize)
+            opening.fillColor = UIColor(hex: 0x6E482D)
+            opening.strokeColor = UIColor(hex: 0x49321F).withAlpha(0.45)
+            opening.lineWidth = max(1, cell * 0.025)
+            opening.position = CGPoint(x: x, y: mouthY)
+            opening.zPosition = 0.28
+            boardLayer.addChild(opening)
+
+            let outer = UIBezierPath(ovalIn: CGRect(x: -ringSize.width / 2, y: -ringSize.height / 2,
+                                                   width: ringSize.width, height: ringSize.height))
+            let inner = UIBezierPath(ovalIn: CGRect(x: -openingSize.width / 2, y: -openingSize.height / 2,
+                                                   width: openingSize.width, height: openingSize.height))
+            outer.append(inner.reversing())
+            let ring = SKShapeNode(path: outer.cgPath)
+            ring.fillColor = columnRimColors[c]
+            ring.strokeColor = UIColor(hex: 0x9C886B).withAlpha(0.48)
+            ring.lineWidth = max(1, cell * 0.02)
+            ProceduralTexture.applyClayFill(to: ring, base: columnRimColors[c], size: ringSize)
             ring.position = CGPoint(x: x, y: mouthY)
-            ring.zPosition = 0.32
-            boardLayer.addChild(ring)
-            mouthRings.append(ring)
+            ring.zPosition = 0.1
+            frontLayer.addChild(ring)
+            // Tiny fixed fibres stay on the collar's outer band, clear of the hole.
+            for i in 0..<28 {
+                let angle = CGFloat(i) * .pi * 2 / 28
+                let fibre = SKShapeNode(rectOf: CGSize(width: max(0.7, cell * 0.009), height: cell * 0.026), cornerRadius: cell * 0.004)
+                fibre.position = CGPoint(x: cos(angle) * ringW * 0.432, y: sin(angle) * ringW * 0.457)
+                fibre.zRotation = -angle + .pi / 2
+                fibre.fillColor = UIColor(hex: 0xFFF4DF).withAlpha(0.28)
+                fibre.strokeColor = .clear
+                ring.addChild(fibre)
+            }
+            // Keep the collar still: scaling it would expose the old colour ring.
+            let gulpFeedback = SKShapeNode(ellipseOf: openingSize)
+            gulpFeedback.fillColor = .clear; gulpFeedback.strokeColor = .clear
+            gulpFeedback.position = CGPoint(x: x, y: mouthY)
+            boardLayer.addChild(gulpFeedback)
+            mouthRings.append(gulpFeedback)
             // hover rim (warms while a token is held above this column)
-            let hover = SKShapeNode(ellipseOf: CGSize(width: ringW * 1.25, height: ringW * 1.25))
+            let hover = SKShapeNode(ellipseOf: CGSize(width: ringW * 1.06, height: ringW * 1.12))
             hover.fillColor = .clear
             hover.strokeColor = WarmShelfPalette.paperHighlight.withAlpha(0.0)
             hover.lineWidth = max(3, cell * 0.06)
@@ -684,8 +712,7 @@ final class DropDotsScene: BaseToyScene {
             hover.zPosition = 0.36
             boardLayer.addChild(hover)
             columnRims.append(hover)
-            // Front throat: a pixel-true CROP of this ring's lower arc AND the wood bridge
-            // down into the channel top, re-rendered in place in the front layer. A
+            // Only the wood bridge below the neutral collar is cropped forward. A
             // dropped dot sinks into the ring, passes behind the wood and reappears in
             // its channel — it goes INTO the toy instead of sliding over its face.
             let fx = BoardArt.sourceCenter(c)

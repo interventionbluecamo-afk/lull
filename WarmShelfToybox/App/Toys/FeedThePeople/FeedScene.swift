@@ -51,14 +51,10 @@ final class FeedScene: BaseToyScene {
         var castMember: String? = nil   // authored felt friend; survives rotation
     }
 
-    /// A different friend than last time, when the authored cast is available.
-    private var lastCastMember: String?
+    // Shared across scene re-entry; a rotation restores the visitor without drawing again.
+    private static var castRotation = FeedCastRotation()
     private func rollCastMember() -> String? {
-        guard !CharacterNode.castMembers.isEmpty else { return nil }
-        let pool = CharacterNode.castMembers.filter { $0 != lastCastMember }
-        let pick = pool.randomElement() ?? CharacterNode.castMembers.randomElement()
-        lastCastMember = pick
-        return pick
+        Self.castRotation.next(from: CharacterNode.castMembers)
     }
 
     private struct CharacterSlot {
@@ -100,13 +96,18 @@ final class FeedScene: BaseToyScene {
     }
 
     private static var nextMenuOffset = 0
-    // Chosen once per scene; rebuilding for orientation keeps the visitor's menu intact.
-    private lazy var availableFoodKinds: [FoodKind] = {
+    private var menuOffset = 0
+    private var pendingMenuRefresh = false
+    private lazy var illustratedFoodPool: [FoodKind] = {
         let order: [FoodKind] = [.apple, .carrot, .banana, .egg, .bread, .berry, .cookie, .cup, .grape, .pear]
         let illustrated = order.filter { ToyArt.texture($0.artSlot) != nil }
-        let pool = illustrated.isEmpty ? Array(order.prefix(4)) : illustrated
-        let menu = FeedServingRules.menu(from: pool, offset: Self.nextMenuOffset)
-        Self.nextMenuOffset = (Self.nextMenuOffset + 1) % max(1, pool.count)
+        return illustrated.isEmpty ? Array(order.prefix(4)) : illustrated
+    }()
+    // Four clear choices at a time; rotation keeps the current visitor and menu intact.
+    private lazy var availableFoodKinds: [FoodKind] = {
+        menuOffset = Self.nextMenuOffset
+        let menu = FeedServingRules.menu(from: illustratedFoodPool, offset: menuOffset)
+        Self.nextMenuOffset = (menuOffset + 1) % max(1, illustratedFoodPool.count)
         return menu
     }()
 
@@ -159,6 +160,7 @@ final class FeedScene: BaseToyScene {
     override func update(_ currentTime: TimeInterval) {
         super.update(currentTime)
         syncCharacterShadows()
+        refreshMenuWhenSafe()
     }
 
     /// A still, sunlit room behind the table: two warm planes meeting at a soft horizon,
@@ -178,7 +180,14 @@ final class FeedScene: BaseToyScene {
             let cover = max(size.width / max(1, ts.width), size.height / max(1, ts.height)) * 1.08
             plate.size = CGSize(width: ts.width * cover, height: ts.height * cover)
             plate.position = CGPoint(x: size.width / 2, y: size.height / 2)
+            plate.color = WarmShelfPalette.warmCream
+            plate.colorBlendFactor = 0.12
             backdrop.addChild(plate)
+            // Quiet the baked shelves and bunting without washing out the live friends/food.
+            let wash = SKSpriteNode(color: WarmShelfPalette.warmCream.withAlpha(0.16), size: size)
+            wash.position = plate.position
+            wash.zPosition = 1
+            backdrop.addChild(wash)
             return
         }
 
@@ -1001,6 +1010,33 @@ final class FeedScene: BaseToyScene {
         }
     }
 
+    /// Refresh loose stock only after the new friend arrives and hands are clear.
+    /// A pictured request is carried into the next menu, so it remains possible to finish.
+    private func refreshMenuWhenSafe() {
+        guard pendingMenuRefresh, activeFoodTouches.isEmpty,
+              !characters.isEmpty,
+              characters.allSatisfy({ $0.action(forKey: "arrival") == nil }) else { return }
+        let foods = foodLayer.children.compactMap { $0 as? FoodNode }
+        guard foods.allSatisfy({ !$0.isDragging && !$0.isServing }) else { return }
+        pendingMenuRefresh = false
+        let required = characters.flatMap(\.desiredFoods)
+        let nextOffset = (menuOffset + 1) % max(1, illustratedFoodPool.count)
+        let next = FeedServingRules.menu(from: illustratedFoodPool, offset: nextOffset,
+                                        preserving: required)
+        menuOffset = nextOffset
+        Self.nextMenuOffset = (nextOffset + 1) % max(1, illustratedFoodPool.count)
+        guard next != availableFoodKinds else { return }
+        for kind in availableFoodKinds {
+            removeAction(forKey: "feed.respawn.\(kind.accessibilityName)")
+        }
+        removeAction(forKey: "firstDesiredFoodInvite")
+        // No held/serving food enters this branch. Replace the loose stock as one calm
+        // refresh; delayed old restocks cannot introduce a fifth item afterwards.
+        foods.forEach { $0.removeAllActions(); $0.removeFromParent() }
+        availableFoodKinds = next
+        ensureAvailableFoods(animated: true)
+    }
+
     private func ensureAvailableFoods(animated: Bool) {
         let existingKinds = foodLayer.children.compactMap { ($0 as? FoodNode)?.kind }
         let missingKinds = availableFoodKinds.filter { kind in
@@ -1520,6 +1556,7 @@ final class FeedScene: BaseToyScene {
                 let newSlot = self.characterSlots(for: [newSpec.radius]).first ?? slot
                 let newCharacter = self.addCharacter(spec: newSpec, in: newSlot, arrivalSide: -direction)
                 self.characters.insert(newCharacter, at: min(index, self.characters.count))
+                self.pendingMenuRefresh = true
                 self.arrangeThoughtBubbles()
                 self.run(.sequence([
                     .wait(forDuration: 1.1),
@@ -1644,6 +1681,27 @@ final class FeedScene: BaseToyScene {
     }
 }
 
+/// A finite shuffled cast: every available friend visits before the bag refills.
+/// A shared instance can keep this promise across scene re-entry without saving child data.
+struct FeedCastRotation {
+    private var pool: [String] = []
+    private var remaining: [String] = []
+    private var last: String?
+
+    mutating func next(from available: [String]) -> String? {
+        let current = Array(Set(available)).sorted()
+        guard !current.isEmpty else { pool = []; remaining = []; return nil }
+        if current != pool { pool = current; remaining = [] }
+        if remaining.isEmpty {
+            remaining = pool.shuffled()
+            if remaining.count > 1, remaining.first == last { remaining.swapAt(0, 1) }
+        }
+        let member = remaining.removeFirst()
+        last = member
+        return member
+    }
+}
+
 // Rules that can be verified without SpriteKit animation or touch dispatch.
 enum FeedServingRules {
     static let minimumDragTravel: CGFloat = 18
@@ -1684,10 +1742,17 @@ enum FeedServingRules {
 
     static func bubbleLayoutOrigin(current: CGPoint, home: CGPoint?) -> CGPoint { home ?? current }
 
-    static func menu<T>(from pool: [T], offset: Int) -> [T] {
+    static func menu<T: Equatable>(from pool: [T], offset: Int, preserving requests: [T] = []) -> [T] {
         guard !pool.isEmpty else { return [] }
         let start = ((offset % pool.count) + pool.count) % pool.count
-        return (0..<min(4, pool.count)).map { pool[(start + $0) % pool.count] }
+        var menu = (0..<min(4, pool.count)).map { pool[(start + $0) % pool.count] }
+        let required = requests.reduce(into: [T]()) { values, item in
+            if pool.contains(item), !values.contains(item), values.count < menu.count { values.append(item) }
+        }
+        for item in required where !menu.contains(item) {
+            if let index = menu.lastIndex(where: { !required.contains($0) }) { menu[index] = item }
+        }
+        return menu
     }
 
     static func proceduralMouthY(headRadius: CGFloat) -> CGFloat { -headRadius * 0.08 }

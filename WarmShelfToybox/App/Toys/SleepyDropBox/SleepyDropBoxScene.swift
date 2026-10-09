@@ -431,17 +431,21 @@ final class SleepyDropBoxScene: BaseToyScene {
         let c = panelCenter
         // The hero: four big carved sockets in a 2×2 grid. Each hole's silhouette and rim colour
         // match its treasure, so "this one goes here" reads instantly. Fit is by shape, never colour.
-        // The triangle/star bounding boxes run larger so their pointier silhouettes read as boldly
-        // as the round and square — the four holes feel evenly weighted.
+        // Sizes follow the actual soft silhouettes, with a small posting clearance.
+        // A rounded triangle is narrower than its construction-radius diameter.
         let specs: [(pos: CGPoint, size: CGSize, felt: UIColor, shape: HoleShape, accepts: DropTreasureNode.Kind)] = [
             (CGPoint(x: c.x - dx, y: c.y + dy), CGSize(width: r * 2.24, height: r * 2.24), WarmShelfPalette.rhubarb,   .round,    .berry),
-            (CGPoint(x: c.x + dx, y: c.y + dy), CGSize(width: r * 2.40, height: r * 2.20), UIColor(hex: 0xE3A93E),     .triangle, .triangle),
+            (CGPoint(x: c.x + dx, y: c.y + dy), CGSize(width: r * 1.83, height: r * 1.76), UIColor(hex: 0xE3A93E),     .triangle, .triangle),
             (CGPoint(x: c.x - dx, y: c.y - dy), CGSize(width: r * 2.12, height: r * 2.12), WarmShelfPalette.sage,      .square,   .cube),
             (CGPoint(x: c.x + dx, y: c.y - dy), CGSize(width: r * 2.30, height: r * 2.30), WarmShelfPalette.waterBlue, .star,     .star)
         ]
         for (index, spec) in specs.enumerated() {
             let center = specs[socketSlotOrder[index]].pos
-            var opening = Opening(center: center, size: spec.size,
+            // The shell is viewed slightly from above. Every silhouette shares the
+            // same gentle vertical projection, including the pointier shapes.
+            let socketSize = CGSize(width: spec.size.width,
+                                    height: spec.size.height * (usesPlainShell ? 0.94 : 1))
+            var opening = Opening(center: center, size: socketSize,
                                   felt: usesPlainShell ? woodDark : spec.felt,
                                   shape: spec.shape, accepts: spec.accepts, rim: nil)
             buildCarvedOpening(&opening)
@@ -524,12 +528,29 @@ final class SleepyDropBoxScene: BaseToyScene {
     }
 
     private func openingShape(_ shape: HoleShape, size s: CGSize) -> SKShapeNode {
+        let path: CGPath
         switch shape {
-        case .round:    return SKShapeNode(ellipseOf: s)
-        case .triangle: return SKShapeNode(path: DropTreasureNode.roundedTrianglePath(radius: max(s.width, s.height) * 0.62, corner: max(s.width, s.height) * 0.17))
-        case .square:   return SKShapeNode(rectOf: s, cornerRadius: s.width * 0.28)
-        case .star:     return SKShapeNode(path: DropTreasureNode.softStarPath(outer: max(s.width, s.height) * 0.58, inner: max(s.width, s.height) * 0.4, points: 5))
+        case .round:
+            path = CGPath(ellipseIn: CGRect(x: -s.width / 2, y: -s.height / 2,
+                                            width: s.width, height: s.height), transform: nil)
+        case .triangle:
+            path = DropTreasureNode.roundedTrianglePath(radius: 1, corner: 0.44 / 1.24)
+        case .square:
+            path = CGPath(roundedRect: CGRect(x: -s.width / 2, y: -s.height / 2,
+                                              width: s.width, height: s.height),
+                          cornerWidth: s.width * 0.28, cornerHeight: s.height * 0.28, transform: nil)
+        case .star:
+            path = DropTreasureNode.softStarPath(outer: 1, inner: 0.64 / 1.3, points: 5)
         }
+        // The old triangle/star used max(width,height), ignoring their height and
+        // leaving off-centre path bounds. Fit the actual silhouette into the same
+        // projected rectangle used by the round/square, rim and insertion mask.
+        let bounds = path.boundingBoxOfPath
+        let scaleX = s.width / max(0.001, bounds.width)
+        let scaleY = s.height / max(0.001, bounds.height)
+        var projection = CGAffineTransform(a: scaleX, b: 0, c: 0, d: scaleY,
+                                           tx: -bounds.midX * scaleX, ty: -bounds.midY * scaleY)
+        return SKShapeNode(path: path.copy(using: &projection) ?? path)
     }
 
     private func buildFrontFace() {
@@ -1004,7 +1025,26 @@ final class SleepyDropBoxScene: BaseToyScene {
         // Settle over the hole, then sink into the dark socket: shrink + fade with a little downward
         // slip, so the treasure visibly tucks inside rather than just blinking out.
         let kind = piece.kind
-        let align = SKAction.move(to: opening.center, duration: 0.13); align.timingMode = .easeOut
+        var alignPoint = opening.center
+        if usesPlainShell {
+            // Triangle/star paths are centred on their construction radius, not their
+            // visible bounds. Align the visible piece with the centred socket mask.
+            let piecePath: CGPath?
+            switch kind {
+            case .triangle:
+                piecePath = DropTreasureNode.roundedTrianglePath(radius: piece.radius * 1.24,
+                                                                 corner: piece.radius * 0.44)
+            case .star:
+                piecePath = DropTreasureNode.softStarPath(outer: piece.radius * 1.3,
+                                                        inner: piece.radius * 0.64, points: 5)
+            default: piecePath = nil
+            }
+            if let bounds = piecePath?.boundingBoxOfPath {
+                alignPoint.x -= bounds.midX
+                alignPoint.y -= bounds.midY
+            }
+        }
+        let align = SKAction.move(to: alignPoint, duration: 0.13); align.timingMode = .easeOut
         // v2 body art (June 11): the star hole stands upright now, so the star settles
         // in straight. The tilt plumbing stays — any future art can re-tune it.
         let starHoleTilt: CGFloat = 0

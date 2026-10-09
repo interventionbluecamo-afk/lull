@@ -9,11 +9,25 @@
       "mouth": 0.52
     },
     {
+      "name": "mira",
+      "friendlyName": "Mira",
+      "headWidth": 0.9,
+      "headCentre": 0.405,
+      "mouth": 0.61
+    },
+    {
       "name": "grandmother",
       "friendlyName": "the grandmother",
       "headWidth": 0.875,
       "headCentre": 0.4,
       "mouth": 0.505
+    },
+    {
+      "name": "jun",
+      "friendlyName": "Jun",
+      "headWidth": 0.9,
+      "headCentre": 0.4,
+      "mouth": 0.585
     },
     {
       "name": "knithat",

@@ -23,9 +23,11 @@ import re
 
 
 CAST_PATTERN = re.compile(r"feed-cast-([a-z0-9]+(?:-[a-z0-9]+)*)-([1-6])\.imageset")
-CAST_ORDER = ("sprout", "grandmother", "knithat")
+CAST_ORDER = ("sprout", "mira", "grandmother", "jun", "knithat")
 PARKED_CAST = {"scarf"}
 CAST_RIGS = {
+    "mira": ("Mira", 0.90, 0.405, 0.610),
+    "jun": ("Jun", 0.90, 0.400, 0.585),
     "sprout": ("the little one", 0.893, 0.44, 0.520),
     "grandmother": ("the grandmother", 0.875, 0.40, 0.505),
     "knithat": ("the kid in the knit hat", 0.933, 0.48, 0.573),

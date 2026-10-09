@@ -280,6 +280,9 @@ final class HumScene: BaseToyScene {
         let availableWidth = min(size.width * (isTablet ? 0.84 : 0.82), isTablet ? 900 : 520)
         let slot = availableWidth / CGFloat(barCount)
         let startX = (size.width - availableWidth) / 2 + slot / 2
+        // Equal centres alone leave widening gaps when each bar shrinks in both axes.
+        // Keep all visible widths equal; descending heights still communicate pitch.
+        let commonWidthScale = min(slot * 0.82 / 46, 1.2 * (isTablet ? 1.46 : 1.22))
         let baseY = max(safePlayRect().minY + 26 * (isTablet ? 1.5 : 1.32),
                         size.height * (landscape ? 0.26 : (isTablet ? 0.295 : 0.325)))
 
@@ -290,7 +293,7 @@ final class HumScene: BaseToyScene {
         for i in 0..<barCount {
             let t = barCount > 1 ? CGFloat(i) / CGFloat(barCount - 1) : 0
             let scale = (1.2 - 0.22 * t) * (isTablet ? 1.46 : 1.22)
-            let obj = HumObjectNode(kind: .bar, pitchIndex: i, sizeScale: scale, tint: tints[i])
+            let obj = HumObjectNode(kind: .bar, pitchIndex: i, sizeScale: scale, widthScale: commonWidthScale, tint: tints[i])
             let home = CGPoint(x: startX + CGFloat(i) * slot, y: baseY + 75 * scale)
             obj.homePosition = home
             obj.position = home

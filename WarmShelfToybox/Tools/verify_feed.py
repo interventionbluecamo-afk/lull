@@ -53,7 +53,7 @@ final class CharacterModel {
  var needsMoreFood: Bool { bitesRemaining > 0 }
  func transitionTo(_ m: CharacterMood) { mood = m }
  func runHappyShimmy() {}
-'''+methods+'\n}\n'+block(cs,'enum FeedCastCatalog')+'\n'+block(fs,'enum FeedServingRules')+r'''
+'''+methods+'\n}\n'+block(cs,'enum FeedCastCatalog')+'\n'+block(fs,'enum FeedServingRules')+'\n'+block(fs,'struct FeedCastRotation')+r'''
 var checks = 0
 func check(_ p: @autoclosure () -> Bool) { precondition(p()); checks += 1 }
 let c = CharacterModel()
@@ -188,6 +188,44 @@ for count in 1...10 {
 }
 check(FeedServingRules.menu(from:[Int](),offset:0).isEmpty)
 check(FeedServingRules.menu(from:Array(0..<8),offset:0) != FeedServingRules.menu(from:Array(0..<8),offset:1))
+// Visitor refresh preserves every outstanding pictured request in a finite four-food menu.
+for count in 2...10 {
+ let pool = Array(0..<count)
+ for offset in 0..<count {
+  for first in pool { for second in pool {
+   let requested = [first, second]
+   let menu = FeedServingRules.menu(from:pool,offset:offset,preserving:requested)
+   check(menu.count == min(4,count)); check(Set(menu).count == menu.count)
+   check(requested.allSatisfy { menu.contains($0) })
+  }}
+ }
+}
+check(FeedServingRules.menu(from:[0,1],offset:0,preserving:[99]) == [0,1])
+// Every friend must appear once per bag, including across scene re-entry; bag boundaries
+// must never repeat a neighbour. Catalog reorder and duplicate names do not reset progress.
+for count in 2...8 {
+ let names = (0..<count).map { "friend\($0)" }
+ var rotation = FeedCastRotation()
+ var last: String? = nil
+ for cycle in 0..<40 {
+  var bag = [String]()
+  for index in 0..<count {
+   let available = (cycle + index).isMultiple(of:2) ? names : Array(names.reversed()) + [names[0]]
+   let member = rotation.next(from:available)!
+   check(member != last); last = member; bag.append(member)
+  }
+  check(Set(bag) == Set(names)); check(bag.count == Set(bag).count)
+ }
+}
+var single = FeedCastRotation()
+check(single.next(from:[]) == nil)
+check(single.next(from:["one"]) == "one")
+check(single.next(from:["one"]) == "one")
+var changed = FeedCastRotation()
+_ = changed.next(from:["a","b"])
+check(changed.next(from:["c"]) == "c")
+check(changed.next(from:[]) == nil)
+check(changed.next(from:["d"]) == "d")
 // A new cast may use explicit measured landmarks. All six runtime textures are required.
 let catalogData = Data(#"{"version":1,"cast":[{"name":"newfriend","friendlyName":"the new friend","headWidth":0.9,"headCentre":0.42,"mouth":0.54}]}"#.utf8)
 let catalog = FeedCastCatalog.decode(catalogData)!
@@ -197,7 +235,7 @@ check(FeedCastCatalog.completeCast(catalog) { allFrames.contains($0) }.count == 
 check(FeedCastCatalog.completeCast(catalog) { allFrames.subtracting(["feed-cast-newfriend-6"]).contains($0) }.isEmpty)
 check(FeedCastCatalog.decode(Data(#"{"version":2,"cast":[]}"#.utf8)) == nil)
 check(FeedCastCatalog.decode(Data(#"{"version":1,"cast":[{"name":"scarf","friendlyName":"parked","headWidth":0.9,"headCentre":0.4,"mouth":0.5}]}"#.utf8))!.isEmpty)
-print("PASS: \(checks) Feed request, mouth/edge, arrival bubble, menu, catalog, timing and rotation checks using extracted production methods")
+print("PASS: \(checks) Feed request, mouth/edge, arrival bubble, menu/request preservation, complete-cast bags, catalog, timing and rotation checks using extracted production methods")
 
 '''
 with tempfile.TemporaryDirectory(prefix="lull-feed-verification-") as temporary_directory:

@@ -27,10 +27,10 @@ enum LullSoundBus: Int, CaseIterable {
     /// purpose: a reward is never much louder than the touch that caused it.
     var targetRMS: Double {
         switch self {
-        case .ui: return -31
-        case .effects: return -26
-        case .music: return -25.5
-        case .voices: return -27
+        case .ui: return -33
+        case .effects: return -29
+        case .music: return -27.5
+        case .voices: return -29
         case .ambience: return -47
         }
     }
@@ -319,7 +319,7 @@ enum LullSynth {
     }
 
     /// Minnaert bubble: a damped sine whose pitch rises as the bubble closes.
-    static func bubble(_ f0: Double, duration: Double = 0.12, rise: Double = 1.4, rng: inout Random) -> [Float] {
+    static func bubble(_ f0: Double, duration: Double = 0.12, rise: Double = 0.25, rng: inout Random) -> [Float] {
         let n = frames(duration)
         var out = [Float](repeating: 0, count: n)
         let tau = duration / 4.5
@@ -330,9 +330,8 @@ enum LullSynth {
             phase += 2 * Double.pi * f / sampleRate
             out[i] = Float(sin(phase) * exp(-t / tau))
         }
-        var hp = Biquad.highpass(2500)
-        for i in 0..<min(n, frames(0.0015)) { out[i] += Float(hp.process(rng.noise()) * 0.05) }
-        fade(&out, attack: 0.0008, release: 0.012)
+        // A rounded water plop rather than a sharp, noisy pinprick.
+        fade(&out, attack: 0.009, release: 0.024)
         return out
     }
 
@@ -547,6 +546,19 @@ enum LullSoundBook {
         var rng = LullSynth.Random(seed: LullSynth.seed(id, variant))
         guard let (raw, bus, gainDB) = recipe(id, variant: variant, rng: &rng) else { return nil }
         var x = raw
+        // Shape before loudness matching, so removing sharp edges does not merely
+        // lower a cue and leave its bright transient intact. Keep pitch and variation.
+        let cutoff: Double
+        switch bus {
+        case .ui: cutoff = 2800
+        case .effects: cutoff = 2400
+        case .music: cutoff = 3400
+        case .voices: cutoff = 3200
+        case .ambience: cutoff = 1800
+        }
+        var soften = LullSynth.Biquad.lowpass(cutoff)
+        for i in x.indices { x[i] = Float(soften.process(Double(x[i]))) }
+        LullSynth.fade(&x, attack: 0.008, release: 0.025)
         LullSynth.trimTail(&x)
         LullSynth.normalize(&x, rmsDB: bus.targetRMS, gainDB: gainDB + rng.range(-0.6, 0.6))
         return LullRenderedSound(samples: x, bus: bus)
@@ -615,20 +627,20 @@ enum LullSoundBook {
 
         // — Bubbles —————————————————————————————————————————————————
         case "bubble.small":
-            return (S.bubble(rng.range(1500, 1900), duration: 0.09, rise: 1.2, rng: &rng), .effects, -2)
+            return (S.bubble(rng.range(680, 820), duration: 0.15, rise: 0.18, rng: &rng), .effects, -3)
         case "bubble.medium":
-            return (S.bubble(rng.range(950, 1250), duration: 0.12, rise: 1.3, rng: &rng), .effects, 0)
+            return (S.bubble(rng.range(470, 580), duration: 0.18, rise: 0.20, rng: &rng), .effects, -3)
         case "bubble.large":
-            var x = S.bubble(rng.range(560, 740), duration: 0.17, rise: 1.4, rng: &rng)
-            S.mix(S.feltPuff(duration: 0.06, bright: 1600, rng: &rng), into: &x, at: 0, gain: 0.25)
-            return (x, .effects, 1)
+            var x = S.bubble(rng.range(310, 390), duration: 0.21, rise: 0.22, rng: &rng)
+            S.mix(S.feltPuff(duration: 0.08, bright: 650, rng: &rng), into: &x, at: 0, gain: 0.14)
+            return (x, .effects, -4)
         case "bubble.rare":
-            var x = S.bubble(rng.range(950, 1150), duration: 0.12, rise: 1.3, rng: &rng)
-            S.mix(arp([15, 17], step: 0.08, rng: &rng) { f, r in S.glock(f, duration: 1.2, hardness: 0.18, rng: &r) },
-                  into: &x, at: 0.05, gain: 0.55)
-            return (x, .effects, 1)
+            var x = S.bubble(rng.range(470, 570), duration: 0.18, rise: 0.20, rng: &rng)
+            S.mix(arp([9, 12], step: 0.12, rng: &rng) { f, r in S.kalimba(f, duration: 1.0, hardness: 0.08, rng: &r) },
+                  into: &x, at: 0.06, gain: 0.30)
+            return (x, .effects, -4)
         case "bubble.notice":
-            return (S.glock(note(17) * jitter, duration: 0.5, hardness: 0.08, rng: &rng), .effects, -9)
+            return (S.kalimba(note(12) * jitter, duration: 0.7, hardness: 0.05, rng: &rng), .effects, -9)
         case "bubble.breath":
             return (S.whoosh(duration: 0.65, from: 700, to: 1700, q: 0.8, rng: &rng), .effects, -5)
         case "bird":
@@ -706,10 +718,10 @@ enum LullSoundBook {
             return (S.feltPuff(duration: 0.08, bright: 600, rng: &rng), .effects, -14)
         case "sleepy.drop.0", "sleepy.drop.1", "sleepy.drop.2", "sleepy.drop.3":
             let shape = Int(id.split(separator: ".").last ?? "0") ?? 0
-            var x = S.hollowBox(rng.range(225, 260), hardness: 0.1, rng: &rng)
+            var x = S.feltThump(rng.range(235, 265), duration: 0.22, rng: &rng)
             S.mix(S.feltPuff(duration: 0.08, bright: 600, rng: &rng), into: &x, at: 0, gain: 0.5)
-            S.mix(S.kalimba(note(10 + shape), duration: 1.3, hardness: 0.12, rng: &rng), into: &x, at: 0.07, gain: 0.45)
-            return (x, .effects, -2)
+            S.mix(S.kalimba(note(7 + shape), duration: 1.1, hardness: 0.05, rng: &rng), into: &x, at: 0.08, gain: 0.30)
+            return (x, .effects, -5)
         case "sleepy.hum.0", "sleepy.hum.1", "sleepy.hum.2", "sleepy.hum.3":
             let shape = Int(id.split(separator: ".").last ?? "0") ?? 0
             var x = S.voice(note(10 + shape), duration: 0.75, vowel: .oo, breath: 0.03, attack: 0.07, release: 0.4, rng: &rng)
@@ -727,10 +739,10 @@ enum LullSoundBook {
         case "sleepy.drawer":
             // A felt-lined drawer: a soft low slide and a round stop.
             var x = S.feltPuff(duration: 0.3, bright: 450, rng: &rng)
-            S.mix(S.tunk(330, duration: 0.25, hardness: 0.08, rng: &rng), into: &x, at: 0.26, gain: 0.9)
+            S.mix(S.feltThump(250, duration: 0.22, rng: &rng), into: &x, at: 0.26, gain: 0.65)
             return (x, .effects, -4)
         case "sleepy.tumble":
-            return (S.tunk(rng.range(420, 600), duration: 0.18, hardness: 0.06, rng: &rng), .effects, -10)
+            return (S.feltThump(rng.range(230, 300), duration: 0.20, rng: &rng), .effects, -10)
         case "box.open":
             var x = S.tunk(300, duration: 0.25, hardness: 0.1, rng: &rng)
             for _ in 0..<3 {
@@ -945,25 +957,24 @@ enum LullSoundBook {
 
         // — Meadow ——————————————————————————————————————————————————
         case "meadow.wake":
-            return (S.glock(note(12) * jitter, duration: 0.9, hardness: 0.12, rng: &rng), .music, -5)
+            return (S.kalimba(note(9) * jitter, duration: 1.0, hardness: 0.05, rng: &rng), .music, -6)
         case "meadow.breeze":
             return (S.whoosh(duration: 0.8, from: 500, to: 1100, q: 0.7, rng: &rng), .effects, -7)
         case "meadow.invite":
             return (S.kalimba(note(9), duration: 1.1, hardness: 0.2, rng: &rng), .music, -4)
         case "meadow.paint":
-            return (S.glock(note(Int(rng.range(10, 15))), duration: 0.7, hardness: 0.08, rng: &rng), .music, -11)
+            return (S.kalimba(note(Int(rng.range(7, 11))), duration: 0.8, hardness: 0.04, rng: &rng), .music, -11)
         case "meadow.bloom":
-            var x = S.glock(note(Int(rng.range(11, 15))), duration: 1.0, hardness: 0.12, rng: &rng)
-            S.mix(S.cloth(duration: 0.25, center: 3000, q: 1.2, flutter: 26, rng: &rng), into: &x, at: 0, gain: 0.3)
-            return (x, .music, -5)
+            var x = S.kalimba(note(Int(rng.range(8, 12))), duration: 1.1, hardness: 0.05, rng: &rng)
+            S.mix(S.feltPuff(duration: 0.12, bright: 550, rng: &rng), into: &x, at: 0.03, gain: 0.12)
+            return (x, .music, -7)
         case "meadow.spring":
             return (arp([5, 9, 12], step: 0.13, rng: &rng) { f, r in S.kalimba(f, duration: 1.2, hardness: 0.25, rng: &r) }, .music, -1)
         case "meadow.fullspring":
-            var x = arp([9, 12, 14, 17], step: 0.13, rng: &rng) { f, r in S.kalimba(f, duration: 1.3, hardness: 0.25, rng: &r) }
-            S.mix(S.glock(note(19), duration: 1.6, hardness: 0.12, rng: &rng), into: &x, at: 0.5, gain: 0.4)
-            return (x, .music, 0)
+            let x = arp([7, 9, 12, 10], step: 0.20, rng: &rng) { f, r in S.kalimba(f, duration: 1.2, hardness: 0.08, rng: &r) }
+            return (x, .music, -4)
         case "meadow.frost":
-            var x = arp([17, 15, 12], step: 0.16, rng: &rng) { f, r in S.glock(f, duration: 1.4, hardness: 0.08, rng: &r) }
+            var x = arp([12, 10, 9], step: 0.20, rng: &rng) { f, r in S.kalimba(f, duration: 1.2, hardness: 0.05, rng: &r) }
             S.mix(S.whoosh(duration: 0.9, from: 1800, to: 900, q: 0.9, rng: &rng), into: &x, at: 0, gain: 0.35)
             return (x, .music, -4)
         case "meadow.landmark.wake":

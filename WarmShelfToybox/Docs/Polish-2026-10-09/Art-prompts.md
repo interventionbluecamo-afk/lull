@@ -17,3 +17,22 @@ Make a single recognizable handmade needle-felt **bunch of purple grapes** (then
 Stack uses felt stones drawn from existing materials during this pass. If replacing them, make a registered neutral shape cutout for pebble, bean, loaf and rounded stone, with one shared lighting setup and quiet terracotta, butter, sage, lavender and water-blue palette. Faces remain live code so sleep, wake and motion stay consistent.
 
 Meadow’s small flowers must read at 12–18 points: five simple rounded felt petals around a butter centre, no stem, warm light, native alpha. Do not bake a face or scenery into the cutout. Wren should match the same felt material and keep the current compact bird silhouette.
+
+## Bubbles bird wing frames (optional; the code adopts them automatically)
+
+Founder, build 5: "a more natural bird effect visually". Build 6 already flies the bird in natural
+bounds (flap-rise, glide-dip, nose following the path) with its single painted pose. Two more frames
+would let its wings really beat. Give the image tool `bubble-bird.png` as the reference and ask for:
+
+Two new frames of exactly this felt bluebird, same canvas size (914 × 753), same scale, same body
+position and outline, same lighting and felt texture, native transparent background, no shadow,
+no text. Frame A (`bubble-bird-down`): both wings swept down below the body at the bottom of a
+wingbeat, wingtips just visible under the belly. Frame B (`bubble-bird-glide`): wings folded neatly
+against the body, as a small songbird glides between wingbeats. Only the wings change; the head,
+beak, eye, belly and tail must register pixel-for-pixel with the reference so the frames can swap
+in place.
+
+Add them as `bubble-bird-down` and `bubble-bird-glide` imagesets. No code change is needed: the
+bird beats between `bubble-bird` and `bubble-bird-down` during each flapping burst and shows
+`bubble-bird-glide` while it glides. Check at actual size (about 57 points wide) that nothing jumps
+when the frames swap.

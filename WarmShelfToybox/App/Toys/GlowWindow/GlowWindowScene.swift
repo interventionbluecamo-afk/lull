@@ -1168,6 +1168,11 @@ final class GlowWindowScene: BaseToyScene {
     private var firefliesGlow: CGFloat = 0
     private var lastBalloonTime: TimeInterval = -1
     private var nextBalloonDelay: TimeInterval = 45
+    /// Rare sky visitors (founder, build 5: "more special things like that awesome hot air
+    /// balloon that floats by"). One at a time, each in a fresh order before any repeats.
+    private enum SkyVisitor: CaseIterable { case balloon, kite, bunnyCloud, paperPlane, birdV }
+    private var skyVisitorQueue: [SkyVisitor] = []
+    private weak var skyVisitor: SKNode?
 
     /// The day's cast — hidden until their hour. Fireflies for dusk/night, butterflies for
     /// daylight, a low mist that lifts at dawn. applyPhase fades each in by the dial position.
@@ -1233,9 +1238,30 @@ final class GlowWindowScene: BaseToyScene {
         return n
     }
 
+    /// The next visitor. By day: the balloon, a kite, a bunny-shaped cloud, a paper airplane or
+    /// a far-off V of birds. At night: a glowing paper lantern rises out of the trees. With
+    /// Reduce Motion only the slow drifters come (balloon, cloud, lantern).
+    private func launchSkyVisitor(night: Bool) {
+        if night {
+            skyVisitor = launchLantern()
+            return
+        }
+        let allowed = AmbientAnimator.reduceMotion ? [SkyVisitor.balloon, .bunnyCloud] : SkyVisitor.allCases
+        if skyVisitorQueue.isEmpty { skyVisitorQueue = allowed.shuffled() }
+        let next = skyVisitorQueue.removeFirst()
+        switch next {
+        case .balloon: skyVisitor = launchBalloon()
+        case .kite: skyVisitor = launchKite()
+        case .bunnyCloud: skyVisitor = launchBunnyCloud()
+        case .paperPlane: skyVisitor = launchPaperPlane()
+        case .birdV: skyVisitor = launchBirdV()
+        }
+    }
+
     /// The rare surprise (panel: one unpredictable thing) — a little hot-air balloon drifts
     /// across the sky now and then in daylight. "Oh, look!"
-    private func launchBalloon() {
+    @discardableResult
+    private func launchBalloon() -> SKNode {
         let r = windowInner.width * 0.06
         let balloon = SKNode()
         let env = SKShapeNode(ellipseOf: CGSize(width: r * 2, height: r * 2.3))
@@ -1263,6 +1289,240 @@ final class GlowWindowScene: BaseToyScene {
         balloon.run(.repeatForever(.sequence([.moveBy(x: 0, y: 7, duration: 1.5), .moveBy(x: 0, y: -7, duration: 1.7)])), withKey: "bob")
         let drift = SKAction.moveTo(x: endX, duration: .random(in: 11...16)); drift.timingMode = .easeInEaseOut
         balloon.run(.sequence([drift, .removeFromParent()]))
+        return balloon
+    }
+
+    /// A felt kite dances up from beyond the trees on a long string, plays in the breeze, then
+    /// lets out and sails away. The string runs down out of the window to someone unseen.
+    private func launchKite() -> SKNode {
+        let s = windowInner.width * 0.05
+        let colour = [WarmShelfPalette.petal, WarmShelfPalette.butter, WarmShelfPalette.waterBlue,
+                      WarmShelfPalette.lavender].randomElement() ?? WarmShelfPalette.petal
+        let kite = SKNode()
+        func diamond(_ right: Bool?) -> CGPath {
+            let p = CGMutablePath()
+            p.move(to: CGPoint(x: 0, y: s * 1.4))
+            if right != false { p.addLine(to: CGPoint(x: s, y: s * 0.25)) } else { p.addLine(to: CGPoint(x: 0, y: s * 0.25)) }
+            p.addLine(to: CGPoint(x: 0, y: -s * 1.2))
+            if right != true { p.addLine(to: CGPoint(x: -s, y: s * 0.25)) }
+            p.closeSubpath()
+            return p
+        }
+        let sail = SKShapeNode(path: diamond(nil))
+        sail.fillColor = colour.withAlpha(0.96)
+        sail.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.18); sail.lineWidth = 1
+        kite.addChild(sail)
+        let lightHalf = SKShapeNode(path: diamond(true))   // a lighter panel, like a stitched felt kite
+        lightHalf.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.24); lightHalf.strokeColor = .clear
+        kite.addChild(lightHalf)
+        let sparPath = CGMutablePath()
+        sparPath.move(to: CGPoint(x: 0, y: s * 1.4)); sparPath.addLine(to: CGPoint(x: 0, y: -s * 1.2))
+        sparPath.move(to: CGPoint(x: -s, y: s * 0.25)); sparPath.addLine(to: CGPoint(x: s, y: s * 0.25))
+        let spars = SKShapeNode(path: sparPath)
+        spars.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.32); spars.lineWidth = 1
+        kite.addChild(spars)
+        let ribbon = SKShapeNode()
+        ribbon.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.28); ribbon.lineWidth = 1
+        kite.addChild(ribbon)
+        var bows: [SKShapeNode] = []
+        for i in 0..<4 {
+            let bow = SKShapeNode(ellipseOf: CGSize(width: s * 0.55, height: s * 0.28))
+            bow.fillColor = (i.isMultiple(of: 2) ? WarmShelfPalette.paperHighlight : colour).withAlpha(0.95)
+            bow.strokeColor = .clear
+            kite.addChild(bow)
+            bows.append(bow)
+        }
+        let string = SKShapeNode()
+        string.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.3); string.lineWidth = 1
+        string.zPosition = 2.65
+        windowContent.addChild(string)
+
+        let dir: CGFloat = Bool.random() ? 1 : -1
+        let inner = windowInner, centre = windowCenter
+        let anchor = CGPoint(x: centre.x - dir * inner.width * 0.7, y: inner.minY - inner.height * 0.4)
+        let start = CGPoint(x: centre.x - dir * inner.width * 0.15, y: inner.minY - s * 2)
+        let hover = CGPoint(x: centre.x + dir * inner.width * 0.1, y: centre.y + inner.height * 0.2)
+        let away = CGPoint(x: centre.x + dir * inner.width * 0.75, y: inner.maxY + s * 3)
+        kite.position = start
+        kite.zPosition = 2.7
+        windowContent.addChild(kite)
+        let total = 17.0
+        let fly = SKAction.customAction(withDuration: total) { [weak string] node, elapsed in
+            let t = Double(elapsed)
+            let k = t / total
+            // Rise (to 30%), dance in the breeze (to 75%), then the string lets out and away.
+            let p: CGPoint
+            if k < 0.3 {
+                let e = CGFloat(1 - pow(1 - k / 0.3, 2))
+                p = CGPoint(x: start.x + (hover.x - start.x) * e, y: start.y + (hover.y - start.y) * e)
+            } else if k < 0.75 {
+                let w = (k - 0.3) / 0.45
+                p = CGPoint(x: hover.x + CGFloat(sin(w * .pi * 3)) * s * 1.6, y: hover.y + CGFloat(sin(w * .pi * 5)) * s * 0.7)
+            } else {
+                let e = CGFloat(pow((k - 0.75) / 0.25, 1.6))
+                p = CGPoint(x: hover.x + (away.x - hover.x) * e, y: hover.y + (away.y - hover.y) * e)
+            }
+            node.position = p
+            node.zRotation = CGFloat(sin(t * 2.2)) * 0.16
+            let tail = CGMutablePath()
+            tail.move(to: CGPoint(x: 0, y: -s * 1.2))
+            for (i, bow) in bows.enumerated() {
+                let d = CGFloat(i + 1)
+                let wave = CGFloat(sin(t * 3.1 + Double(i) * 0.9))
+                let point = CGPoint(x: wave * s * 0.18 * d, y: -s * 1.2 - d * s * 0.75)
+                tail.addLine(to: point)
+                bow.position = point
+                bow.zRotation = wave * 0.4
+            }
+            ribbon.path = tail
+            let line = CGMutablePath()
+            line.move(to: CGPoint(x: p.x, y: p.y - s * 0.2))
+            line.addQuadCurve(to: anchor, control: CGPoint(x: (p.x + anchor.x) / 2, y: (p.y + anchor.y) / 2 - s * 1.5))
+            string?.path = line
+        }
+        kite.run(.sequence([fly, .removeFromParent()]))
+        string.run(.sequence([.wait(forDuration: total), .removeFromParent()]))
+        return kite
+    }
+
+    /// A cloud shaped like a bunny, ears and all, drifts slowly across the top of the sky.
+    private func launchBunnyCloud() -> SKNode {
+        let w = windowInner.width * 0.26
+        let cloud = makeCloud(width: w)
+        for (dx, tilt) in [(CGFloat(-0.14), CGFloat(0.2)), (0.04, -0.12)] {
+            let ear = SKShapeNode(ellipseOf: CGSize(width: w * 0.15, height: w * 0.4))
+            ear.fillColor = UIColor(hex: 0xFFFFFF).withAlpha(0.66); ear.strokeColor = .clear
+            ear.position = CGPoint(x: dx * w, y: w * 0.42)
+            ear.zRotation = tilt
+            cloud.addChild(ear)
+        }
+        let tail = SKShapeNode(circleOfRadius: w * 0.1)
+        tail.fillColor = UIColor(hex: 0xFFFFFF).withAlpha(0.66); tail.strokeColor = .clear
+        tail.position = CGPoint(x: w * 0.52, y: -w * 0.02)
+        cloud.addChild(tail)
+        let dir: CGFloat = Bool.random() ? 1 : -1
+        cloud.xScale = -dir   // head first: the ears lead
+        let y = windowCenter.y + windowInner.height * .random(in: 0.26...0.34)
+        let startX = dir > 0 ? windowInner.minX - w : windowInner.maxX + w
+        let endX = dir > 0 ? windowInner.maxX + w : windowInner.minX - w
+        cloud.position = CGPoint(x: startX, y: y)
+        cloud.zPosition = 2.68
+        windowContent.addChild(cloud)
+        let drift = SKAction.moveTo(x: endX, duration: .random(in: 26...32))
+        cloud.run(.sequence([drift, .removeFromParent()]))
+        return cloud
+    }
+
+    /// A paper airplane glides across, dipping gently, with one loop-the-loop on the way.
+    private func launchPaperPlane() -> SKNode {
+        let s = windowInner.width * 0.045
+        let plane = SKNode()
+        let topPath = CGMutablePath()
+        topPath.move(to: CGPoint(x: s * 1.4, y: 0)); topPath.addLine(to: CGPoint(x: -s, y: s * 0.55))
+        topPath.addLine(to: CGPoint(x: -s * 0.6, y: 0)); topPath.closeSubpath()
+        let underPath = CGMutablePath()
+        underPath.move(to: CGPoint(x: s * 1.4, y: 0)); underPath.addLine(to: CGPoint(x: -s, y: -s * 0.35))
+        underPath.addLine(to: CGPoint(x: -s * 0.6, y: 0)); underPath.closeSubpath()
+        let under = SKShapeNode(path: underPath)
+        under.fillColor = WarmShelfPalette.sand.withAlpha(0.85); under.strokeColor = .clear
+        plane.addChild(under)
+        let wing = SKShapeNode(path: topPath)
+        wing.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.97)
+        wing.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.2); wing.lineWidth = 0.8
+        plane.addChild(wing)
+        let dir: CGFloat = Bool.random() ? 1 : -1
+        plane.xScale = dir
+        let inner = windowInner
+        let y0 = windowCenter.y + inner.height * .random(in: 0.2...0.32)
+        let x0 = dir > 0 ? inner.minX - s * 3 : inner.maxX + s * 3
+        let span = inner.width + s * 6
+        let loop = inner.height * 0.09
+        plane.position = CGPoint(x: x0, y: y0)
+        plane.zPosition = 2.7
+        windowContent.addChild(plane)
+        let total = 9.0
+        let fly = SKAction.customAction(withDuration: total) { node, elapsed in
+            let k = Double(elapsed) / total
+            var x = x0 + dir * span * CGFloat(k)
+            var y = y0 - inner.height * 0.12 * CGFloat(k) + CGFloat(sin(k * .pi * 2)) * s * 0.6
+            var angle = -0.08 + CGFloat(cos(k * .pi * 2)) * 0.05
+            if k > 0.4, k < 0.55 {
+                let a = (k - 0.4) / 0.15 * 2 * .pi
+                x += dir * CGFloat(sin(a)) * loop
+                y += CGFloat(1 - cos(a)) * loop
+                angle = CGFloat(a)
+            }
+            node.position = CGPoint(x: x, y: y)
+            node.zRotation = dir * angle
+        }
+        plane.run(.sequence([fly, .removeFromParent()]))
+        return plane
+    }
+
+    /// Far away, a little V of birds crosses the sky, wings beating slightly out of step.
+    private func launchBirdV() -> SKNode {
+        let s = windowInner.width * 0.018
+        let flock = SKNode()
+        let dir: CGFloat = Bool.random() ? 1 : -1
+        let places: [(CGFloat, CGFloat)] = [(0, 0), (-1, -0.6), (-1, 0.6), (-2, -1.2), (-2, 1.2)]
+        for (i, place) in places.enumerated() {
+            let path = CGMutablePath()
+            path.move(to: CGPoint(x: -s, y: 0))
+            path.addQuadCurve(to: CGPoint(x: 0, y: -s * 0.15), control: CGPoint(x: -s * 0.5, y: s * 0.55))
+            path.addQuadCurve(to: CGPoint(x: s, y: 0), control: CGPoint(x: s * 0.5, y: s * 0.55))
+            let bird = SKShapeNode(path: path)
+            bird.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.5); bird.lineWidth = 1.4
+            bird.lineCap = .round; bird.fillColor = .clear
+            bird.position = CGPoint(x: place.0 * s * 2.6 * dir, y: place.1 * s * 2.6)
+            flock.addChild(bird)
+            bird.run(.sequence([
+                .wait(forDuration: Double(i) * 0.07),
+                .repeatForever(.sequence([.scaleY(to: -0.4, duration: 0.22), .scaleY(to: 1, duration: 0.26)]))
+            ]))
+        }
+        let y = windowCenter.y + windowInner.height * .random(in: 0.22...0.36)
+        let startX = dir > 0 ? windowInner.minX - s * 8 : windowInner.maxX + s * 8
+        let endX = dir > 0 ? windowInner.maxX + s * 8 : windowInner.minX - s * 8
+        flock.position = CGPoint(x: startX, y: y)
+        flock.zPosition = 2.69
+        windowContent.addChild(flock)
+        let cross = SKAction.move(to: CGPoint(x: endX, y: y + windowInner.height * 0.06), duration: .random(in: 12...15))
+        flock.run(.sequence([cross, .removeFromParent()]))
+        return flock
+    }
+
+    /// At night a paper lantern rises out of the trees, glowing warm, and floats up and away.
+    private func launchLantern() -> SKNode {
+        let s = windowInner.width * 0.035
+        let lantern = SKNode()
+        let glow = SKSpriteNode(texture: ProceduralTexture.softRadialGlow)
+        glow.size = CGSize(width: s * 7, height: s * 7)
+        glow.color = UIColor(hex: 0xFFC46A); glow.colorBlendFactor = 1; glow.blendMode = .add
+        glow.alpha = 0.55
+        lantern.addChild(glow)
+        let body = SKShapeNode(rect: CGRect(x: -s * 0.8, y: -s, width: s * 1.6, height: s * 2), cornerRadius: s * 0.5)
+        body.fillColor = UIColor(hex: 0xF6B25C).withAlpha(0.95); body.strokeColor = .clear
+        lantern.addChild(body)
+        let flame = SKShapeNode(ellipseOf: CGSize(width: s * 0.9, height: s * 1.2))
+        flame.fillColor = UIColor(hex: 0xFFE7A8).withAlpha(0.85); flame.strokeColor = .clear
+        flame.position = CGPoint(x: 0, y: -s * 0.25)
+        lantern.addChild(flame)
+        lantern.position = CGPoint(x: windowCenter.x + windowInner.width * .random(in: -0.25...0.25),
+                                   y: windowInner.minY + windowInner.height * 0.1)
+        lantern.zPosition = 2.7   // starts behind the night trees and rises out of them
+        lantern.alpha = 0
+        windowContent.addChild(lantern)
+        let rise = SKAction.moveBy(x: windowInner.width * .random(in: -0.15...0.15), y: windowInner.height * 1.0, duration: 20)
+        rise.timingMode = .easeIn
+        lantern.run(.sequence([
+            .group([rise, .sequence([.fadeIn(withDuration: 2.5), .wait(forDuration: 13), .fadeOut(withDuration: 4.5)])]),
+            .removeFromParent()
+        ]))
+        if !AmbientAnimator.reduceMotion {
+            lantern.run(.repeatForever(.sequence([.rotate(toAngle: 0.06, duration: 1.8), .rotate(toAngle: -0.06, duration: 1.9)])))
+            glow.run(.repeatForever(.sequence([.fadeAlpha(to: 0.7, duration: 1.1), .fadeAlpha(to: 0.45, duration: 1.3)])))
+        }
+        return lantern
     }
 
     private func makeCloud(width: CGFloat) -> SKNode {
@@ -3308,14 +3568,18 @@ final class GlowWindowScene: BaseToyScene {
             for f in fireflies where f.alpha != 0 { f.alpha = 0 }
         }
 
-        // The rare surprise: now and then in daylight, a hot-air balloon drifts past. "Oh, look!"
-        if dayPhase > 0.12, dayPhase < 0.62 {
+        // The rare surprise: now and then a visitor crosses the sky. "Oh, look!" By day the
+        // balloon, a kite, a bunny cloud, a paper airplane or a V of birds; at night a lantern.
+        // One at a time, and never busy: about a minute or more apart.
+        let daySky = dayPhase > 0.12 && dayPhase < 0.62
+        let nightSky = dayPhase > 0.72
+        if daySky || nightSky {
             if lastBalloonTime < 0 {
-                lastBalloonTime = currentTime          // start the clock on first daylight
-            } else if currentTime - lastBalloonTime > nextBalloonDelay {
+                lastBalloonTime = currentTime - 15     // start the clock: the first comes after ~30 s
+            } else if currentTime - lastBalloonTime > nextBalloonDelay, skyVisitor?.parent == nil {
                 lastBalloonTime = currentTime
-                nextBalloonDelay = .random(in: 90...160)
-                launchBalloon()
+                nextBalloonDelay = .random(in: 50...95)
+                launchSkyVisitor(night: nightSky)
             }
         }
     }

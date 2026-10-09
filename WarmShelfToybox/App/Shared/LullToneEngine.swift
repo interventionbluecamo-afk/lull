@@ -249,9 +249,9 @@ enum LullSynth {
     }
 
     /// A hollow wooden box answering a drop: low box modes plus a soft knock.
-    static func hollowBox(_ f: Double, duration: Double = 0.5, rng: inout Random) -> [Float] {
+    static func hollowBox(_ f: Double, duration: Double = 0.5, hardness: Double = 0.3, rng: inout Random) -> [Float] {
         modal(f, [(1, 0.11, 1), (1.62, 0.08, 0.55), (2.55, 0.05, 0.32), (4.1, 0.025, 0.14)],
-              duration: duration, hardness: 0.3, rng: &rng)
+              duration: duration, hardness: hardness, rng: &rng)
     }
 
     /// Felt-wrapped stone on felt: a short round tunk.
@@ -290,18 +290,29 @@ enum LullSynth {
         return out
     }
 
+    /// Lifting a felt thing: a tiny low puff with a soft wooden touch, no hiss.
+    static func feltLift(_ f: Double = 520, rng: inout Random) -> [Float] {
+        var x = feltPuff(duration: 0.07, bright: 750, rng: &rng)
+        mix(modal(f, [(1, 0.035, 1), (2.1, 0.02, 0.2)], duration: 0.09, hardness: 0.05, rng: &rng), into: &x, at: 0.004, gain: 0.5)
+        fade(&x, attack: 0.003, release: 0.02)
+        return x
+    }
+
     /// A soft rustle: band-passed noise in a rounded swell with a little flutter.
     static func cloth(duration: Double = 0.35, center: Double = 1800, q: Double = 0.9,
                       flutter: Double = 18, rng: inout Random) -> [Float] {
         let n = frames(duration)
         var out = [Float](repeating: 0, count: n)
-        var bp = Biquad.bandpass(center, q: q)
+        // Darker than a real rustle on purpose: band-passed noise above ~2.5 kHz reads as
+        // sand or static on a phone speaker.
+        var bp = Biquad.bandpass(min(center, 1400), q: q)
+        var soften = Biquad.lowpass(2400)
         let ph = rng.range(0, 6)
         for i in 0..<n {
             let t = Double(i) / sampleRate
             var env = pow(sin(Double.pi * min(1, t / duration)), 1.5)
             env *= 0.75 + 0.25 * sin(2 * Double.pi * flutter * t + ph)
-            out[i] = Float(bp.process(rng.noise()) * env)
+            out[i] = Float(soften.process(bp.process(rng.noise())) * env)
         }
         fade(&out, attack: 0.004, release: 0.04)
         return out
@@ -331,7 +342,7 @@ enum LullSynth {
         let n = frames(duration)
         var out = [Float](repeating: 0, count: n)
         var bp = Biquad.bandpass(from, q: q)
-        var lp = Biquad.lowpass(5000)
+        var lp = Biquad.lowpass(2800)
         for i in 0..<n {
             if i % 32 == 0 {
                 let f = from * pow(to / from, Double(i) / Double(n))
@@ -585,14 +596,15 @@ enum LullSoundBook {
         switch id {
         // — Shared / UI ———————————————————————————————————————————————
         case "ui.tap":
-            var x = S.woodblock(880 * jitter, duration: 0.16, hardness: 0.18, rng: &rng)
-            S.mix(S.feltPuff(duration: 0.05, bright: 1100, rng: &rng), into: &x, at: 0, gain: 0.4)
+            var x = S.woodblock(740 * jitter, duration: 0.14, hardness: 0.1, rng: &rng)
+            S.mix(S.feltPuff(duration: 0.05, bright: 800, rng: &rng), into: &x, at: 0, gain: 0.35)
             return (x, .ui, 0)
         case "ui.empty":
-            return (S.cloth(duration: 0.13, center: 1300 * jitter, q: 1.1, flutter: 0, rng: &rng), .ui, -5)
+            return (S.feltPuff(duration: 0.06, bright: 650, rng: &rng), .ui, -7)
         case "ui.transition":
-            var x = S.whoosh(duration: 0.42, from: 420, to: 1300, q: 1.0, rng: &rng)
-            S.mix(S.kalimba(note(8), duration: 1.0, hardness: 0.25, rng: &rng), into: &x, at: 0.16, gain: 0.5)
+            var x = S.kalimba(note(10), duration: 1.0, hardness: 0.18, rng: &rng)
+            S.mix(S.kalimba(note(12), duration: 1.2, hardness: 0.18, rng: &rng), into: &x, at: 0.1, gain: 0.8)
+            S.mix(S.feltThump(250, duration: 0.14, rng: &rng), into: &x, at: 0, gain: 0.35)
             return (x, .ui, 0)
         case "ui.settle":
             return (S.feltThump(240 * jitter, rng: &rng), .ui, 0)
@@ -624,9 +636,7 @@ enum LullSoundBook {
 
         // — Feed ——————————————————————————————————————————————————
         case "feed.pickup":
-            var x = S.cloth(duration: 0.16, center: 1900 * jitter, q: 1.0, flutter: 0, rng: &rng)
-            S.mix(S.woodblock(1250, duration: 0.08, hardness: 0.1, rng: &rng), into: &x, at: 0, gain: 0.3)
-            return (x, .effects, -4)
+            return (S.feltLift(560 * jitter, rng: &rng), .effects, -4)
         case "feed.release":
             return (S.feltThump(260 * jitter, duration: 0.18, rng: &rng), .effects, -3)
         case "feed.plop":
@@ -665,7 +675,7 @@ enum LullSoundBook {
             S.mix(S.feltThump(240, duration: 0.14, rng: &rng), into: &x, at: 0, gain: 0.8)
             return (x, .effects, -3)
         case "stack.lift":
-            return (S.cloth(duration: 0.14, center: 1500 * jitter, q: 1.0, flutter: 0, rng: &rng), .effects, -6)
+            return (S.feltLift(470 * jitter, rng: &rng), .effects, -5)
         case "stack.settle.soft":
             return (S.tunk(rng.range(250, 330), hardness: 0.12, rng: &rng), .effects, -6)
         case "stack.settle.medium":
@@ -689,16 +699,17 @@ enum LullSoundBook {
 
         // — Sleepy Box —————————————————————————————————————————————
         case "sleepy.lift":
-            return (S.cloth(duration: 0.15, center: 1600 * jitter, q: 1.0, flutter: 0, rng: &rng), .effects, -6)
+            return (S.feltLift(500 * jitter, rng: &rng), .effects, -6)
         case "sleepy.bump":
-            return (S.woodblock(300 * jitter, duration: 0.18, hardness: 0.22, rng: &rng), .effects, -4)
+            return (S.tunk(300 * jitter, duration: 0.25, hardness: 0.08, rng: &rng), .effects, -6)
         case "sleepy.hover":
-            return (S.cloth(duration: 0.22, center: 900, q: 0.9, flutter: 8, rng: &rng), .effects, -12)
+            return (S.feltPuff(duration: 0.08, bright: 600, rng: &rng), .effects, -14)
         case "sleepy.drop.0", "sleepy.drop.1", "sleepy.drop.2", "sleepy.drop.3":
             let shape = Int(id.split(separator: ".").last ?? "0") ?? 0
-            var x = S.hollowBox(rng.range(225, 260), rng: &rng)
-            S.mix(S.kalimba(note(10 + shape), duration: 1.3, hardness: 0.25, rng: &rng), into: &x, at: 0.06, gain: 0.55)
-            return (x, .effects, 1)
+            var x = S.hollowBox(rng.range(225, 260), hardness: 0.1, rng: &rng)
+            S.mix(S.feltPuff(duration: 0.08, bright: 600, rng: &rng), into: &x, at: 0, gain: 0.5)
+            S.mix(S.kalimba(note(10 + shape), duration: 1.3, hardness: 0.12, rng: &rng), into: &x, at: 0.07, gain: 0.45)
+            return (x, .effects, -2)
         case "sleepy.hum.0", "sleepy.hum.1", "sleepy.hum.2", "sleepy.hum.3":
             let shape = Int(id.split(separator: ".").last ?? "0") ?? 0
             var x = S.voice(note(10 + shape), duration: 0.75, vowel: .oo, breath: 0.03, attack: 0.07, release: 0.4, rng: &rng)
@@ -714,19 +725,19 @@ enum LullSoundBook {
             }
             return (x, .music, -1)
         case "sleepy.drawer":
-            var x = S.whoosh(duration: 0.32, from: 520, to: 820, q: 1.6, rng: &rng)
-            S.mix(S.woodblock(380, duration: 0.18, hardness: 0.3, rng: &rng), into: &x, at: 0.28, gain: 0.9)
-            return (x, .effects, -3)
+            // A felt-lined drawer: a soft low slide and a round stop.
+            var x = S.feltPuff(duration: 0.3, bright: 450, rng: &rng)
+            S.mix(S.tunk(330, duration: 0.25, hardness: 0.08, rng: &rng), into: &x, at: 0.26, gain: 0.9)
+            return (x, .effects, -4)
         case "sleepy.tumble":
-            return (S.woodblock(rng.range(500, 760), duration: 0.12, hardness: 0.3, rng: &rng), .effects, -8)
+            return (S.tunk(rng.range(420, 600), duration: 0.18, hardness: 0.06, rng: &rng), .effects, -10)
         case "box.open":
-            var x = S.woodblock(330, duration: 0.2, hardness: 0.25, rng: &rng)
-            for _ in 0..<5 {
-                S.mix(S.woodblock(rng.range(520, 900), duration: 0.1, hardness: 0.3, rng: &rng), into: &x,
-                      at: rng.range(0.08, 0.5), gain: Float(rng.range(0.3, 0.6)))
+            var x = S.tunk(300, duration: 0.25, hardness: 0.1, rng: &rng)
+            for _ in 0..<3 {
+                S.mix(S.tunk(rng.range(420, 620), duration: 0.18, hardness: 0.06, rng: &rng), into: &x,
+                      at: rng.range(0.1, 0.45), gain: Float(rng.range(0.35, 0.55)))
             }
-            S.mix(S.cloth(duration: 0.4, center: 1200, q: 0.8, flutter: 10, rng: &rng), into: &x, at: 0.05, gain: 0.5)
-            return (x, .effects, -1)
+            return (x, .effects, -3)
 
         // — Window ————————————————————————————————————————————————
         case "window.dial":
@@ -801,9 +812,7 @@ enum LullSoundBook {
         case "dots.tab":
             return (S.woodblock(1100 * jitter, duration: 0.09, hardness: 0.3, rng: &rng), .ui, -4)
         case "dots.pickup":
-            var x = S.cloth(duration: 0.12, center: 1700 * jitter, q: 1.0, flutter: 0, rng: &rng)
-            S.mix(S.woodblock(1300, duration: 0.07, hardness: 0.15, rng: &rng), into: &x, at: 0, gain: 0.35)
-            return (x, .effects, -5)
+            return (S.feltLift(600 * jitter, rng: &rng), .effects, -5)
         case "dots.full":
             var x = S.woodblock(260, duration: 0.14, hardness: 0.15, rng: &rng)
             S.mix(S.woodblock(245, duration: 0.14, hardness: 0.15, rng: &rng), into: &x, at: 0.13, gain: 0.8)
@@ -975,11 +984,13 @@ enum LullSoundBook {
         let n = LullSynth.frames(seconds)
         let (lowCut, highCut, sway): (Double, Double, Double)
         switch room {
-        case "room": (lowCut, highCut, sway) = (160, 900, 0.15)
-        case "breeze": (lowCut, highCut, sway) = (220, 1600, 0.45)
-        case "airy": (lowCut, highCut, sway) = (300, 2400, 0.35)
-        case "night": (lowCut, highCut, sway) = (150, 700, 0.10)
-        case "sleep": (lowCut, highCut, sway) = (200, 800, 0.9)
+        // Beds stay dark and low: broadband noise above ~1 kHz reads as sand or static on a
+        // phone speaker (founder review, build 4). They are felt as warmth, not heard as hiss.
+        case "room": (lowCut, highCut, sway) = (90, 380, 0.15)
+        case "breeze": (lowCut, highCut, sway) = (160, 850, 0.45)
+        case "airy": (lowCut, highCut, sway) = (160, 620, 0.35)
+        case "night": (lowCut, highCut, sway) = (110, 420, 0.10)
+        case "sleep": (lowCut, highCut, sway) = (140, 480, 0.9)
         default: return nil
         }
         var x = [Float](repeating: 0, count: n)
@@ -1011,7 +1022,8 @@ enum LullSoundBook {
             x[i] = x[i] * w + x[n - cross + i] * (1 - w)
         }
         x.removeLast(cross)
-        LullSynth.normalize(&x, rmsDB: LullSoundBus.ambience.targetRMS, gainDB: room == "sleep" ? -4 : 0)
+        let level: Double = ["room": -4, "airy": -3, "sleep": -4][room] ?? 0
+        LullSynth.normalize(&x, rmsDB: LullSoundBus.ambience.targetRMS, gainDB: level)
         return x
     }
 }

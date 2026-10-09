@@ -1,4 +1,4 @@
-# Lull — handoff: founder review of build 4 → polish pass (in progress)
+# Lull — handoff: founder reviews of builds 4 and 5 → polish passes (in progress)
 
 October 9, 2026. Branch `claude/modest-bell-cjarqm` (`interventionbluecamo-afk/lull`). Read this
 first if you are picking up from Claude. It is updated as work lands; the last section says what
@@ -71,3 +71,37 @@ founder owns device testing; upload only with the founder's explicit approval.
 ## Completed continuation — October 9
 
 All six fallback polish changes are implemented, SDK-built and installed as 1.0 (5). Read [the current ChatGPT handoff](Handoff-ChatGPT-to-Claude-2026-10-09-build5.md) and its verification logs before continuing. Founder device approval is pending; this turn did not upload TestFlight.
+
+
+## Founder review of build 5 (October 9, evening) — Claude's pass, in progress
+
+Verbatim summary: Feed — food should refill only on the plate a child used (no moving or random
+respawns while a child may want it next); the counter is a little high for some friends. Stack —
+"doesn't make sense to have a bird here… replace this game with something completely new, 3 options
+for me". Drop Dots — "why did you remove the colors from the holes… so a kid can match it, and then
+make 3 in a row". Bubbles — more of a bubble *pop* sound; a more natural bird visually. Window — the
+sky-tap sound is "horrible" day and night; more special visitors like the hot-air balloon. Sleepy Box
+— "sounds are harsh STILL… PLEASANT AND CALM!!!!!!!". Meadow — what is the "random tone"; ideas to
+improve it. General — home button sound harsh; "every single tap is a sound", switching toys is "TOO
+MUCH"; haptics not felt; tapping Wren should wiggle him off and pop up elsewhere around the edges.
+
+### Landed (pushed to `claude/modest-bell-cjarqm`)
+
+| Commit | What |
+|---|---|
+| `6697f6c` | **Sound diet.** Rules: sound answers an outcome, never a bare touch; nothing plays on its own; warm and round, not bright metal or noise; loudness matched by ear (BS.1770 pre-filter), all buses −3 dB; rapid repeats of a touch sound step down to 40% (never music). Shelf card, home button, empty felt and Wren taps are haptic only; entering and leaving a toy is silent. Sleepy Box: lift/hover/drawer travel/rattle silent; the drop is a soft landing plus the shape's own felt-piano note (no hollow-box knock); the treasures roll out on a soft falling run. Window: sky taps silent (were a high glockenspiel); dial, lamp, curtain and plant softer; curtain drag silent. Meadow: the "random tone" was the idle invite (a note with the ladybug's wing flutter every 7.5 s), plus a random glockenspiel note every 0.4 s while she walked, a note per flower and random background birds — all removed. Bubbles: a real soap-bubble pop; no chime per neighbour in chains. New `softPluck` voice replaces the glockenspiel outside Hum and Mix-Up. |
+| `70eefb3` | **Haptics felt.** Toys asked for 6–46% strength, mostly `.soft` (the faintest) — under what a hand notices. Requested strengths now map onto a felt range per style (soft ≥ 0.55, light ≥ 0.45, rigid ≥ 0.40); pulses within 60 ms merge. If still not felt: iOS Settings → Sounds & Haptics → System Haptics must be on. |
+| `2cb3a11` | **Drop Dots colours.** Build 5 dropped the sage ring but kept five dot colours with exactly one dot each, so matching and three-in-a-row were impossible. Dots now use the four ring colours; the visible hand is six dots (one per ring plus a triple, colour changes per visit); the rim warms in the dot's colour over its home hole and glows when it lands there. `Tools/verify_dropdots.py`. |
+
+Verification on Linux for all of the above: sound kit 2,606 checks; engine lifecycle 57; Drop Dots 10;
+Feed 958, Hum 10,367, Mix-Up 399 + 280, adult gate, onboarding and rest verifiers pass; `swiftc
+-parse` on every changed file. `verify_window.py` and `verify_world_interactions.py` need macOS.
+**Not done here:** an iOS build and listening. The next build is 1.0 (6).
+
+### Still to do in this pass (in order)
+
+1. Feed: refill only the used plate; lower the wish counter slightly for some friends.
+2. Wren peek-a-boo: tap → wiggles off the edge → pops up at another edge spot (quiet; reuse art).
+3. Bubbles: a more natural bird (flight path, wing beats); Window: more rare visitors like the
+   hot-air balloon.
+4. Three options for a completely new toy to replace Stack (founder chooses); Meadow game ideas.

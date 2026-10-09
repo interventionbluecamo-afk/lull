@@ -1324,13 +1324,12 @@ final class GlowWindowScene: BaseToyScene {
         let ribbon = SKShapeNode()
         ribbon.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.28); ribbon.lineWidth = 1
         kite.addChild(ribbon)
-        var bows: [SKShapeNode] = []
-        for i in 0..<4 {
+        let bows: [SKShapeNode] = (0..<4).map { i in
             let bow = SKShapeNode(ellipseOf: CGSize(width: s * 0.55, height: s * 0.28))
             bow.fillColor = (i.isMultiple(of: 2) ? WarmShelfPalette.paperHighlight : colour).withAlpha(0.95)
             bow.strokeColor = .clear
             kite.addChild(bow)
-            bows.append(bow)
+            return bow
         }
         let string = SKShapeNode()
         string.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.3); string.lineWidth = 1

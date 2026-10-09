@@ -439,7 +439,7 @@ class BaseToyScene: SKScene, UIGestureRecognizerDelegate {
     private func performShelfReturn() {
         guard let handle = childNode(withName: shelfReturnHandleName) else { return }
         TouchFeedbackAnimator.acknowledge(node: handle, profile: .shelfCard)
-        audioManager.playSoftTap()   // haptic fires inside playSoftTap
+        HapticsManager.shared.softTap()   // felt, not heard (founder, build 5: the home sound was harsh)
         run(.sequence([
             .wait(forDuration: WarmShelfMotion.pop),
             .run { [weak self] in self?.onReturnToShelf?() }

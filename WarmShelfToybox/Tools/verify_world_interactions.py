@@ -25,6 +25,8 @@ def block(relative, needle):
 
 production = "\n".join([
     block("App/Toys/DropDots/DropDotsScene.swift", "enum DropDotsHandleGesture"),
+    "enum DropDotsScene { enum DropDotToken { static let felts = [0, 1, 2, 3] } }",
+    block("App/Toys/DropDots/DropDotsScene.swift", "enum DropDotsHand"),
     block("App/Toys/DropDots/DropDotsScene.swift", "private enum BoardArt").replace("private ", "", 1),
     block("App/Toys/Meadow/MeadowScene.swift", "enum MeadowDandelionGeometry"),
     block("App/Toys/Meadow/MeadowScene.swift", "enum MeadowWorldGeometry"),
@@ -61,8 +63,6 @@ check(BoardArt.sourceColumns.count == 4, "Exactly four painted channels")
 check(Set(BoardArt.sourceColumns).count == 4, "No duplicated channel strips")
 for cell: CGFloat in [24, 60, 88, 132] {
     let width = BoardArt.sourceWidth(cell: cell)
-    let opening = BoardArt.openingSize(cell: cell)
-    check(opening.width > cell * 0.68 && opening.height > cell * 0.68, "Every neutral mouth clears the 0.64-cell dot with visible space")
     for column in 0..<3 {
         check(BoardArt.stripSpan(column, cell: cell).upperBound >= BoardArt.stripSpan(column + 1, cell: cell).lowerBound, "Composed wood has no filtering seam at any supported size")
     }
@@ -75,6 +75,15 @@ for cell: CGFloat in [24, 60, 88, 132] {
         let origin = CGFloat(column) * cell - source * width
         check(abs(origin + source * width - CGFloat(column) * cell) < 0.001, "Painted mouth and channel sit on the live dot centre")
     }
+}
+// Four coloured rings share four dot colours. The complete visible hand includes one
+// of each plus two more of one colour, so a three-in-a-row pattern is always possible.
+for _ in 0..<1000 {
+    let hand = DropDotsHand.deal()
+    check(hand.count == BoardArt.sourceColumns.count + 2, "Six visible dots, no hidden reserve")
+    check(Set(hand) == Set(0..<BoardArt.sourceColumns.count), "Every dot colour has a matching ring")
+    let counts = Dictionary(grouping: hand, by: { $0 }).mapValues(\.count)
+    check(counts.values.sorted() == [1, 1, 1, 3], "Exactly one available colour can make three in a row")
 }
 // Offering or restoring a puff never puts its body beyond the felt world's edge.
 for canvas in [CGSize(width: 375, height: 812), CGSize(width: 812, height: 375), CGSize(width: 820, height: 1180)] {

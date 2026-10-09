@@ -4,7 +4,8 @@ recording stand-ins for AVFoundation/UIKit (Tools/Audio/AppleAudioStubs.swift).
 
 Checks the parent's Sound control, session category and retry, engine start retry, cue playback,
 cooldowns, variation, sample-accurate delays, voice stealing, held notes, room beds, the Window
-day/night beds, backgrounding, interruptions, route changes and the older note interface.
+day/night beds, backgrounding, interruptions, route changes, the older note interface, the
+softening of rapid repeats, and that button, card and empty-felt taps are felt rather than heard.
 Physical audibility, loudness on a speaker and route behaviour still need an iPhone.
 """
 from pathlib import Path
@@ -203,6 +204,41 @@ for name in ["bunny", "bear", "songbird", "fox", "mouse", "frog", "robot", "offi
     check(LullSoundBook.cueIDs.contains("friend.\(name)") && LullSoundBook.cueIDs.contains("friend.\(name).whole"),
           "\(name) has an arrival voice and a whole-friend voice")
 }
+
+// 13. Repeats soften: drumming on one thing is a diminuendo; music is never softened.
+spinReal(1.5)
+func lastVolume(after count: Int) -> Float? {
+    guard stubScheduledLog.count > count, let id = stubScheduledLog.last else { return nil }
+    return players().first { $0.scheduled.contains { ObjectIdentifier($0.buffer) == id } }?.volume
+}
+var popVolumes: [Float] = []
+for _ in 0..<8 {
+    spinReal(0.08)
+    let before = stubScheduledLog.count
+    _ = audio.play(cue: "bubble.medium")
+    if let v = lastVolume(after: before) { popVolumes.append(v) }
+}
+check(popVolumes.count == 8 && popVolumes.first! > 0.99 && popVolumes[1] < popVolumes[0] && popVolumes.last! >= 0.39
+      && popVolumes.last! < 0.5, "Rapid repeats of a touch sound step down to a soft floor (\(popVolumes))")
+spinReal(1.4)
+let rested = stubScheduledLog.count
+_ = audio.play(cue: "bubble.medium")
+check((lastVolume(after: rested) ?? 0) > 0.99, "After a short rest the sound is back to full")
+var musicVolumes: [Float] = []
+for _ in 0..<4 {
+    spinReal(0.08)
+    let before = stubScheduledLog.count
+    _ = audio.play(cue: "feed.success")
+    if let v = lastVolume(after: before) { musicVolumes.append(v) }
+}
+check(musicVolumes.count == 4 && musicVolumes.allSatisfy { $0 > 0.99 }, "Music cues are never softened (\(musicVolumes))")
+spinReal(0.2)
+let logBeforeTap = stubScheduledLog.count
+let pulsesBeforeTap = HapticsManager.shared.pulses.count
+audio.playSoftTap()
+audio.playEmptyTap()
+check(stubScheduledLog.count == logBeforeTap && HapticsManager.shared.pulses.count == pulsesBeforeTap + 2,
+      "Taps on buttons, cards and empty felt are felt (a haptic each), not heard")
 
 print("PASS: \(passed) sound engine lifecycle, gating, scheduling and bed checks; audibility still needs an iPhone")
 '''

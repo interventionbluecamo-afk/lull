@@ -202,14 +202,26 @@ final class BubbleScene: BaseToyScene {
 
     /// The passenger: a tiny felt bird flutters free of a popped bubble and flies
     /// away — blink and you miss it, which is the point.
+    ///
+    /// Founder, build 5: "a more natural bird effect visually". Small songbirds fly in bounds:
+    /// a burst of wingbeats lifts them, then a short glide with folded wings lets them dip, so the
+    /// path undulates while the body stays rigid and pitches with the climb. The old flight
+    /// squashed the whole bird to fake flapping. If wing frames exist (`bubble-bird-down`, and
+    /// optionally `bubble-bird-glide`, drawn on the same canvas as `bubble-bird`), they beat
+    /// during each burst; prompts in Docs/Polish-2026-10-09/Art-prompts.md.
     private func releaseBubbleBird(from p: CGPoint) {
         let s: CGFloat = 11
         let dir: CGFloat = p.x > size.width / 2 ? -1 : 1   // fly toward the nearer edge
         let bird = SKNode()
-        let flapper = SKNode()   // the visual — flaps + pops in, independent of facing & flight
+        let flapper = SKNode()   // the visual — pops in, independent of facing & flight
         bird.addChild(flapper)
+        let fit = CGSize(width: s * 5.2, height: s * 5.2)
+        let art = ToyArt.sprite("bubble-bird", fit: fit)
+        let upFrame = art?.texture
+        let downFrame = ToyArt.texture("bubble-bird-down")
+        let glideFrame = ToyArt.texture("bubble-bird-glide")
         let wing: SKNode?
-        if let art = ToyArt.sprite("bubble-bird", fit: CGSize(width: s * 5.2, height: s * 5.2)) {
+        if let art {
             art.zPosition = 0
             flapper.addChild(art)
             wing = nil
@@ -241,31 +253,46 @@ final class BubbleScene: BaseToyScene {
         bird.xScale = dir        // FACE the way she flies (the art faces +x; left flips it)
         flapper.setScale(0.3)
         addChild(bird)
+        flapper.run(.scale(to: 1.0, duration: 0.16))   // she pops free of the bubble
 
-        // She pops free, then beats her wings away — the whole body flaps (the art has no
-        // separate wing), so she reads as flying, never sliding.
-        flapper.run(.scale(to: 1.0, duration: 0.16))
-        if !AmbientAnimator.reduceMotion {
-            flapper.run(.sequence([.wait(forDuration: 0.16),
-                .repeatForever(.sequence([.scaleY(to: 0.84, duration: 0.09), .scaleY(to: 1.0, duration: 0.11)]))]))
-            wing?.run(.repeatForever(.sequence([.scaleY(to: 0.45, duration: 0.07), .scaleY(to: 1.0, duration: 0.08)])))
-        }
-
-        // A natural arc: up and out on an easing glide, with a gentle flutter that fades —
-        // and a hair of nose-up bank, instead of a straight diagonal slide.
         let startP = p
-        let outX = dir * size.width * 0.58
-        let climb = size.height * 0.46
-        let dur = 1.9
-        let fly = SKAction.customAction(withDuration: dur) { node, t in
-            let k = CGFloat(t) / CGFloat(dur)
-            let ease = 1 - pow(1 - k, 2.2)
-            let flutter = CGFloat(sin(Double(k) * .pi * 5)) * (1 - k)
-            node.position = CGPoint(x: startP.x + outX * ease, y: startP.y + climb * ease + flutter * 12)
-            node.zRotation = flutter * 0.07
+        let outX = dir * size.width * 0.62
+        let climb = size.height * 0.4
+        let dur = 2.3
+        let reduceMotion = AmbientAnimator.reduceMotion
+        // Five bounds: a flapping rise for 58% of each, then a folded-wing dip.
+        let bounds = 5.0, flapShare = 0.58, beatsPerSecond = 9.0
+        func lift(_ k: Double) -> CGFloat {
+            guard !reduceMotion else { return 0 }
+            let phase = (k * bounds).truncatingRemainder(dividingBy: 1)
+            let rise = phase < flapShare ? sin(phase / flapShare * .pi / 2) : cos((phase - flapShare) / (1 - flapShare) * .pi / 2)
+            return CGFloat(rise) * 13 * CGFloat(1 - k * 0.5)
         }
-        bird.run(.sequence([fly, .removeFromParent()]))
-        bird.run(.sequence([.wait(forDuration: dur * 0.66), .fadeOut(withDuration: dur * 0.34)]))
+        func position(_ k: Double) -> CGPoint {
+            let ease = CGFloat(k * (1.3 - 0.3 * k))   // leaves briskly, eases a little, never stalls
+            return CGPoint(x: startP.x + outX * ease, y: startP.y + climb * ease + lift(k))
+        }
+        let fly = SKAction.customAction(withDuration: dur) { [weak art, weak wing] node, elapsed in
+            let t = Double(elapsed)
+            let k = min(1, t / dur)
+            let here = position(k), ahead = position(min(1, k + 0.01))
+            node.position = here
+            // Pitch follows the path (nose up while climbing), never a spin.
+            let slope = atan2(Double(ahead.y - here.y), Double(abs(ahead.x - here.x)) + 0.0001)
+            node.zRotation = dir * CGFloat(max(-0.35, min(0.45, slope * 0.6)))
+            guard !reduceMotion else { return }
+            let flapping = (k * bounds).truncatingRemainder(dividingBy: 1) < flapShare
+            let beatUp = Int(t * beatsPerSecond * 2) % 2 == 0
+            if let art, let upFrame, let downFrame {
+                art.texture = flapping ? (beatUp ? upFrame : downFrame) : (glideFrame ?? upFrame)
+            } else {
+                // One painted pose: each wingbeat only nudges the body, the way a real bird's does.
+                art?.position.y = flapping && !beatUp ? -1.2 : 0
+            }
+            wing?.yScale = flapping ? (beatUp ? 1.0 : 0.45) : 0.8
+        }
+        bird.run(.sequence([.wait(forDuration: 0.12), fly, .removeFromParent()]))
+        bird.run(.sequence([.wait(forDuration: dur * 0.72), .fadeOut(withDuration: dur * 0.3)]))
         AudioManager.shared.playBird()
     }
 

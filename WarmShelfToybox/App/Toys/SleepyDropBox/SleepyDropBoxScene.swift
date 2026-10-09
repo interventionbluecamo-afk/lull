@@ -63,11 +63,11 @@ final class SleepyDropBoxScene: BaseToyScene {
     private var drawerTargetY: CGFloat = 0
     private var drawerKnobLocalY: CGFloat = 0
     private var didTumbleThisPull = false
+    private var didSlideThisPull = false
     private var drawerTouchStartY: CGFloat = 0
     private var drawerDragStartY: CGFloat = 0
 
     private var lastTone: [String: TimeInterval] = [:]
-    private var lastRattle: TimeInterval = 0
     private let woodWarm = UIColor(hex: 0xCFB18A)   // quiet birch bulk
     private let woodTop = UIColor(hex: 0xE5CFAC)    // softly lit front and tray
     private let woodDark = UIColor(hex: 0x866648)   // warm recessed grain
@@ -861,7 +861,7 @@ final class SleepyDropBoxScene: BaseToyScene {
                 piece.removeAllActions()
                 piece.setLifted(true)
                 piece.zPosition = 30
-                tone("sleepy.lift")
+                // Lifting is felt, not heard (founder, build 5: "PLEASANT AND CALM").
                 HapticsManager.shared.impact(style: .light, intensity: 0.16)
                 continue
             }
@@ -872,6 +872,7 @@ final class SleepyDropBoxScene: BaseToyScene {
                 drawer.removeAction(forKey: "tremble")
                 drawerTouch = touch
                 didTumbleThisPull = false
+                didSlideThisPull = false
                 drawerTouchStartY = p.y
                 drawerDragStartY = drawer.position.y
                 continue
@@ -1275,7 +1276,7 @@ final class SleepyDropBoxScene: BaseToyScene {
             .group([tumbleRot, .sequence([toAbove, drop])]),
             .run { [weak self, weak piece] in
                 guard let self, let piece else { return }
-                piece.squash(0.13); self.tumbleBump()
+                piece.squash(0.13)   // the box.open run already sings the treasures out
                 self.spawnMotes(at: piece.position, color: piece.color, count: 3)
             },
             bounce,
@@ -1316,8 +1317,7 @@ final class SleepyDropBoxScene: BaseToyScene {
                     setBoxMood(.curious)
                     boxBodyWobble(0.4)                                  // a tiny anticipation lean
                     spawnMotes(at: o.center, color: o.felt, count: 3)   // the hole welcomes the piece
-                    tone("sleepy.hover", minInterval: 0.3)
-                    HapticsManager.shared.impact(style: .light, intensity: 0.08)
+                    HapticsManager.shared.impact(style: .light, intensity: 0.08)   // felt, not heard
                 }
             } else if hypot(piece.position.x - boxCenter.x, piece.position.y - boxCenter.y) < boxW * 0.8 {
                 if hoverOpening != nil { clearHover() }
@@ -1334,9 +1334,11 @@ final class SleepyDropBoxScene: BaseToyScene {
         let dy = drawerTargetY - drawer.position.y
         if abs(dy) > 0.3 {
             drawer.position.y += dy * 0.28
-            if drawerTouch != nil {
-                tone("sleepy.drawer", minInterval: 0.26)
-                if !insideKinds.isEmpty { rattle() }
+            // One soft slide per pull; the drawer's travel and the treasures inside are felt,
+            // not heard (it used to repeat every quarter second with a rattle on top).
+            if drawerTouch != nil, !didSlideThisPull {
+                didSlideThisPull = true
+                tone("sleepy.drawer")
             }
             // Tumble once when pulled far enough.
             if !didTumbleThisPull, drawerTouch != nil,
@@ -1350,17 +1352,6 @@ final class SleepyDropBoxScene: BaseToyScene {
     private func clearHover() {
         if let h = hoverOpening { flashRim(h, hot: false) }
         hoverOpening = nil
-    }
-
-    private func rattle() {
-        let now = CACurrentMediaTime()
-        guard now - lastRattle > 0.3 else { return }
-        lastRattle = now
-        tone("sleepy.tumble")
-    }
-
-    private func tumbleBump() {
-        tone("sleepy.tumble", minInterval: 0.09)
     }
 
     // MARK: - Sound

@@ -102,7 +102,6 @@ enum TouchFeedbackAnimator {
             color: WarmShelfPalette.paperHighlight,
             count: eyesCarryFeedback ? 4 : 3
         )
-        AudioManager.shared.playEmptyTap()
-        HapticsManager.shared.emptyTap()
+        HapticsManager.shared.emptyTap()   // empty felt answers with light and touch, not sound
     }
 }

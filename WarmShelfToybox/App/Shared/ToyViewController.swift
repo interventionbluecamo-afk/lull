@@ -132,8 +132,7 @@ final class ToyViewController: UIViewController {
         let scene = descriptor.makeScene(skView.bounds.size)
         scene.showsShelfReturnHandle = true
         scene.onReturnToShelf = { [weak self] in
-            AudioManager.shared.playShelfTransition()
-            self?.dismiss(animated: true)
+            self?.dismiss(animated: true)   // silent: the press was already felt
         }
         scene.scaleMode = .resizeFill
         currentScene = scene

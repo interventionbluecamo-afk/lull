@@ -100,7 +100,8 @@ final class AudioManager: LullTonePlayer {
     private var fades: [ObjectIdentifier: Fade] = [:]
     private var fadeTimer: Timer?
     private var heldTokens = 0
-    private var sprinkleTimer: Timer?
+    /// How many times in a row each touch sound has just played (see `repeatSoftening`).
+    private var repeatStreak: [String: (count: Int, last: CFTimeInterval)] = [:]
 
     private init() {
         LullToneEngine.shared.player = self
@@ -120,8 +121,21 @@ final class AudioManager: LullTonePlayer {
         if let last = lastPlayTime[id], now - last < cooldown { return false }
         guard let buffer = nextBuffer(for: id) else { return false }
         lastPlayTime[id] = now
-        schedule(buffer, bus: cacheBus[id] ?? .effects, pan: pan, volume: volume, delay: delay)
+        let bus = cacheBus[id] ?? .effects
+        schedule(buffer, bus: bus, pan: pan, volume: volume * repeatSoftening(id, bus: bus, now: now), delay: delay)
         return true
+    }
+
+    /// A touch sound played again within 1.2 s comes back a little quieter each time (down to
+    /// 40%), so a child drumming on one thing hears a diminuendo rather than a barrage (founder,
+    /// build 5: "every single tap is a sound … it becomes TOO MUCH"). Music is never softened.
+    private func repeatSoftening(_ id: String, bus: LullSoundBus, now: CFTimeInterval) -> Float {
+        guard bus == .ui || bus == .effects else { return 1 }
+        let family = id.hasPrefix("bubble.") && id != "bubble.rare" ? "bubble.pop" : id
+        let previous = repeatStreak[family]
+        let count = previous.map { now - $0.last < 1.2 ? $0.count + 1 : 0 } ?? 0
+        repeatStreak[family] = (count, now)
+        return max(0.4, pow(0.85, Float(count)))
     }
 
     /// Subtle stereo position for a point in a scene (phones in landscape and headphones).
@@ -211,13 +225,13 @@ final class AudioManager: LullTonePlayer {
         }
     }
 
+    /// Taps on buttons, cards and empty felt are felt, not heard (founder, build 5: the home
+    /// button was harsh and "every single tap is a sound"). Sound is kept for what a toy does.
     func playSoftTap() {
-        play(cue: "ui.tap")
         HapticsManager.shared.softTap()
     }
 
     func playEmptyTap() {
-        play(cue: "ui.empty")
         HapticsManager.shared.emptyTap()
     }
 
@@ -361,24 +375,17 @@ final class AudioManager: LullTonePlayer {
             case .stack, .mixUp, .feed, .rollway: return 0.7
             }
         }
-
-        /// Occasional creatures in the bed (outdoor rooms only).
-        // Meadow feedback belongs to discoveries and touch. Unexplained timed chirps
-        // read as an occasional stray tone on the phone, so its room stays still.
-        var hasBirds: Bool { self == .bloom }
     }
 
     func startToyAmbient(_ voice: LullSoundVoice) {
         guard let id = voice.ambientID, prepareForPlayback(), startEngineIfNeeded() else { return }
         guard let buffer = bedBuffer(id) else { return }
         playLoop(id: id, buffer: buffer, volume: voice.baseAmbientVolume, fadeIn: 1.8)
-        if voice.hasBirds { startSprinkles() }
     }
 
     func stopToyAmbient(_ voice: LullSoundVoice) {
         if let id = voice.ambientID { stopLoop(id: id, fadeOut: 1.5) }
         stopLoop(id: "bed.sleep", fadeOut: 1.0)
-        stopSprinkles()
     }
 
     func wakeAmbient(_ voice: LullSoundVoice) {
@@ -392,7 +399,6 @@ final class AudioManager: LullTonePlayer {
 
     func sleepAmbient(_ voice: LullSoundVoice) {
         if let id = voice.ambientID { setLoopVolume(id: id, 0, duration: 4.0) }
-        stopSprinkles()
         guard prepareForPlayback(), startEngineIfNeeded(), let buffer = bedBuffer("bed.sleep") else { return }
         playLoop(id: "bed.sleep", buffer: buffer, volume: 0.8, fadeIn: 3.0)
     }
@@ -509,7 +515,7 @@ final class AudioManager: LullTonePlayer {
     private func suspendPlayback() {
         stopAllVoicesAndLoops()
         lastPlayTime.removeAll()
-        stopSprinkles()
+        repeatStreak.removeAll()
         if engine.isRunning { engine.pause() }
     }
 
@@ -702,7 +708,8 @@ final class AudioManager: LullTonePlayer {
         if id.hasPrefix("note.") { return 0.02 }
         switch id {
         case "meadow.paint": return 0.14
-        case "dots.fall", "dots.hover", "sleepy.hover", "window.dial": return 0.06
+        case "dots.fall", "dots.hover", "sleepy.hover": return 0.06
+        case "window.dial": return 0.12
         case "stack.settle.soft", "stack.settle.medium", "stack.settle.hard": return 0.08
         case "ui.tap", "ui.empty", "mix.flip": return 0.05
         case "feed.chew.soft", "feed.chew.crunchy": return 0.4
@@ -784,27 +791,8 @@ final class AudioManager: LullTonePlayer {
         }
     }
 
-    // MARK: Outdoor sprinkles (a bird now and then)
-
-    private func startSprinkles() {
-        guard sprinkleTimer == nil else { return }
-        scheduleNextSprinkle()
-    }
-
-    private func scheduleNextSprinkle() {
-        sprinkleTimer = Timer.scheduledTimer(withTimeInterval: Double.random(in: 9...20), repeats: false) { [weak self] _ in
-            guard let self else { return }
-            self.sprinkleTimer = nil
-            guard self.currentToyVoice.hasBirds else { return }
-            self.play(cue: "bird", pan: Float.random(in: -0.3...0.3), volume: 0.35)
-            self.scheduleNextSprinkle()
-        }
-    }
-
-    private func stopSprinkles() {
-        sprinkleTimer?.invalidate()
-        sprinkleTimer = nil
-    }
+    // Nothing plays on its own (founder, build 5: random sounds read as "random tone noise"):
+    // the outdoor beds no longer sprinkle birds. A bird sings only when one is seen.
 
     private func smoothstep(_ edge0: CGFloat, _ edge1: CGFloat, _ x: CGFloat) -> CGFloat {
         let t = max(0, min(1, (x - edge0) / (edge1 - edge0)))

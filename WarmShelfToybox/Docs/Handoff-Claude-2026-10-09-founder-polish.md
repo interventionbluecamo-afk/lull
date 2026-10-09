@@ -1,4 +1,4 @@
-# Lull — handoff: founder review of build 4 → polish pass (in progress)
+# Lull — handoff: founder reviews of builds 4 and 5 → polish passes (in progress)
 
 October 9, 2026. Branch `claude/modest-bell-cjarqm` (`interventionbluecamo-afk/lull`). Read this
 first if you are picking up from Claude. It is updated as work lands; the last section says what
@@ -71,3 +71,62 @@ founder owns device testing; upload only with the founder's explicit approval.
 ## Completed continuation — October 9
 
 All six fallback polish changes are implemented, SDK-built and installed as 1.0 (5). Read [the current ChatGPT handoff](Handoff-ChatGPT-to-Claude-2026-10-09-build5.md) and its verification logs before continuing. Founder device approval is pending; this turn did not upload TestFlight.
+
+
+## Founder review of build 5 (October 9, evening) — Claude's pass, in progress
+
+Verbatim summary: Feed — food should refill only on the plate a child used (no moving or random
+respawns while a child may want it next); the counter is a little high for some friends. Stack —
+"doesn't make sense to have a bird here… replace this game with something completely new, 3 options
+for me". Drop Dots — "why did you remove the colors from the holes… so a kid can match it, and then
+make 3 in a row". Bubbles — more of a bubble *pop* sound; a more natural bird visually. Window — the
+sky-tap sound is "horrible" day and night; more special visitors like the hot-air balloon. Sleepy Box
+— "sounds are harsh STILL… PLEASANT AND CALM!!!!!!!". Meadow — what is the "random tone"; ideas to
+improve it. General — home button sound harsh; "every single tap is a sound", switching toys is "TOO
+MUCH"; haptics not felt; tapping Wren should wiggle him off and pop up elsewhere around the edges.
+
+### Landed (pushed to `claude/modest-bell-cjarqm`)
+
+| Commit | What |
+|---|---|
+| `6697f6c` | **Sound diet.** Rules: sound answers an outcome, never a bare touch; nothing plays on its own; warm and round, not bright metal or noise; loudness matched by ear (BS.1770 pre-filter), all buses −3 dB; rapid repeats of a touch sound step down to 40% (never music). Shelf card, home button, empty felt and Wren taps are haptic only; entering and leaving a toy is silent. Sleepy Box: lift/hover/drawer travel/rattle silent; the drop is a soft landing plus the shape's own felt-piano note (no hollow-box knock); the treasures roll out on a soft falling run. Window: sky taps silent (were a high glockenspiel); dial, lamp, curtain and plant softer; curtain drag silent. Meadow: the "random tone" was the idle invite (a note with the ladybug's wing flutter every 7.5 s), plus a random glockenspiel note every 0.4 s while she walked, a note per flower and random background birds — all removed. Bubbles: a real soap-bubble pop; no chime per neighbour in chains. New `softPluck` voice replaces the glockenspiel outside Hum and Mix-Up. |
+| `70eefb3` | **Haptics felt.** Toys asked for 6–46% strength, mostly `.soft` (the faintest) — under what a hand notices. Requested strengths now map onto a felt range per style (soft ≥ 0.55, light ≥ 0.45, rigid ≥ 0.40); pulses within 60 ms merge. If still not felt: iOS Settings → Sounds & Haptics → System Haptics must be on. |
+| `2cb3a11` | **Drop Dots colours.** Build 5 dropped the sage ring but kept five dot colours with exactly one dot each, so matching and three-in-a-row were impossible. Dots now use the four ring colours; the visible hand is six dots (one per ring plus a triple, colour changes per visit); the rim warms in the dot's colour over its home hole and glows when it lands there. `Tools/verify_dropdots.py`. |
+
+Verification on Linux for all of the above: sound kit 2,606 checks; engine lifecycle 57; Drop Dots 10;
+Feed 958, Hum 10,367, Mix-Up 399 + 280, adult gate, onboarding and rest verifiers pass; `swiftc
+-parse` on every changed file. `verify_window.py` and `verify_world_interactions.py` need macOS.
+**Not done here:** an iOS build and listening. The next build is 1.0 (6).
+
+| `6c4f157` | **Feed.** Foods rest still on their plates (the idle drift also re-anchored wherever a food was, so foods wandered); the wished-for-food hint is an in-place swell; after a bite only that plate refills, in place and silently; the counter hides 20% of each friend instead of 26%. |
+| `0b249cc` | **Wren's peek-a-boo.** A tap: happy wiggle → off the nearest edge → peeks in elsewhere (bottom middle, bottom right clear of the grown-up button, upside down from the top corners clear of the Dynamic Island), looks back at the tap, dozes. Silent; Reduce Motion fades. Spots checked against card bands and the button on 8 device sizes. Existing art. |
+| `c9b28b9` | **Window sky visitors + Bubbles bird.** The balloon takes turns with a kite, a bunny cloud, a looping paper airplane and a far V of birds; at night a paper lantern rises. First after ~30 s of daytime, then every 50–95 s, one at a time, silent. The Bubbles bird flies in songbird bounds (flap-rise, glide-dip, pitch along the path) instead of squashing; optional wing frames are adopted automatically (prompt in `Polish-2026-10-09/Art-prompts.md`). |
+
+`CURRENT_PROJECT_VERSION` is **6** (project.yml and the pbxproj).
+
+### Founder decisions waiting (see `Polish-2026-10-09/Founder-choices-build6.md`)
+
+1. **New toy to replace Stack:** A Little Pond (magnetic fishing; recommended), B Little Town (fire
+   truck, police car, bus helping), C Little Garden. Once chosen: build it in `App/Toys/`, update the
+   App Store description line, `Docs/AppStore/screenshots.json`, and the shelf card art.
+2. **Meadow:** recommended "find the little ones" (five baby ladybugs join her in a parade; bring
+   them home to a leaf house) plus "evening and fireflies" as the ending.
+
+### Next steps for whoever continues
+
+1. Mac (ChatGPT): pull, build Debug and Release 1.0 (6), run every `Tools/verify_*.py` (new:
+   `verify_dropdots.py`), install on the founder's iPhone. Likely compile spots, if any (written on
+   Linux, parse-checked only): `GlowWindowScene` sky visitors (`launchKite` and friends),
+   `BubbleScene.releaseBubbleBird` (weak captures of optional nodes), `ToyShelfScene` Wren spots.
+   Fix minimally and say so in the commit.
+2. Founder: listen and play with the guide in `Founder-choices-build6.md` §3; choose the Stack
+   replacement and the Meadow direction. Upload only with the founder's words.
+3. Still open from before: GitHub repo is public (founder: make it private), support domain/email,
+   store screenshots, website hosting, Paid Apps Agreement, Kids age band, trial model decision.
+
+## Update — Stack replacement chosen (October 9, late)
+
+The founder chose **Little Wash** (calm car wash) after research
+(`Polish-2026-10-09/Stack-replacement-overview.txt`). Image prompts:
+`Polish-2026-10-09/Little-Wash-image-prompts.md`. Implementation handoff for ChatGPT (build 6
+first, then Little Wash as 1.0 (7)): `Handoff-Claude-to-ChatGPT-2026-10-09-little-wash.md`.

@@ -1,3 +1,7 @@
+## Superseded — founder chose Little Wash
+
+The founder chose the car wash described in `../Handoff-Claude-to-ChatGPT-2026-10-09-little-wash.md`. The options below are historical. Do not ask again or implement them.
+
 # Stack — choose one direction, October 9, 2026
 
 Founder dislikes the play itself after repeated material/physics changes. Stop cosmetic Stack iteration. All nine slots remain while a replacement is decided. No Stack source changed in build 6. The choice was asked; no answer/approval recorded yet.

@@ -14,16 +14,20 @@ final class DropDotsScene: BaseToyScene {
     // MARK: - Token
 
     final class DropDotToken: SKNode {
-        /// Five felt colours share four neutral funnels: every colour fits every hole.
-        /// The mouths carry no single-colour cue that promises a matching rule.
+        /// The four felt colours of the board's rings, in column order: every dot has a home
+        /// hole of its own colour (founder, build 5: the coloured holes are "a big part of it.
+        /// So a kid can match it, and then make 3 in a row"). The sage ring left with the fifth
+        /// column, so sage dots left too. Colour is an AFFORDANCE, never a rule: any dot still
+        /// drops anywhere; matching is discovered, not asked.
+        // Lifted ~14% above the rings' lit tones: the cream puck's colorBlend is a
+        // multiply, so these land ON the ring colors after the texture takes its cut.
         static let felts: [UIColor] = [
             UIColor(hex: 0xDC6135),   // rust
             UIColor(hex: 0xFFC944),   // butter
-            UIColor(hex: 0xA3B65E),   // sage
             UIColor(hex: 0x84BACD),   // water-blue
             UIColor(hex: 0xB494D6)    // lavender
         ]
-        static let feltNames = ["rust", "butter", "sage", "blue", "lavender"]
+        static let feltNames = ["rust", "butter", "blue", "lavender"]
 
         let feltIndex: Int
         let radius: CGFloat
@@ -38,7 +42,8 @@ final class DropDotsScene: BaseToyScene {
         var color: UIColor { DropDotToken.felts[feltIndex % DropDotToken.felts.count] }
 
         init(feltIndex: Int, radius: CGFloat, isGolden: Bool = false) {
-            self.feltIndex = ((feltIndex % 5) + 5) % 5
+            let count = DropDotToken.felts.count
+            self.feltIndex = ((feltIndex % count) + count) % count
             self.radius = radius
             self.isGolden = isGolden
             // A lighter contact shadow (founder: the dots read heavy). Was 2.5×1.1 @0.9 —
@@ -79,7 +84,7 @@ final class DropDotsScene: BaseToyScene {
                 addChild(body)
                 art.zPosition = 0
                 art.color = isGolden ? DropDotToken.gold : color
-                art.colorBlendFactor = isGolden ? 0.55 : 0.95   // readable felt colour
+                art.colorBlendFactor = isGolden ? 0.55 : 0.95   // dots match their rings (founder: 0.72 read dusty)
                 body.addChild(art)
                 if isGolden {
                     let ring = SKShapeNode(circleOfRadius: r * 0.84)
@@ -226,11 +231,14 @@ final class DropDotsScene: BaseToyScene {
     private var glowingCells: Set<Cell> = []
     private var boardWasFull = false
     // The finite set the child can SEE — no hidden reserve (founder, June 15: a hidden
-    // stack silently refilling the tray made the count feel endless). All five live in
-    // the visible tray; drop them, and tap a settled dot to send it back.
-    private let totalTokens = 5
+    // stack silently refilling the tray made the count feel endless). All six live in
+    // the visible tray; drop them, and tap a settled dot to send it back. The hand has one
+    // dot for every ring and a second and third of one colour, so matching a hole and
+    // making three in a row are always possible (founder, build 5); the triple's colour
+    // changes from visit to visit.
+    private let totalTokens = 6
     private var reserveCount = 0
-    private var trayPalette = Array(0..<5).shuffled()
+    private var hand = DropDotsHand.deal()
 
     // MARK: - Geometry
     private var cell: CGFloat = 60
@@ -358,9 +366,12 @@ final class DropDotsScene: BaseToyScene {
         }
         boardRect = CGRect(x: boardCenterX - boardW / 2, y: boardBottomY, width: boardW, height: boardH)
 
-        // Neutral warm felt collars accept every colour. Four channels and five dot
-        // colours must never suggest an impossible missing green matching hole.
-        columnRimColors = Array(repeating: UIColor(hex: 0xD5C5A5), count: cols)
+        // Each mouth wears its felt colour, the same four colours as the dots, so a child can
+        // match a dot to its hole (any dot still drops into any column; colour isn't a rule).
+        // In art mode each painted felt ring keeps its own sampled colour (used by the front lips).
+        columnRimColors = artBoard
+            ? [0xC55B2F, 0xF2A935, 0x707868, 0x835D59].map { UIColor(hex: $0) }
+            : DropDotToken.felts
 
         buildBoard(mouthH: mouthH)
         // buildBoard's art branch re-derives boardRect from the painted body, so the
@@ -583,11 +594,7 @@ final class DropDotsScene: BaseToyScene {
         static let mouthFy: CGFloat = 0.096
         static let capTopFy: CGFloat = 0.22
         static let capBotFy: CGFloat = 0.88
-        static let ringOuterW: CGFloat = 0.178   // neutral collar covers the complete painted colour ring
-        static func openingSize(cell: CGFloat) -> CGSize {
-            let ringWidth = ringOuterW * sourceWidth(cell: cell)
-            return CGSize(width: ringWidth * 0.71, height: ringWidth * 0.72)
-        }
+        static let ringOuterW: CGFloat = 0.100   // painted ring outer width, fraction of art width
         // Measured 2026-10-07 on the keyed PNG (y from TOP): the painted channels run from
         // their rounded tops at 0.168 to their rounded floors at 0.884; the bottom rail
         // spans 0.908…0.99 (its baked knob is painted out — the walnut pull is the one
@@ -597,7 +604,7 @@ final class DropDotsScene: BaseToyScene {
         static let channelFloorFy: CGFloat = 0.884
         static let railTopFy: CGFloat = 0.908
         static let railBottomFy: CGFloat = 0.99
-        static let throatTopFy: CGFloat = 0.163
+        static let throatTopFy: CGFloat = 0.104
         static let throatBottomFy: CGFloat = 0.174
 
     }
@@ -658,53 +665,22 @@ final class DropDotsScene: BaseToyScene {
         band(CGRect(x: 0, y: 0, width: 1, height: 1 - BoardArt.capBotFy),
              height: capBotH, topY: bottomCapTopY, z: 0, in: frontLayer)
 
-        // Cover the old colour-specific rings with equal neutral felt collars.
-        // The opening sits behind the falling dot; the collar sits in front, so
-        // every dot visibly enters a generous mouth without a colour-matching cue.
+        // Live overlays the feel code indexes by column — exactly `cols` of each, in
+        // column order (gulp scales mouthRings, hover warms columnRims). The painted
+        // rings ARE the face here — no procedural marks on them (founder screenshot:
+        // the overlay eyes read as broken hooks inside the holes).
         let ringW = BoardArt.ringOuterW * artW
         for c in 0..<cols {
             let x = cellX(c)
-            let ringSize = CGSize(width: ringW, height: ringW * 1.08)
-            let openingSize = BoardArt.openingSize(cell: cell)
-            let opening = SKShapeNode(ellipseOf: openingSize)
-            opening.fillColor = UIColor(hex: 0x6E482D)
-            opening.strokeColor = UIColor(hex: 0x49321F).withAlpha(0.45)
-            opening.lineWidth = max(1, cell * 0.025)
-            opening.position = CGPoint(x: x, y: mouthY)
-            opening.zPosition = 0.28
-            boardLayer.addChild(opening)
-
-            let outer = UIBezierPath(ovalIn: CGRect(x: -ringSize.width / 2, y: -ringSize.height / 2,
-                                                   width: ringSize.width, height: ringSize.height))
-            let inner = UIBezierPath(ovalIn: CGRect(x: -openingSize.width / 2, y: -openingSize.height / 2,
-                                                   width: openingSize.width, height: openingSize.height))
-            outer.append(inner.reversing())
-            let ring = SKShapeNode(path: outer.cgPath)
-            ring.fillColor = columnRimColors[c]
-            ring.strokeColor = UIColor(hex: 0x9C886B).withAlpha(0.48)
-            ring.lineWidth = max(1, cell * 0.02)
-            ProceduralTexture.applyClayFill(to: ring, base: columnRimColors[c], size: ringSize)
+            let ring = SKShapeNode(ellipseOf: CGSize(width: ringW, height: ringW))
+            ring.fillColor = .clear
+            ring.strokeColor = .clear
             ring.position = CGPoint(x: x, y: mouthY)
-            ring.zPosition = 0.1
-            frontLayer.addChild(ring)
-            // Tiny fixed fibres stay on the collar's outer band, clear of the hole.
-            for i in 0..<28 {
-                let angle = CGFloat(i) * .pi * 2 / 28
-                let fibre = SKShapeNode(rectOf: CGSize(width: max(0.7, cell * 0.009), height: cell * 0.026), cornerRadius: cell * 0.004)
-                fibre.position = CGPoint(x: cos(angle) * ringW * 0.432, y: sin(angle) * ringW * 0.457)
-                fibre.zRotation = -angle + .pi / 2
-                fibre.fillColor = UIColor(hex: 0xFFF4DF).withAlpha(0.28)
-                fibre.strokeColor = .clear
-                ring.addChild(fibre)
-            }
-            // Keep the collar still: scaling it would expose the old colour ring.
-            let gulpFeedback = SKShapeNode(ellipseOf: openingSize)
-            gulpFeedback.fillColor = .clear; gulpFeedback.strokeColor = .clear
-            gulpFeedback.position = CGPoint(x: x, y: mouthY)
-            boardLayer.addChild(gulpFeedback)
-            mouthRings.append(gulpFeedback)
+            ring.zPosition = 0.32
+            boardLayer.addChild(ring)
+            mouthRings.append(ring)
             // hover rim (warms while a token is held above this column)
-            let hover = SKShapeNode(ellipseOf: CGSize(width: ringW * 1.06, height: ringW * 1.12))
+            let hover = SKShapeNode(ellipseOf: CGSize(width: ringW * 1.25, height: ringW * 1.25))
             hover.fillColor = .clear
             hover.strokeColor = WarmShelfPalette.paperHighlight.withAlpha(0.0)
             hover.lineWidth = max(3, cell * 0.06)
@@ -712,7 +688,8 @@ final class DropDotsScene: BaseToyScene {
             hover.zPosition = 0.36
             boardLayer.addChild(hover)
             columnRims.append(hover)
-            // Only the wood bridge below the neutral collar is cropped forward. A
+            // Front throat: a pixel-true CROP of this ring's lower arc AND the wood bridge
+            // down into the channel top, re-rendered in place in the front layer. A
             // dropped dot sinks into the ring, passes behind the wood and reappears in
             // its channel — it goes INTO the toy instead of sliding over its face.
             let fx = BoardArt.sourceCenter(c)
@@ -783,8 +760,8 @@ final class DropDotsScene: BaseToyScene {
         tray.addChild(trayHi)
         }
 
-        // Token slots, evenly spread along the tray's long axis.
-        let n = 5
+        // Token slots, evenly spread along the tray's long axis: the whole finite set.
+        let n = totalTokens
         let spread = (vertical ? height : width) * 0.82
         for i in 0..<n {
             let offset = spread * CGFloat(i) / CGFloat(n - 1) - spread / 2
@@ -801,8 +778,7 @@ final class DropDotsScene: BaseToyScene {
         #if DEBUG
         if ProcessInfo.processInfo.environment["LULL_DEBUG_DROPDOTS_GOLD"] == "1" { golden = true }
         #endif
-        let token = DropDotToken(feltIndex: trayPalette[slot % trayPalette.count], radius: tokenR,
-                                 isGolden: golden)
+        let token = DropDotToken(feltIndex: hand[slot % hand.count], radius: tokenR, isGolden: golden)
         token.position = position ?? traySlots[slot]
         token.zPosition = 5
         if position == nil {
@@ -882,8 +858,7 @@ final class DropDotsScene: BaseToyScene {
                     resetTab?.removeAction(forKey: "press")
                     resetTab?.run(.sequence([.scale(to: 0.95, duration: 0.07), .scale(to: 1.0, duration: 0.12)]),
                                   withKey: "press")
-                    tone("dots.tab", minInterval: 0.1)
-                    HapticsManager.shared.impact(style: .light, intensity: 0.14)
+                    HapticsManager.shared.impact(style: .light, intensity: 0.14)   // felt; the pour is the sound
                 } else {
                     TouchFeedbackAnimator.emptyTap(in: self, at: p)
                 }
@@ -901,8 +876,7 @@ final class DropDotsScene: BaseToyScene {
                 dragTarget = token.position
                 token.zPosition = 30
                 token.setLifted(true)
-                tone("dots.pickup")
-                HapticsManager.shared.impact(style: .light, intensity: 0.16)
+                HapticsManager.shared.impact(style: .light, intensity: 0.16)   // lifting is felt, not heard
                 continue
             }
             // Tap a settled stack → its top dot flies home to the tray. The same five dots
@@ -1017,7 +991,6 @@ final class DropDotsScene: BaseToyScene {
         // From the ring straight down into its channel (a few points sideways at most — the
         // funnel guides it, hidden behind the throat for the first part of the fall).
         let fall = SKAction.move(to: dest, duration: dur); fall.timingMode = .easeIn
-        playFallWhoosh()
         token.run(.sequence([align, fall, .run { [weak self] in
             self?.onLanded(token, col: col, row: row, dest: dest)
         }]))
@@ -1035,7 +1008,7 @@ final class DropDotsScene: BaseToyScene {
         HapticsManager.shared.impact(style: .soft, intensity: 0.22)
         jiggleColumn(col, except: row)
         spawnDust(at: dest, color: token.color)
-        if token.isGolden { shimmerNeighbors(of: col) }
+        if token.isGolden { shimmerNeighbors(of: col) } else if token.feltIndex == col { welcomeHome(col, color: token.color) }
         // The column wave — but a full board sings its own song; don't stack arps.
         let boardNowFull = grid.allSatisfy { $0.allSatisfy { $0 != nil } }
         if fill == rows, !boardNowFull { columnWave(col) }
@@ -1056,6 +1029,18 @@ final class DropDotsScene: BaseToyScene {
                 .scale(to: 1.0, duration: 0.18)
             ]))
         }
+    }
+
+    /// A dot that lands under its own colour is home: its ring glows that colour for a beat.
+    /// Quiet and visual only; any column is still fine (colour is an affordance, never a rule).
+    private func welcomeHome(_ col: Int, color: UIColor) {
+        guard columnRims.indices.contains(col) else { return }
+        let rim = columnRims[col]
+        rim.removeAllActions()
+        rim.strokeColor = color.withAlpha(0.95)
+        rim.alpha = 0
+        rim.run(.sequence([.fadeAlpha(to: 1, duration: 0.12), .wait(forDuration: 0.3), .fadeAlpha(to: 0, duration: 0.5)]))
+        spawnMotes(at: CGPoint(x: cellX(col), y: mouthY), color: color, count: 3)
     }
 
     /// A golden landing: the neighbors catch the light — gold motes and a soft ripple.
@@ -1140,8 +1125,7 @@ final class DropDotsScene: BaseToyScene {
         guard dragToken == nil else { return }
         let tokens = grid.flatMap { $0 }.compactMap { $0 }
         resetTab?.run(.sequence([.scale(to: 0.94, duration: 0.08), .moveBy(x: 0, y: -10, duration: 0.12), .moveBy(x: 0, y: 10, duration: 0.18), .scale(to: 1, duration: 0.1)]))
-        tone("dots.tab")
-        HapticsManager.shared.impact(style: .rigid, intensity: 0.26)
+        HapticsManager.shared.impact(style: .rigid, intensity: 0.26)   // felt; the pour below is the sound
         guard !tokens.isEmpty else { return }
         AudioManager.shared.play(cue: "dots.pour", delay: 0.05)
 
@@ -1166,7 +1150,7 @@ final class DropDotsScene: BaseToyScene {
                 .wait(forDuration: delay),
                 .run { [weak self, weak token] in
                     guard let self, let token else { return }
-                    self.playTumble(); self.spawnDust(at: token.position, color: token.color)
+                    self.spawnDust(at: token.position, color: token.color)
                 }
             ])
 
@@ -1183,7 +1167,7 @@ final class DropDotsScene: BaseToyScene {
                             .rotate(toAngle: 0, duration: 0.56, shortestUnitArc: true)]),
                     .run { [weak self, weak token] in
                         guard let self, let token else { return }
-                        token.squash(0.16); self.playTumble()
+                        token.squash(0.16)
                         self.spawnDust(at: token.position, color: token.color)
                     },
                     bounce,
@@ -1202,7 +1186,6 @@ final class DropDotsScene: BaseToyScene {
                     .run { [weak self, weak token] in
                         guard let self else { return }
                         token?.zPosition = -1.5   // beneath the tray plate (cumulative z)
-                        self.playTumble()
                         self.reserveCount += 1
                     },
                     .group([.moveBy(x: 0, y: -tokenR * 0.9, duration: 0.3),
@@ -1237,12 +1220,13 @@ final class DropDotsScene: BaseToyScene {
         hoverCol = col
         if hasSpace(col) {
             let rim = columnRims[col]
-            rim.strokeColor = WarmShelfPalette.paperHighlight.withAlpha(0.85)
+            // Over its own colour's hole, the rim warms in the dot's colour: "this is home".
+            let home = dragToken.map { !$0.isGolden && $0.feltIndex == col } ?? false
+            rim.strokeColor = (home ? dragToken?.color ?? WarmShelfPalette.paperHighlight : WarmShelfPalette.paperHighlight).withAlpha(0.85)
             rim.run(.fadeAlpha(to: 1, duration: 0.15))
             // existing stack jiggles a little
             for r in 0..<rows { grid[col][r]?.run(.sequence([.scale(to: 1.04, duration: 0.1), .scale(to: 1, duration: 0.14)])) }
             spawnMotes(at: CGPoint(x: cellX(col), y: mouthY), color: columnRimColors[col % columnRimColors.count], count: 2)
-            tone("dots.hover", minInterval: 0.3)
         }
     }
 
@@ -1339,7 +1323,7 @@ final class DropDotsScene: BaseToyScene {
             lift,
             .group([fly, .rotate(toAngle: 0, duration: 0.34, shortestUnitArc: true)]),
             .run { [weak self, weak token] in
-                token?.zPosition = 5; token?.squash(0.14); self?.playTumble()
+                token?.zPosition = 5; token?.squash(0.14)
             }
         ]))
         tone("dots.home", minInterval: 0.08)
@@ -1392,18 +1376,12 @@ final class DropDotsScene: BaseToyScene {
         AudioManager.shared.play(cue: cue)
     }
 
-    private func playFallWhoosh() {
-        tone("dots.fall", minInterval: 0.05)
-    }
     /// Approved delight: honest weight. The more dots already under it, the deeper the
     /// landing (four steps down the pentatonic, all within a phone speaker's range).
     /// A golden dot adds a small bright sparkle on top.
     private func playLandThunk(fill: Int = 1, golden: Bool = false) {
         AudioManager.shared.play(cue: "dots.land.\(max(0, min(3, fill - 1)))")
         if golden { AudioManager.shared.play(cue: "dots.golden", delay: 0.05) }
-    }
-    private func playTumble() {
-        tone("dots.home", minInterval: 0.04)
     }
 
     // MARK: - Accessibility
@@ -1430,6 +1408,15 @@ final class DropDotsScene: BaseToyScene {
             self?.triggerReset()
         })
         return elements
+    }
+}
+
+/// The finite hand of dots: one for every ring colour plus two more of one colour, so a
+/// child can always match a dot to its hole and make three in a row. Shuffled into the tray.
+enum DropDotsHand {
+    static func deal(colours: Int = DropDotsScene.DropDotToken.felts.count,
+                     triple: Int = Int.random(in: 0..<DropDotsScene.DropDotToken.felts.count)) -> [Int] {
+        (Array(0..<colours) + [triple, triple]).shuffled()
     }
 }
 

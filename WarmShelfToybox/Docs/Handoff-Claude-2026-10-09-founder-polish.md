@@ -98,10 +98,28 @@ Feed 958, Hum 10,367, Mix-Up 399 + 280, adult gate, onboarding and rest verifier
 -parse` on every changed file. `verify_window.py` and `verify_world_interactions.py` need macOS.
 **Not done here:** an iOS build and listening. The next build is 1.0 (6).
 
-### Still to do in this pass (in order)
+| `6c4f157` | **Feed.** Foods rest still on their plates (the idle drift also re-anchored wherever a food was, so foods wandered); the wished-for-food hint is an in-place swell; after a bite only that plate refills, in place and silently; the counter hides 20% of each friend instead of 26%. |
+| `0b249cc` | **Wren's peek-a-boo.** A tap: happy wiggle → off the nearest edge → peeks in elsewhere (bottom middle, bottom right clear of the grown-up button, upside down from the top corners clear of the Dynamic Island), looks back at the tap, dozes. Silent; Reduce Motion fades. Spots checked against card bands and the button on 8 device sizes. Existing art. |
+| `c9b28b9` | **Window sky visitors + Bubbles bird.** The balloon takes turns with a kite, a bunny cloud, a looping paper airplane and a far V of birds; at night a paper lantern rises. First after ~30 s of daytime, then every 50–95 s, one at a time, silent. The Bubbles bird flies in songbird bounds (flap-rise, glide-dip, pitch along the path) instead of squashing; optional wing frames are adopted automatically (prompt in `Polish-2026-10-09/Art-prompts.md`). |
 
-1. Feed: refill only the used plate; lower the wish counter slightly for some friends.
-2. Wren peek-a-boo: tap → wiggles off the edge → pops up at another edge spot (quiet; reuse art).
-3. Bubbles: a more natural bird (flight path, wing beats); Window: more rare visitors like the
-   hot-air balloon.
-4. Three options for a completely new toy to replace Stack (founder chooses); Meadow game ideas.
+`CURRENT_PROJECT_VERSION` is **6** (project.yml and the pbxproj).
+
+### Founder decisions waiting (see `Polish-2026-10-09/Founder-choices-build6.md`)
+
+1. **New toy to replace Stack:** A Little Pond (magnetic fishing; recommended), B Little Town (fire
+   truck, police car, bus helping), C Little Garden. Once chosen: build it in `App/Toys/`, update the
+   App Store description line, `Docs/AppStore/screenshots.json`, and the shelf card art.
+2. **Meadow:** recommended "find the little ones" (five baby ladybugs join her in a parade; bring
+   them home to a leaf house) plus "evening and fireflies" as the ending.
+
+### Next steps for whoever continues
+
+1. Mac (ChatGPT): pull, build Debug and Release 1.0 (6), run every `Tools/verify_*.py` (new:
+   `verify_dropdots.py`), install on the founder's iPhone. Likely compile spots, if any (written on
+   Linux, parse-checked only): `GlowWindowScene` sky visitors (`launchKite` and friends),
+   `BubbleScene.releaseBubbleBird` (weak captures of optional nodes), `ToyShelfScene` Wren spots.
+   Fix minimally and say so in the commit.
+2. Founder: listen and play with the guide in `Founder-choices-build6.md` §3; choose the Stack
+   replacement and the Meadow direction. Upload only with the founder's words.
+3. Still open from before: GitHub repo is public (founder: make it private), support domain/email,
+   store screenshots, website hosting, Paid Apps Agreement, Kids age band, trial model decision.

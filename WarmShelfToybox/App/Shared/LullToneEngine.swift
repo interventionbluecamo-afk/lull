@@ -884,8 +884,10 @@ enum LullSoundBook {
             return (x, .music, -3)
 
         // — Drop Dots ——————————————————————————————————————————————
+        // Drop Dots (founder, build 5): lifting, hovering, falling and the tab press are felt, not
+        // heard; the landings, the pour and the matches remain, softer and darker.
         case "dots.tab":
-            return (S.woodblock(1100 * jitter, duration: 0.09, hardness: 0.3, rng: &rng), .ui, -4)
+            return (S.woodblock(700 * jitter, duration: 0.09, hardness: 0.1, rng: &rng), .ui, -6)
         case "dots.pickup":
             return (S.feltLift(600 * jitter, rng: &rng), .effects, -5)
         case "dots.full":
@@ -897,7 +899,7 @@ enum LullSoundBook {
         case "dots.land.0", "dots.land.1", "dots.land.2", "dots.land.3":
             // Honest weight: each dot that lands on others sounds one pentatonic step deeper.
             let level = Int(id.split(separator: ".").last ?? "0") ?? 0
-            var x = S.woodblock(note(13 - level) * jitter, duration: 0.2, hardness: 0.3, rng: &rng)
+            var x = S.woodblock(note(13 - level) * jitter, duration: 0.2, hardness: 0.15, rng: &rng)
             S.mix(S.feltThump(250, duration: 0.12, rng: &rng), into: &x, at: 0, gain: 0.5)
             return (x, .effects, -1)
         case "dots.golden":
@@ -906,22 +908,24 @@ enum LullSoundBook {
         case "dots.wave":
             return (arp([9, 10, 12], step: 0.1, rng: &rng) { f, r in S.kalimba(f, duration: 1.1, hardness: 0.28, rng: &r) }, .music, -1)
         case "dots.pattern":
-            return (arp([10, 12, 14], step: 0.1, rng: &rng) { f, r in S.kalimba(f, duration: 1.2, hardness: 0.28, rng: &r) }, .music, 0)
+            // Three in a row: a warm, clear little "ta-da-da".
+            return (arp([10, 12, 14], step: 0.11, rng: &rng) { f, r in S.softPluck(f, duration: 1.3, decay: 0.5, brightness: 0.35, rng: &r) },
+                    .music, 0)
         case "dots.full.board":
             var x = arp([10, 12, 13, 15], step: 0.12, rng: &rng) { f, r in S.kalimba(f, duration: 1.3, hardness: 0.28, rng: &r) }
             S.mix(S.softPluck(note(15), duration: 1.5, decay: 0.55, brightness: 0.2, rng: &rng), into: &x, at: 0.42, gain: 0.55)
             return (x, .music, 0)
         case "dots.pour":
-            var x = S.whoosh(duration: 0.55, from: 600, to: 1500, q: 1.0, rng: &rng)
-            for i in 0..<8 {
-                S.mix(S.woodblock(rng.range(700, 1150), duration: 0.09, hardness: 0.3, rng: &rng), into: &x,
-                      at: 0.1 + Double(i) * rng.range(0.05, 0.08), gain: Float(rng.range(0.3, 0.55)))
+            var x = S.whoosh(duration: 0.55, from: 450, to: 900, q: 1.0, rng: &rng)
+            for i in 0..<6 {
+                S.mix(S.woodblock(rng.range(500, 800), duration: 0.09, hardness: 0.12, rng: &rng), into: &x,
+                      at: 0.1 + Double(i) * rng.range(0.06, 0.09), gain: Float(rng.range(0.35, 0.55)))
             }
-            return (x, .effects, -1)
+            return (x, .effects, -3)
         case "dots.hover":
             return (S.cloth(duration: 0.15, center: 1000, q: 0.9, flutter: 0, rng: &rng), .effects, -14)
         case "dots.home":
-            return (S.woodblock(rng.range(600, 800), duration: 0.12, hardness: 0.25, rng: &rng), .effects, -6)
+            return (S.woodblock(rng.range(500, 700), duration: 0.12, hardness: 0.12, rng: &rng), .effects, -7)
 
         // — Mix-Up ——————————————————————————————————————————————————
         case "mix.flip":

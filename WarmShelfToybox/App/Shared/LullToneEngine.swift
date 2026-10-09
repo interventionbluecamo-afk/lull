@@ -19,6 +19,10 @@ import Foundation
 // - One tuning: C major pentatonic, so any two notes sound well together.
 // - Loudness by bus (see `LullSoundBus.targetRMS`), peaks under -3 dBFS before the master limiter.
 // - Variation: most cues have several variants (pitch, mallet and timing nudged) that rotate.
+// - Calm first (founder review of build 5: "PLEASANT AND CALM", "every single tap is a sound"):
+//   sound answers an outcome, never a bare touch; nothing plays on its own; warm and round
+//   (soft plucks, felt, hummed voices) rather than bright metal or noise; loudness is matched by
+//   ear, so bright sounds are set quieter than warm ones.
 
 enum LullSoundBus: Int, CaseIterable {
     case ui, effects, music, voices, ambience
@@ -27,11 +31,11 @@ enum LullSoundBus: Int, CaseIterable {
     /// purpose: a reward is never much louder than the touch that caused it.
     var targetRMS: Double {
         switch self {
-        case .ui: return -31
-        case .effects: return -26
-        case .music: return -25.5
-        case .voices: return -27
-        case .ambience: return -47
+        case .ui: return -34
+        case .effects: return -29
+        case .music: return -28.5
+        case .voices: return -30
+        case .ambience: return -49
         }
     }
 }
@@ -128,9 +132,18 @@ enum LullSynth {
         return count > 0 ? sqrt(sum / Double(count)) : 0
     }
 
-    /// Scales to the bus target RMS, then pulls down if the peak would pass the ceiling.
+    /// Loudness as the ear hears it: the ITU-R BS.1770 (LUFS) pre-filter, a +4 dB shelf above
+    /// ~1.7 kHz, before the audible-part RMS. Bright sounds measure louder than warm ones of the
+    /// same RMS, so they are set quieter (they were the "harsh" ones on a phone speaker).
+    static func perceivedRMS(_ x: [Float]) -> Double {
+        var shelf = Biquad(b0: 1.53512485958697, b1: -2.69169618940638, b2: 1.19839281085285,
+                           a1: -1.69065929318241, a2: 0.73248077421585)
+        return activeRMS(x.map { Float(shelf.process(Double($0))) })
+    }
+
+    /// Scales to the bus target loudness (by ear), then pulls down if the peak would pass the ceiling.
     static func normalize(_ x: inout [Float], rmsDB: Double, gainDB: Double = 0) {
-        let rms = activeRMS(x)
+        let rms = perceivedRMS(x)
         guard rms > 0 else { return }
         var g = Float(pow(10, (rmsDB + gainDB) / 20) / rms)
         let p = peak(x) * g
@@ -298,6 +311,58 @@ enum LullSynth {
         return x
     }
 
+    /// The calm voice of the kit: a warm, round pluck, like a felt-hammer piano. Whole-number
+    /// harmonics only (no metallic partials), nothing above ~4 kHz, upper harmonics fading first,
+    /// a soft 6 ms onset and no mallet noise. Replaces the glockenspiel wherever a toy answers.
+    static func softPluck(_ f: Double, duration: Double = 1.1, decay: Double = 0.4, brightness: Double = 0.3,
+                          rng: inout Random) -> [Float] {
+        let n = frames(duration)
+        var out = [Float](repeating: 0, count: n)
+        for (index, base) in [1.0, 0.30, 0.11, 0.045, 0.02].enumerated() {
+            let fk = f * Double(index + 1) * (1 + rng.signed() * 0.0006)
+            guard fk < 4200 else { break }
+            let amp = index == 0 ? base : base * (0.5 + brightness)
+            let k = exp(-1 / (decay / (1 + 0.8 * Double(index)) * sampleRate))
+            let w = 2 * Double.pi * fk / sampleRate
+            var env = amp
+            var s0 = 0.0, s1 = sin(-w)
+            let c2 = 2 * cos(w)
+            for i in 0..<n {
+                out[i] += Float(s0 * env)
+                let s2 = c2 * s0 - s1
+                s1 = s0
+                s0 = s2
+                env *= k
+                if env < 1e-6 { break }
+            }
+        }
+        fade(&out, attack: 0.006, release: min(0.08, duration * 0.3))
+        return out
+    }
+
+    /// A soap bubble letting go: a tiny "p" of air and a quick falling body, over in ~70 ms.
+    /// Smaller bubbles are higher (founder review of build 5: "more of a bubble pop sound").
+    static func pop(_ f: Double, body: Double = 0.016, rng: inout Random) -> [Float] {
+        let n = frames(body * 4.5)
+        var out = [Float](repeating: 0, count: n)
+        var phase = 0.0
+        for i in 0..<n {
+            let t = Double(i) / sampleRate
+            phase += 2 * Double.pi * f * (1 + 0.9 * exp(-t / 0.006)) / sampleRate
+            let env = (1 - exp(-t / 0.0007)) * exp(-t / body)
+            out[i] = Float((sin(phase) + 0.18 * sin(2 * phase)) * env)
+        }
+        // The film tearing: a 4 ms breath of air about an octave above the body.
+        var bp = Biquad.bandpass(min(f * 2.2, 3200), q: 0.9)
+        var soften = Biquad.lowpass(4500)
+        for i in 0..<min(n, frames(0.004)) {
+            let e = exp(-Double(i) / (0.0012 * sampleRate))
+            out[i] += Float(soften.process(bp.process(rng.noise())) * e * 0.5)
+        }
+        fade(&out, attack: 0.0006, release: 0.015)
+        return out
+    }
+
     /// A soft rustle: band-passed noise in a rounded swell with a little flutter.
     static func cloth(duration: Double = 0.35, center: Double = 1800, q: Double = 0.9,
                       flutter: Double = 18, rng: inout Random) -> [Float] {
@@ -446,16 +511,19 @@ enum LullSynth {
         return out
     }
 
-    /// A small bird: two quick rising-and-falling chirps.
-    static func chirp(rng: inout Random, count: Int = 2, base: Double = 2600) -> [Float] {
+    /// A small bird far off: a falling "tew" answered by a rising "wee", soft-edged and low for a
+    /// songbird, so it reads as a bird outside rather than an electronic tone.
+    static func chirp(rng: inout Random, count: Int = 2, base: Double = 2100) -> [Float] {
         var out = [Float]()
         for c in 0..<count {
-            let f0 = base * rng.range(0.94, 1.08)
-            let up = rng.range(1.25, 1.45)
-            let note = tone(duration: rng.range(0.055, 0.08), harmonics: [1, 0.08], attack: 0.004, release: 0.02) { p in
-                f0 * (1 + (up - 1) * sin(Double.pi * p))
+            let f0 = base * rng.range(0.94, 1.06)
+            let falling = c % 2 == 0
+            let span = rng.range(0.22, 0.34)
+            let note = tone(duration: rng.range(0.07, 0.1), harmonics: [1, 0.06], attack: 0.012, release: 0.035) { p in
+                let shape = falling ? 1 - p : p
+                return f0 * (1 + span * (shape * shape - 0.5))
             }
-            mix(note, into: &out, at: Double(c) * rng.range(0.10, 0.13))
+            mix(note, into: &out, at: Double(c) * rng.range(0.13, 0.17))
         }
         return out
     }
@@ -505,7 +573,7 @@ enum LullSynth {
 
 enum LullSoundBook {
     /// Every named cue (musical notes are parametric:
-    /// "note.<kalimba|marimba|glock|glass|bell|wood|choir>.<degree>").
+    /// "note.<pluck|kalimba|marimba|glock|glass|bell|wood|choir>.<degree>").
     static let cueIDs: [String] = [
         "ui.tap", "ui.empty",
         "ui.transition", "ui.settle", "ui.notice", "host.giggle", "bubble.small", "bubble.medium",
@@ -578,6 +646,7 @@ enum LullSoundBook {
             guard parts.count == 3, let degree = Int(parts[2]) else { return nil }
             let f = S.speakerSafe(note(degree))
             switch parts[1] {
+            case "pluck": return (S.softPluck(f, duration: 1.6, decay: 0.5, brightness: 0.25, rng: &rng), .music, 0)
             case "kalimba": return (S.kalimba(f, duration: 2.2, hardness: 0.32, rng: &rng), .music, 0)
             case "marimba": return (S.marimba(f, duration: 1.8, hardness: 0.22, rng: &rng), .music, 0)
             case "glock": return (S.glock(f, duration: 2.4, hardness: 0.2, rng: &rng), .music, -1)
@@ -596,43 +665,38 @@ enum LullSoundBook {
         switch id {
         // — Shared / UI ———————————————————————————————————————————————
         case "ui.tap":
-            var x = S.woodblock(740 * jitter, duration: 0.14, hardness: 0.1, rng: &rng)
-            S.mix(S.feltPuff(duration: 0.05, bright: 800, rng: &rng), into: &x, at: 0, gain: 0.35)
-            return (x, .ui, 0)
+            // Toys and navigation no longer play this (taps are felt, not heard); kept soft for the rest.
+            return (S.softPluck(note(10) * jitter, duration: 0.3, decay: 0.07, brightness: 0.1, rng: &rng), .ui, -2)
         case "ui.empty":
             return (S.feltPuff(duration: 0.06, bright: 650, rng: &rng), .ui, -7)
         case "ui.transition":
-            var x = S.kalimba(note(10), duration: 1.0, hardness: 0.18, rng: &rng)
-            S.mix(S.kalimba(note(12), duration: 1.2, hardness: 0.18, rng: &rng), into: &x, at: 0.1, gain: 0.8)
-            S.mix(S.feltThump(250, duration: 0.14, rng: &rng), into: &x, at: 0, gain: 0.35)
-            return (x, .ui, 0)
+            // Moving between the shelf and a toy is silent now (founder: "TOO MUCH"); kept soft if reused.
+            return (S.softPluck(note(7), duration: 1.0, decay: 0.35, brightness: 0.15, rng: &rng), .ui, -3)
         case "ui.settle":
             return (S.feltThump(240 * jitter, rng: &rng), .ui, 0)
         case "ui.notice":
-            return (S.kalimba(note(12), duration: 1.0, hardness: 0.2, rng: &rng), .ui, -1)
+            return (S.softPluck(note(12), duration: 1.0, decay: 0.35, brightness: 0.2, rng: &rng), .ui, -1)
         case "host.giggle":
-            return (arp([12, 13, 15], step: 0.07, rng: &rng) { f, r in S.kalimba(f, duration: 0.9, hardness: 0.3, rng: &r) }, .voices, 0)
+            return (arp([10, 12, 14], step: 0.08, rng: &rng) { f, r in S.softPluck(f, duration: 0.8, decay: 0.25, brightness: 0.25, rng: &r) }, .voices, -2)
 
         // — Bubbles —————————————————————————————————————————————————
         case "bubble.small":
-            return (S.bubble(rng.range(1500, 1900), duration: 0.09, rise: 1.2, rng: &rng), .effects, -2)
+            return (S.pop(rng.range(820, 980), body: 0.013, rng: &rng), .effects, -2)
         case "bubble.medium":
-            return (S.bubble(rng.range(950, 1250), duration: 0.12, rise: 1.3, rng: &rng), .effects, 0)
+            return (S.pop(rng.range(600, 720), body: 0.016, rng: &rng), .effects, 0)
         case "bubble.large":
-            var x = S.bubble(rng.range(560, 740), duration: 0.17, rise: 1.4, rng: &rng)
-            S.mix(S.feltPuff(duration: 0.06, bright: 1600, rng: &rng), into: &x, at: 0, gain: 0.25)
-            return (x, .effects, 1)
+            return (S.pop(rng.range(430, 520), body: 0.021, rng: &rng), .effects, 1)
         case "bubble.rare":
-            var x = S.bubble(rng.range(950, 1150), duration: 0.12, rise: 1.3, rng: &rng)
-            S.mix(arp([15, 17], step: 0.08, rng: &rng) { f, r in S.glock(f, duration: 1.2, hardness: 0.18, rng: &r) },
-                  into: &x, at: 0.05, gain: 0.55)
-            return (x, .effects, 1)
+            var x = S.pop(rng.range(600, 700), rng: &rng)
+            S.mix(arp([12, 14], step: 0.09, rng: &rng) { f, r in S.softPluck(f, duration: 1.1, decay: 0.4, brightness: 0.25, rng: &r) },
+                  into: &x, at: 0.05, gain: 0.6)
+            return (x, .effects, 0)
         case "bubble.notice":
-            return (S.glock(note(17) * jitter, duration: 0.5, hardness: 0.08, rng: &rng), .effects, -9)
+            return (S.softPluck(note(14) * jitter, duration: 0.5, decay: 0.12, brightness: 0.1, rng: &rng), .effects, -12)
         case "bubble.breath":
-            return (S.whoosh(duration: 0.65, from: 700, to: 1700, q: 0.8, rng: &rng), .effects, -5)
+            return (S.whoosh(duration: 0.6, from: 380, to: 820, q: 0.7, rng: &rng), .effects, -9)
         case "bird":
-            return (S.chirp(rng: &rng, count: 2), .voices, -2)
+            return (S.chirp(rng: &rng, count: 2), .voices, -7)
 
         // — Feed ——————————————————————————————————————————————————
         case "feed.pickup":
@@ -661,7 +725,7 @@ enum LullSoundBook {
             return (x, .voices, 0)
         case "feed.success":
             var x = arp([10, 12, 14], step: 0.11, rng: &rng) { f, r in S.kalimba(f, duration: 1.2, hardness: 0.3, rng: &r) }
-            S.mix(S.glock(note(17), duration: 1.4, hardness: 0.15, rng: &rng), into: &x, at: 0.24, gain: 0.35)
+            S.mix(S.softPluck(note(15), duration: 1.4, decay: 0.5, brightness: 0.2, rng: &rng), into: &x, at: 0.24, gain: 0.5)
             return (x, .music, 0)
         case "feed.decline":
             var x = S.voice(note(8), duration: 0.16, vowel: .mm, breath: 0.05, attack: 0.02, release: 0.06, rng: &rng)
@@ -698,54 +762,61 @@ enum LullSoundBook {
             return (x, .music, -1)
 
         // — Sleepy Box —————————————————————————————————————————————
+        // Founder, build 5: "sounds are harsh STILL… I want PLEASANT AND CALM". Lifting, hovering,
+        // the drawer's travel and the rattle are silent now (felt as haptics). What remains has no
+        // knock, clatter or wood: a soft low landing and each shape's own warm note.
         case "sleepy.lift":
-            return (S.feltLift(500 * jitter, rng: &rng), .effects, -6)
+            return (S.feltLift(500 * jitter, rng: &rng), .effects, -9)
         case "sleepy.bump":
-            return (S.tunk(300 * jitter, duration: 0.25, hardness: 0.08, rng: &rng), .effects, -6)
+            // A shape that does not fit: a small muffled "bup", never a knock.
+            return (S.tone(duration: 0.14, harmonics: [1, 0.22, 0.05], attack: 0.008, release: 0.08) { p in 330 - 70 * p },
+                    .effects, -9)
         case "sleepy.hover":
-            return (S.feltPuff(duration: 0.08, bright: 600, rng: &rng), .effects, -14)
+            return (S.feltPuff(duration: 0.08, bright: 500, rng: &rng), .effects, -16)
         case "sleepy.drop.0", "sleepy.drop.1", "sleepy.drop.2", "sleepy.drop.3":
             let shape = Int(id.split(separator: ".").last ?? "0") ?? 0
-            var x = S.hollowBox(rng.range(225, 260), hardness: 0.1, rng: &rng)
-            S.mix(S.feltPuff(duration: 0.08, bright: 600, rng: &rng), into: &x, at: 0, gain: 0.5)
-            S.mix(S.kalimba(note(10 + shape), duration: 1.3, hardness: 0.12, rng: &rng), into: &x, at: 0.07, gain: 0.45)
-            return (x, .effects, -2)
+            var x = S.tone(duration: 0.12, harmonics: [1, 0.2], attack: 0.006, release: 0.07) { p in 250 - 60 * p }
+            S.mix(S.softPluck(note(10 + shape), duration: 1.4, decay: 0.5, brightness: 0.25, rng: &rng), into: &x,
+                  at: 0.035, gain: 2.2)
+            return (x, .effects, -3)
         case "sleepy.hum.0", "sleepy.hum.1", "sleepy.hum.2", "sleepy.hum.3":
             let shape = Int(id.split(separator: ".").last ?? "0") ?? 0
-            var x = S.voice(note(10 + shape), duration: 0.75, vowel: .oo, breath: 0.03, attack: 0.07, release: 0.4, rng: &rng)
-            S.mix(S.kalimba(note(10 + shape), duration: 1.0, hardness: 0.15, rng: &rng), into: &x, at: 0, gain: 0.4)
-            return (x, .music, -2)
+            var x = S.voice(note(10 + shape), duration: 0.75, vowel: .oo, breath: 0.02, attack: 0.08, release: 0.4, rng: &rng)
+            S.mix(S.softPluck(note(10 + shape), duration: 1.0, decay: 0.4, brightness: 0.2, rng: &rng), into: &x, at: 0, gain: 0.35)
+            return (x, .music, -3)
         case "sleepy.lullaby":
             var x = [Float]()
             for (i, d) in [10, 12, 11, 13, 12, 10].enumerated() {
                 let len = i == 5 ? 1.4 : 0.42
-                S.mix(S.voice(note(d), duration: len, vowel: .oo, breath: 0.03, attack: 0.06, release: len * 0.5, rng: &rng),
+                S.mix(S.voice(note(d), duration: len, vowel: .oo, breath: 0.02, attack: 0.07, release: len * 0.5, rng: &rng),
                       into: &x, at: Double(i) * 0.36, gain: 0.8)
-                S.mix(S.kalimba(note(d), duration: 0.9, hardness: 0.18, rng: &rng), into: &x, at: Double(i) * 0.36, gain: 0.35)
+                S.mix(S.softPluck(note(d), duration: 0.9, decay: 0.35, brightness: 0.2, rng: &rng), into: &x,
+                      at: Double(i) * 0.36, gain: 0.3)
             }
-            return (x, .music, -1)
+            return (x, .music, -2)
         case "sleepy.drawer":
-            // A felt-lined drawer: a soft low slide and a round stop.
-            var x = S.feltPuff(duration: 0.3, bright: 450, rng: &rng)
-            S.mix(S.tunk(330, duration: 0.25, hardness: 0.08, rng: &rng), into: &x, at: 0.26, gain: 0.9)
-            return (x, .effects, -4)
+            // A felt-lined drawer: one soft low slide per pull, no stop knock.
+            return (S.cloth(duration: 0.32, center: 450, q: 0.7, flutter: 9, rng: &rng), .effects, -11)
         case "sleepy.tumble":
-            return (S.tunk(rng.range(420, 600), duration: 0.18, hardness: 0.06, rng: &rng), .effects, -10)
+            return (S.softPluck(note(Int(rng.range(7, 12))), duration: 0.4, decay: 0.08, brightness: 0.05, rng: &rng),
+                    .effects, -14)
         case "box.open":
-            var x = S.tunk(300, duration: 0.25, hardness: 0.1, rng: &rng)
-            for _ in 0..<3 {
-                S.mix(S.tunk(rng.range(420, 620), duration: 0.18, hardness: 0.06, rng: &rng), into: &x,
-                      at: rng.range(0.1, 0.45), gain: Float(rng.range(0.35, 0.55)))
+            // The treasures roll back out: a soft low landing and a little falling run.
+            var x = S.tone(duration: 0.14, harmonics: [1, 0.2], attack: 0.006, release: 0.08) { p in 240 - 50 * p }
+            for (i, d) in [12, 10, 9, 7].enumerated() {
+                S.mix(S.softPluck(note(d), duration: 0.8, decay: 0.22, brightness: 0.15, rng: &rng), into: &x,
+                      at: 0.08 + Double(i) * 0.11 * rng.range(0.95, 1.05), gain: Float(1.6 - 0.2 * Double(i)))
             }
-            return (x, .effects, -3)
+            return (x, .effects, -4)
 
         // — Window ————————————————————————————————————————————————
         case "window.dial":
-            return (S.woodblock(1500 * jitter, duration: 0.06, hardness: 0.3, rng: &rng), .ui, -9)
+            return (S.woodblock(820 * jitter, duration: 0.06, hardness: 0.05, rng: &rng), .ui, -12)
         case "window.toybox.open":
-            var x = S.woodblock(300, duration: 0.25, hardness: 0.2, rng: &rng)
-            S.mix(arp([14, 17], step: 0.1, rng: &rng) { f, r in S.glock(f, duration: 1.2, hardness: 0.15, rng: &r) }, into: &x, at: 0.12, gain: 0.5)
-            return (x, .effects, 0)
+            var x = S.woodblock(300, duration: 0.25, hardness: 0.1, rng: &rng)
+            S.mix(arp([12, 14], step: 0.1, rng: &rng) { f, r in S.softPluck(f, duration: 1.1, decay: 0.38, brightness: 0.25, rng: &r) },
+                  into: &x, at: 0.12, gain: 0.9)
+            return (x, .effects, -1)
         case "window.toybox.close":
             var x = S.feltThump(230, duration: 0.2, rng: &rng)
             S.mix(S.woodblock(280, duration: 0.15, hardness: 0.2, rng: &rng), into: &x, at: 0.01, gain: 0.6)
@@ -761,7 +832,7 @@ enum LullSoundBook {
         case "window.drop":
             return (S.feltThump(235 * jitter, duration: 0.18, rng: &rng), .effects, -3)
         case "window.curtain":
-            return (S.cloth(duration: 0.5, center: 1500 * jitter, q: 0.8, flutter: 14, rng: &rng), .effects, -7)
+            return (S.cloth(duration: 0.5, center: 750 * jitter, q: 0.8, flutter: 14, rng: &rng), .effects, -9)
         case "window.cat":
             return (S.purr(rng: &rng), .voices, -2)
         case "window.cat.gift":
@@ -773,31 +844,35 @@ enum LullSoundBook {
             }
             return (x, .effects, -3)
         case "window.grow":
-            return (arp([9, 12, 14], step: 0.13, rng: &rng) { f, r in S.glock(f, duration: 1.3, hardness: 0.15, rng: &r) }, .music, -1)
+            return (arp([9, 12, 14], step: 0.13, rng: &rng) { f, r in S.softPluck(f, duration: 1.2, decay: 0.42, brightness: 0.25, rng: &r) },
+                    .music, -2)
         case "window.guest":
             return (S.kalimba(note(13), duration: 1.2, hardness: 0.25, rng: &rng), .music, -2)
         case "window.lamp.on":
-            var x = S.woodblock(1700, duration: 0.05, hardness: 0.35, rng: &rng)
+            var x = S.woodblock(900, duration: 0.05, hardness: 0.08, rng: &rng)
             S.mix(S.voice(note(7), duration: 0.6, vowel: .mm, glide: 1.06, breath: 0.02, attack: 0.15, release: 0.3, rng: &rng),
                   into: &x, at: 0.03, gain: 0.7)
             return (x, .effects, -4)
         case "window.lamp.off":
-            var x = S.woodblock(1500, duration: 0.05, hardness: 0.35, rng: &rng)
+            var x = S.woodblock(800, duration: 0.05, hardness: 0.08, rng: &rng)
             S.mix(S.voice(note(7), duration: 0.5, vowel: .mm, glide: 0.94, breath: 0.02, attack: 0.05, release: 0.3, rng: &rng),
                   into: &x, at: 0.03, gain: 0.55)
             return (x, .effects, -5)
+        // Founder, build 5: the sky taps were "horrible" (a high glockenspiel on every tap). Sky taps
+        // are silent now; these stay soft in case a moment reuses them.
         case "window.sky.day":
-            return (S.glock(note(15) * jitter, duration: 1.2, hardness: 0.15, rng: &rng), .music, -4)
+            return (S.softPluck(note(9), duration: 0.9, decay: 0.3, brightness: 0.15, rng: &rng), .music, -8)
         case "window.sky.night":
-            return (S.glock(note(17) * jitter, duration: 1.4, hardness: 0.1, rng: &rng), .music, -5)
+            return (S.softPluck(note(12), duration: 1.0, decay: 0.35, brightness: 0.15, rng: &rng), .music, -9)
         case "window.star":
-            return (arp([17, 15, 13], step: 0.08, rng: &rng) { f, r in S.glock(f, duration: 1.0, hardness: 0.12, rng: &r) }, .music, -4)
+            return (arp([14, 12, 10], step: 0.09, rng: &rng) { f, r in S.softPluck(f, duration: 1.0, decay: 0.35, brightness: 0.2, rng: &r) },
+                    .music, -4)
         case "window.comet":
-            var x = S.whoosh(duration: 0.6, from: 2600, to: 1400, q: 1.4, rng: &rng)
-            S.mix(S.glock(note(19), duration: 1.0, hardness: 0.1, rng: &rng), into: &x, at: 0.1, gain: 0.6)
+            var x = S.whoosh(duration: 0.6, from: 900, to: 450, q: 1.0, rng: &rng)
+            S.mix(S.softPluck(note(14), duration: 1.0, decay: 0.4, brightness: 0.2, rng: &rng), into: &x, at: 0.1, gain: 1.4)
             return (x, .music, -5)
         case "window.plant":
-            return (S.cloth(duration: 0.28, center: 3200, q: 1.2, flutter: 30, rng: &rng), .effects, -9)
+            return (S.cloth(duration: 0.28, center: 800, q: 1.0, flutter: 24, rng: &rng), .effects, -12)
         case "window.morning":
             return (arp([10, 12, 14, 17], step: 0.12, rng: &rng) { f, r in S.kalimba(f, duration: 1.3, hardness: 0.25, rng: &r) }, .music, -1)
         case "window.night":
@@ -826,14 +901,15 @@ enum LullSoundBook {
             S.mix(S.feltThump(250, duration: 0.12, rng: &rng), into: &x, at: 0, gain: 0.5)
             return (x, .effects, -1)
         case "dots.golden":
-            return (arp([15, 17], step: 0.07, rng: &rng) { f, r in S.glock(f, duration: 1.1, hardness: 0.15, rng: &r) }, .music, -3)
+            return (arp([12, 14], step: 0.08, rng: &rng) { f, r in S.softPluck(f, duration: 1.1, decay: 0.4, brightness: 0.25, rng: &r) },
+                    .music, -3)
         case "dots.wave":
             return (arp([9, 10, 12], step: 0.1, rng: &rng) { f, r in S.kalimba(f, duration: 1.1, hardness: 0.28, rng: &r) }, .music, -1)
         case "dots.pattern":
             return (arp([10, 12, 14], step: 0.1, rng: &rng) { f, r in S.kalimba(f, duration: 1.2, hardness: 0.28, rng: &r) }, .music, 0)
         case "dots.full.board":
             var x = arp([10, 12, 13, 15], step: 0.12, rng: &rng) { f, r in S.kalimba(f, duration: 1.3, hardness: 0.28, rng: &r) }
-            S.mix(S.glock(note(20), duration: 1.5, hardness: 0.12, rng: &rng), into: &x, at: 0.42, gain: 0.4)
+            S.mix(S.softPluck(note(15), duration: 1.5, decay: 0.55, brightness: 0.2, rng: &rng), into: &x, at: 0.42, gain: 0.55)
             return (x, .music, 0)
         case "dots.pour":
             var x = S.whoosh(duration: 0.55, from: 600, to: 1500, q: 1.0, rng: &rng)
@@ -944,28 +1020,30 @@ enum LullSoundBook {
             return (arp([10, 12, 15], step: 0.2, rng: &rng) { f, r in S.kalimba(f, duration: 1.3, hardness: 0.2, rng: &r) }, .music, -4)
 
         // — Meadow ——————————————————————————————————————————————————
+        // Founder, build 5: "what is that random tone noise?" It was the idle invite (a note with the
+        // ladybug's wing flutter every 7.5 s), a random glockenspiel note every 0.4 s while she walked,
+        // a note per flower and random birds. The Meadow no longer plays any of them; these recipes are
+        // softened for the moments that remain (a spring patch, full spring, frost, waking friends).
         case "meadow.wake":
-            return (S.glock(note(12) * jitter, duration: 0.9, hardness: 0.12, rng: &rng), .music, -5)
+            return (S.softPluck(note(12), duration: 0.9, decay: 0.3, brightness: 0.2, rng: &rng), .music, -6)
         case "meadow.breeze":
-            return (S.whoosh(duration: 0.8, from: 500, to: 1100, q: 0.7, rng: &rng), .effects, -7)
+            return (S.whoosh(duration: 0.8, from: 380, to: 760, q: 0.7, rng: &rng), .effects, -10)
         case "meadow.invite":
-            return (S.kalimba(note(9), duration: 1.1, hardness: 0.2, rng: &rng), .music, -4)
+            return (S.softPluck(note(9), duration: 1.0, decay: 0.35, brightness: 0.2, rng: &rng), .music, -6)
         case "meadow.paint":
-            return (S.glock(note(Int(rng.range(10, 15))), duration: 0.7, hardness: 0.08, rng: &rng), .music, -11)
+            return (S.softPluck(note(Int(rng.range(10, 15))), duration: 0.7, decay: 0.22, brightness: 0.1, rng: &rng), .music, -14)
         case "meadow.bloom":
-            var x = S.glock(note(Int(rng.range(11, 15))), duration: 1.0, hardness: 0.12, rng: &rng)
-            S.mix(S.cloth(duration: 0.25, center: 3000, q: 1.2, flutter: 26, rng: &rng), into: &x, at: 0, gain: 0.3)
-            return (x, .music, -5)
+            return (S.softPluck(note(Int(rng.range(11, 15))), duration: 0.9, decay: 0.3, brightness: 0.15, rng: &rng), .music, -9)
         case "meadow.spring":
-            return (arp([5, 9, 12], step: 0.13, rng: &rng) { f, r in S.kalimba(f, duration: 1.2, hardness: 0.25, rng: &r) }, .music, -1)
+            return (arp([5, 9, 12], step: 0.13, rng: &rng) { f, r in S.softPluck(f, duration: 1.2, decay: 0.45, brightness: 0.3, rng: &r) },
+                    .music, -2)
         case "meadow.fullspring":
-            var x = arp([9, 12, 14, 17], step: 0.13, rng: &rng) { f, r in S.kalimba(f, duration: 1.3, hardness: 0.25, rng: &r) }
-            S.mix(S.glock(note(19), duration: 1.6, hardness: 0.12, rng: &rng), into: &x, at: 0.5, gain: 0.4)
-            return (x, .music, 0)
+            var x = arp([7, 9, 12, 14], step: 0.13, rng: &rng) { f, r in S.softPluck(f, duration: 1.3, decay: 0.5, brightness: 0.3, rng: &r) }
+            S.mix(S.softPluck(note(15), duration: 1.6, decay: 0.6, brightness: 0.2, rng: &rng), into: &x, at: 0.5, gain: 0.5)
+            return (x, .music, -1)
         case "meadow.frost":
-            var x = arp([17, 15, 12], step: 0.16, rng: &rng) { f, r in S.glock(f, duration: 1.4, hardness: 0.08, rng: &r) }
-            S.mix(S.whoosh(duration: 0.9, from: 1800, to: 900, q: 0.9, rng: &rng), into: &x, at: 0, gain: 0.35)
-            return (x, .music, -4)
+            return (arp([14, 12, 9], step: 0.16, rng: &rng) { f, r in S.softPluck(f, duration: 1.4, decay: 0.5, brightness: 0.15, rng: &r) },
+                    .music, -4)
         case "meadow.landmark.wake":
             return (S.voice(note(9), duration: 0.4, vowel: .oh, glide: 1.08, breath: 0.04, attack: 0.04, release: 0.16, rng: &rng), .voices, -4)
 

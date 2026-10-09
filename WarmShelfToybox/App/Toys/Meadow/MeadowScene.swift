@@ -106,10 +106,9 @@ final class MeadowScene: BaseToyScene {
 
     override func didMove(to view: SKView) {
         super.didMove(to: view)
-        AudioManager.shared.prewarm(prefixes: ["meadow.", "bird"])
+        AudioManager.shared.prewarm(prefixes: ["meadow."])
         for degree in 12...19 {
-            AudioManager.shared.prewarm(cue: "note.kalimba.\(degree)")
-            AudioManager.shared.prewarm(cue: "note.glock.\(degree)")
+            AudioManager.shared.prewarm(cue: "note.pluck.\(degree)")
         }
         ambientMoteInterval = 8
         addChild(worldNode)
@@ -664,7 +663,7 @@ final class MeadowScene: BaseToyScene {
             if let lm = landmarks.first(where: { hypot(p.x - $0.position.x, p.y - $0.position.y) < 75 }) {
                 if lm.isAwake {
                     lm.delight()
-                    tone("note.glock.\(lm.kind.wakeDegree + 2)", minInterval: 0.3, volume: 0.55)
+                    tone("note.pluck.\(lm.kind.wakeDegree + 2)", minInterval: 0.3, volume: 0.55)
                 } else {
                     // Founder call (June 12): sleepy UNTIL tapped or run over — a tap
                     // wakes them now. Walking near them does the same.
@@ -680,8 +679,7 @@ final class MeadowScene: BaseToyScene {
                 removeAction(forKey: "trailRest")   // the journey resumes; the dew stays
                 snailTarget = MeadowWorldGeometry.leadTarget(p, worldSize: worldSize)
                 setSnailAwake(true)
-                tone("meadow.wake", minInterval: 0.4)
-                HapticsManager.shared.impact(style: .soft, intensity: 0.16)
+                HapticsManager.shared.impact(style: .soft, intensity: 0.16)   // leading her is felt, not heard
             } else {
                 breeze(at: p)
             }
@@ -765,7 +763,6 @@ final class MeadowScene: BaseToyScene {
                 .rotate(toAngle: 0, duration: 0.3)
             ]), withKey: "sway")
         }
-        tone("meadow.breeze", minInterval: 0.5)
     }
 
     // MARK: - Update (glide, aura, trail)
@@ -844,8 +841,9 @@ final class MeadowScene: BaseToyScene {
             .rotate(toAngle: home, duration: 0.22)
         ])
         snail.run(.group([bob, spin]), withKey: "invite")
-        flutterWanderer()   // a wing-clap if she's the ladybug (snail-era: a no-op)
-        tone("meadow.invite", minInterval: 1.0)
+        // A wing-clap if she's the ladybug (snail-era: a no-op). Silent: this plays on its own
+        // every 7.5 s while she waits, and was the "random tone" in the founder's build-5 review.
+        flutterWanderer()
     }
 
     private func clampToWorld(_ p: CGPoint) -> CGPoint {
@@ -1012,7 +1010,7 @@ final class MeadowScene: BaseToyScene {
                                      y: p.y + .random(in: -r * 0.4...r * 0.4)))
         }
         if animated {
-            tone("meadow.paint", minInterval: 0.42)
+            // Painting is silent: a random note every 0.4 s while she walked was too much.
             if paintedSpringPoints.count % 9 == 0 {
                 HapticsManager.shared.impact(style: .light, intensity: 0.06)
             }
@@ -1178,16 +1176,12 @@ final class MeadowScene: BaseToyScene {
             flower.zRotation = .random(in: -0.4...0.4)
             return
         }
-        if AmbientAnimator.reduceMotion {
-            tone("meadow.bloom", minInterval: 0.12)
-            return
-        }
+        if AmbientAnimator.reduceMotion { return }   // flowers open silently; the patch has its own tune
         flower.setScale(0.05)
         let up = SKAction.scale(to: 1.12, duration: 0.2); up.timingMode = .easeOut
         let settle = SKAction.scale(to: 1.0, duration: 0.28); settle.timingMode = .easeInEaseOut
         flower.run(.sequence([up, settle]))
         flower.zRotation = .random(in: -0.4...0.4)
-        tone("meadow.bloom", minInterval: 0.12)
         if flowers.count % 6 == 0 { HapticsManager.shared.impact(style: .light, intensity: 0.07) }
     }
 
@@ -1439,9 +1433,9 @@ final class MeadowScene: BaseToyScene {
         AudioManager.shared.play(cue: cue, volume: volume)
     }
 
-    /// Each sleeper wakes on its own kalimba note, with a small sleepy "oh".
+    /// Each sleeper wakes on its own soft note, with a small sleepy "oh".
     private func wakeSound(_ kind: MeadowLandmark.Kind) {
-        tone("note.kalimba.\(kind.wakeDegree)", minInterval: 0.3)
+        tone("note.pluck.\(kind.wakeDegree)", minInterval: 0.3)
         AudioManager.shared.play(cue: "meadow.landmark.wake", volume: 0.7, delay: 0.04)
     }
 

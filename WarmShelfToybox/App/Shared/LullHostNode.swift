@@ -422,7 +422,6 @@ final class LullHostNode: SKNode {
             .wait(forDuration: 0.75),
             .run { [weak self] in self?.settle() }
         ]), withKey: "host.sequence")
-        AudioManager.shared.playSoftTap()
         HapticsManager.shared.softTap()
     }
 

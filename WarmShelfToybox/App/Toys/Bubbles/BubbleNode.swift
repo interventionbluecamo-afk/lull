@@ -158,7 +158,7 @@ final class BubbleNode: SKNode {
     /// anticipation makes a chain reaction read as physical cause-and-effect.
     func receivePressureWave(from scenePoint: CGPoint) {
         guard !hasPopped, !AmbientAnimator.reduceMotion, let scene else { return }
-        AudioManager.shared.playBubbleNotice()
+        // Silent: the pop that follows is the sound (a chime per neighbour stacked up in chains).
         let source = convert(scenePoint, from: scene)
         let length = max(1, hypot(source.x, source.y))
         let away = CGPoint(x: -source.x / length * 4, y: -source.y / length * 4)

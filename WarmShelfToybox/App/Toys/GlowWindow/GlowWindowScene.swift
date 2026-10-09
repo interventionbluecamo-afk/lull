@@ -2795,8 +2795,7 @@ final class GlowWindowScene: BaseToyScene {
         let ws = 0.5 + (1 - curtainOpen) * 0.6
         curtainL.position = CGPoint(x: windowCenter.x - off, y: curtainL.position.y); curtainL.xScale = ws
         curtainR.position = CGPoint(x: windowCenter.x + off, y: curtainR.position.y); curtainR.xScale = -ws
-        applyPhase(animated: false)   // light spill scales with the curtain
-        tone("window.curtain", key: "curtain.drag", minInterval: 0.3, volume: 0.35)
+        applyPhase(animated: false)   // light spill scales with the curtain; the drag itself is silent
         updatePeekABoo()
     }
 
@@ -3035,7 +3034,8 @@ final class GlowWindowScene: BaseToyScene {
         let now = CACurrentMediaTime()
         guard now - lastSkyFeedbackTime >= 0.18 else { return }
         lastSkyFeedbackTime = now
-        tone(dayPhase <= 0.65 ? "window.sky.day" : "window.sky.night", key: "sky.touch", minInterval: 0.18)
+        // Felt, not heard (founder, build 5: the sky-tap sound was "horrible", day and night).
+        // The bird by day and the wish-star at night bring their own soft sounds.
         HapticsManager.shared.impact(style: .light, intensity: 0.08)
     }
 

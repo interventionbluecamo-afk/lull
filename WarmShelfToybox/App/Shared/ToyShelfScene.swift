@@ -93,9 +93,8 @@ final class ToyShelfScene: BaseToyScene {
         }
 
         run(.sequence([
-            .wait(forDuration: 0.3),
-            .run { AudioManager.shared.playShelfTransition() },
-            .wait(forDuration: 0.16),
+            // Opening a toy is silent (founder, build 5: moving between toys was "TOO MUCH").
+            .wait(forDuration: 0.46),
             .run { [weak self] in self?.onToySelected?(toyID) }
         ]))
     }
@@ -1698,7 +1697,6 @@ final class ToyShelfScene: BaseToyScene {
 
             guard let toyID = toyID(for: nodesAtPoint), let card = cardRoot(for: nodesAtPoint) else {
                 triggerShelfWakeUp(at: point)
-                AudioManager.shared.playEmptyTap()
                 HapticsManager.shared.emptyTap()
                 continue
             }
@@ -1706,8 +1704,7 @@ final class ToyShelfScene: BaseToyScene {
             isOpeningToy = true
             TouchFeedbackAnimator.acknowledge(node: card, profile: .shelfCard)
             reactToToyTap(toyID: toyID, card: card)
-            AudioManager.shared.playSoftTap()
-            HapticsManager.shared.cardPress()   // a firm, physical clay-button press
+            HapticsManager.shared.cardPress()   // a firm, physical clay-button press, felt not heard
             playWakeBloom(card: card, toyID: toyID)
             return
         }
@@ -2028,7 +2025,6 @@ final class ToyShelfScene: BaseToyScene {
                 self.resetShelfInvitationClock(delay: 6.0)
                 TouchFeedbackAnimator.acknowledge(node: card, profile: .shelfCard)
                 self.reactToToyTap(toyID: descriptor.id, card: card)
-                AudioManager.shared.playSoftTap()
                 HapticsManager.shared.cardPress()
                 self.playWakeBloom(card: card, toyID: descriptor.id)
             }

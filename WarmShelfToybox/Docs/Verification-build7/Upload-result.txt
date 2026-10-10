@@ -1,0 +1,8 @@
+Archive: /private/tmp/lull-build7-20261010/Lull.xcarchive
+Version:1.0 (7)
+App source:26fc2652c96d3c26bc17cc7f65777b5ac677bb9e
+Compiled checkpoint:83e9f52dd0557dce8232333718cc9de409c279fa
+2026-10-10 16:03:16.567 xcodebuild[8446:5166191] Progress 100%: Upload succeeded.
+Uploaded Lull
+** EXPORT SUCCEEDED **
+Apple processing and group availability recorded separately in final handoff.

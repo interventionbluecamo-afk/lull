@@ -1,0 +1,128 @@
+[
+  {
+    "file": "shelf-bubbles-v2.png",
+    "runtimeSource": "App/Resources/Assets.xcassets/shelf-bubbles-v2.imageset/shelf-bubbles-v2.png",
+    "originalSize": [
+      1024,
+      1024
+    ],
+    "webSize": [
+      384,
+      384
+    ],
+    "bytes": 129440,
+    "operation": "proportional resize only, native transparency retained"
+  },
+  {
+    "file": "shelf-dropdots-v2.png",
+    "runtimeSource": "App/Resources/Assets.xcassets/shelf-dropdots-v2.imageset/shelf-dropdots-v2.png",
+    "originalSize": [
+      1024,
+      936
+    ],
+    "webSize": [
+      384,
+      351
+    ],
+    "bytes": 132558,
+    "operation": "proportional resize only, native transparency retained"
+  },
+  {
+    "file": "shelf-feed-v2.png",
+    "runtimeSource": "App/Resources/Assets.xcassets/shelf-feed-v2.imageset/shelf-feed-v2.png",
+    "originalSize": [
+      1293,
+      1217
+    ],
+    "webSize": [
+      384,
+      361
+    ],
+    "bytes": 105268,
+    "operation": "proportional resize only, native transparency retained"
+  },
+  {
+    "file": "shelf-hum-v2.png",
+    "runtimeSource": "App/Resources/Assets.xcassets/shelf-hum-v2.imageset/shelf-hum-v2.png",
+    "originalSize": [
+      1536,
+      1024
+    ],
+    "webSize": [
+      384,
+      256
+    ],
+    "bytes": 96876,
+    "operation": "proportional resize only, native transparency retained"
+  },
+  {
+    "file": "shelf-meadow-v2.png",
+    "runtimeSource": "App/Resources/Assets.xcassets/shelf-meadow-v2.imageset/shelf-meadow-v2.png",
+    "originalSize": [
+      1536,
+      1024
+    ],
+    "webSize": [
+      384,
+      256
+    ],
+    "bytes": 68419,
+    "operation": "proportional resize only, native transparency retained"
+  },
+  {
+    "file": "shelf-mixup-v2.png",
+    "runtimeSource": "App/Resources/Assets.xcassets/shelf-mixup-v2.imageset/shelf-mixup-v2.png",
+    "originalSize": [
+      1024,
+      1024
+    ],
+    "webSize": [
+      384,
+      384
+    ],
+    "bytes": 187479,
+    "operation": "proportional resize only, native transparency retained"
+  },
+  {
+    "file": "shelf-sleepybox-v2.png",
+    "runtimeSource": "App/Resources/Assets.xcassets/shelf-sleepybox-v2.imageset/shelf-sleepybox-v2.png",
+    "originalSize": [
+      1254,
+      1254
+    ],
+    "webSize": [
+      384,
+      384
+    ],
+    "bytes": 133573,
+    "operation": "proportional resize only, native transparency retained"
+  },
+  {
+    "file": "shelf-wash-v2.png",
+    "runtimeSource": "App/Resources/Assets.xcassets/shelf-wash-v2.imageset/shelf-wash-v2.png",
+    "originalSize": [
+      1024,
+      1024
+    ],
+    "webSize": [
+      384,
+      384
+    ],
+    "bytes": 188886,
+    "operation": "proportional resize only, native transparency retained"
+  },
+  {
+    "file": "shelf-window-v2.png",
+    "runtimeSource": "App/Resources/Assets.xcassets/shelf-window-v2.imageset/shelf-window-v2.png",
+    "originalSize": [
+      1312,
+      1199
+    ],
+    "webSize": [
+      384,
+      351
+    ],
+    "bytes": 125485,
+    "operation": "proportional resize only, native transparency retained"
+  }
+]

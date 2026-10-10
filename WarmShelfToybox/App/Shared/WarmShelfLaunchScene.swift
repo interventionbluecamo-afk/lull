@@ -83,7 +83,7 @@ final class WarmShelfLaunchScene: SKScene {
                 rimColor: WarmShelfPalette.bubbleRim,
                 radiusScale: 1.0
             ),
-            makeStackIcon(),
+            makeWashIcon(),
             makeBubbleIcon(
                 bodyColor: WarmShelfPalette.blushIridescence,
                 rimColor: WarmShelfPalette.lavender,
@@ -289,17 +289,36 @@ final class WarmShelfLaunchScene: SKScene {
         return root
     }
 
-    private func makeStackIcon() -> SKNode {
-        let hero = StackPieceNode(
-            kind: .pebble,
-            color: WarmShelfPalette.terracotta.withAlpha(0.96),
-            scale: 0.42,
-            isSignatureHero: true
-        )
-        hero.physicsBody = nil
-        hero.position = CGPoint(x: 0, y: 4)
-        hero.performShelfInvitation(delay: 0.82)
-        return hero
+    private func makeWashIcon() -> SKNode {
+        let root = SKNode()
+        if let truck = ToyArt.sprite("wash-fire-truck", fit: CGSize(width: 82, height: 58)) {
+            truck.position = CGPoint(x: 0, y: 8)
+            root.addChild(truck)
+        } else {
+            let body = makeRoundedRect(width: 74, height: 37, radius: 11,
+                                       fill: WarmShelfPalette.terracotta)
+            body.position.y = 11
+            root.addChild(body)
+            let window = makeRoundedRect(width: 22, height: 19, radius: 7,
+                                         fill: WarmShelfPalette.warmCream)
+            window.position = CGPoint(x: 17, y: 15)
+            root.addChild(window)
+            for x in [CGFloat(-23), CGFloat(23)] {
+                let wheel = SKShapeNode(circleOfRadius: 8)
+                wheel.fillColor = WarmShelfPalette.cocoa
+                wheel.strokeColor = .clear
+                wheel.position = CGPoint(x: x, y: -6)
+                root.addChild(wheel)
+            }
+            for x in [CGFloat(12), CGFloat(21)] {
+                let eye = SKShapeNode(circleOfRadius: 1.8)
+                eye.fillColor = WarmShelfPalette.cocoa
+                eye.strokeColor = .clear
+                eye.position = CGPoint(x: x, y: 17)
+                root.addChild(eye)
+            }
+        }
+        return root
     }
 
     private func makeRoundedRect(width: CGFloat, height: CGFloat, radius: CGFloat, fill: UIColor) -> SKShapeNode {

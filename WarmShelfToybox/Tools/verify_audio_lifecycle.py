@@ -5,7 +5,8 @@ recording stand-ins for AVFoundation/UIKit (Tools/Audio/AppleAudioStubs.swift).
 Checks the parent's Sound control, session category and retry, engine start retry, cue playback,
 cooldowns, variation, sample-accurate delays, voice stealing, held notes, room beds, the Window
 day/night beds, backgrounding, interruptions, route changes, the older note interface, the
-softening of rapid repeats, and that button, card and empty-felt taps are felt rather than heard.
+softening of rapid repeats, Wash contact/departure cancellation, and that button, card and
+empty-felt taps are felt rather than heard.
 Physical audibility, loudness on a speaker and route behaviour still need an iPhone.
 """
 from pathlib import Path
@@ -239,6 +240,31 @@ audio.playSoftTap()
 audio.playEmptyTap()
 check(stubScheduledLog.count == logBeforeTap && HapticsManager.shared.pulses.count == pulsesBeforeTap + 2,
       "Taps on buttons, cards and empty felt are felt (a haptic each), not heard")
+
+// 14. Wash contact/departure cancel only Wash-owned voices.
+audio.stopEverything()
+audio.currentToyVoice = .none
+check(audio.play(cue: "wash.rinse"), "Wash water contact schedules its quiet cue")
+let rinseID = stubScheduledLog.last!
+let rinseNode = players().first { $0.scheduled.contains { ObjectIdentifier($0.buffer) == rinseID } }!
+check(audio.play(cue: "ui.notice"), "An unrelated outcome is also playing")
+let unrelatedID = stubScheduledLog.last!
+let unrelatedNode = players().first { $0.scheduled.contains { ObjectIdentifier($0.buffer) == unrelatedID } }!
+audio.stopWashRinse()
+spinReal(0.2)
+check(!rinseNode.isPlaying && unrelatedNode.isPlaying, "Releasing the hose stops only its water")
+check(audio.play(cue: "wash.sparkle"), "A completed wash schedules its finite phrase")
+let sparkleID = stubScheduledLog.last!
+let sparkleNode = players().first { $0.scheduled.contains { ObjectIdentifier($0.buffer) == sparkleID } }!
+audio.stopWashRinse()
+spinReal(0.2)
+check(sparkleNode.isPlaying, "A rinse stop leaves the completion phrase alone")
+audio.stopWashAudio()
+spinReal(0.2)
+check(!sparkleNode.isPlaying && unrelatedNode.isPlaying, "Leaving Wash stops its phrase without cancelling another toy")
+audio.stopWashAudio()
+spinReal(0.2)
+check(!sparkleNode.isPlaying && unrelatedNode.isPlaying, "Repeated Wash teardown leaves other voices alone")
 
 print("PASS: \(passed) sound engine lifecycle, gating, scheduling and bed checks; audibility still needs an iPhone")
 '''

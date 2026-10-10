@@ -97,6 +97,7 @@ final class FeedScene: BaseToyScene {
 
     private static var nextMenuOffset = 0
     private var menuOffset = 0
+    private var plateFoodRotation = FeedPlateFoodRotation<FoodKind>()
     private lazy var illustratedFoodPool: [FoodKind] = {
         let order: [FoodKind] = [.apple, .carrot, .banana, .egg, .bread, .berry, .cookie, .cup, .grape, .pear]
         let illustrated = order.filter { ToyArt.texture($0.artSlot) != nil }
@@ -172,22 +173,15 @@ final class FeedScene: BaseToyScene {
         backdrop.zPosition = 1
         addChild(backdrop)
 
-        // The authored farm stand (Docs/FeedSlice.md): trees, bunting, lamp and shelves
-        // baked into one plate behind the friends.
+        // Quiet linen-and-wood pantry; side details crop naturally on phones.
+        // Its authored palette is already restrained, so preserve the felt material.
         if let tex = ToyArt.texture("feed-stand-back") {
             let plate = SKSpriteNode(texture: tex)
             let ts = tex.size()
-            let cover = max(size.width / max(1, ts.width), size.height / max(1, ts.height)) * 1.08
+            let cover = max(size.width / max(1, ts.width), size.height / max(1, ts.height))
             plate.size = CGSize(width: ts.width * cover, height: ts.height * cover)
             plate.position = CGPoint(x: size.width / 2, y: size.height / 2)
-            plate.color = WarmShelfPalette.warmCream
-            plate.colorBlendFactor = 0.12
             backdrop.addChild(plate)
-            // Quiet the baked shelves and bunting without washing out the live friends/food.
-            let wash = SKSpriteNode(color: WarmShelfPalette.warmCream.withAlpha(0.16), size: size)
-            wash.position = plate.position
-            wash.zPosition = 1
-            backdrop.addChild(wash)
             return
         }
 
@@ -345,8 +339,9 @@ final class FeedScene: BaseToyScene {
         removeAction(forKey: "feed.inviteNewVisitor")
         removeAction(forKey: "feed.moreFoodInvite")
         removeAction(forKey: "firstDesiredFoodInvite")
-        for kind in availableFoodKinds {
+        for (index, kind) in availableFoodKinds.enumerated() {
             removeAction(forKey: "feed.respawn.\(kind.accessibilityName)")
+            removeAction(forKey: "feed.respawn.plate.\(index)")
         }
 
         activeFoodTouches.removeAll()
@@ -1334,7 +1329,7 @@ final class FeedScene: BaseToyScene {
         _ = character.receivedFood(countsTowardRequest: matchedWish || !hadRequest)
         playFeedEffects(at: mouthPoint, for: character, food: food)
         playMouthSound(for: food.kind)
-        respawnFood(kind: food.kind)
+        respawnFood(kind: food.kind, preservingFor: character)
 
         let move = SKAction.move(to: mouthPoint, duration: 0.18)
         move.timingMode = .easeOut
@@ -1535,25 +1530,34 @@ final class FeedScene: BaseToyScene {
     /// Only the plate that was used refills, in place: the fresh food grows on its own plate.
     /// Nothing flies in across the counter and nothing else moves, so the food a child is
     /// about to pick next stays exactly where it was (founder, build 5).
-    private func respawnFood(kind: FoodKind) {
+    private func respawnFood(kind: FoodKind, preservingFor character: CharacterNode) {
+        guard let plateIndex = availableFoodKinds.firstIndex(of: kind) else { return }
         let delay = SKAction.wait(forDuration: 0.8)
-        let appear = SKAction.run { [weak self] in
-            guard let self else { return }
-
+        let appear = SKAction.run { [weak self, weak character] in
+            guard let self, self.availableFoodKinds.indices.contains(plateIndex),
+                  self.availableFoodKinds[plateIndex] == kind else { return }
             let existingFoods = self.foodLayer.children.compactMap { $0 as? FoodNode }
+            // A rotation can restore this plate before its delayed refill. A held
+            // or returning food is still occupied; never replace it under a finger.
             guard !existingFoods.contains(where: { $0.kind == kind && !$0.isServing }) else { return }
-            let food = self.makeFood(kind: kind, index: existingFoods.count)
+            let required = self.characters.filter { !$0.visitIsComplete }.flatMap(\.desiredFoods)
+            let unfinished = character.map { $0.parent != nil && !$0.visitIsComplete } ?? false
+            let occupied = self.availableFoodKinds.enumerated().compactMap { $0.offset == plateIndex ? nil : $0.element }
+            let replacement = self.plateFoodRotation.replacement(for: kind, from: self.illustratedFoodPool,
+                                                                 excluding: occupied, preserving: required,
+                                                                 unfinishedVisit: unfinished)
+            self.availableFoodKinds[plateIndex] = replacement
+            let food = self.makeFood(kind: replacement, index: plateIndex)
             food.position = food.homePosition
             food.alpha = 0
             food.setScale(0.6)
             self.foodLayer.addChild(food)
-
             let fade = SKAction.fadeAlpha(to: 1, duration: 0.22)
             let grow = SKAction.scale(to: 1.0, duration: 0.3)
             grow.timingMode = .easeOut
             food.run(.group([fade, grow]))
         }
-        run(.sequence([delay, appear]), withKey: "feed.respawn.\(kind.accessibilityName)")
+        run(.sequence([delay, appear]), withKey: "feed.respawn.plate.\(plateIndex)")
     }
 
     private func topFood(at point: CGPoint) -> FoodNode? {
@@ -1649,6 +1653,27 @@ struct FeedCastRotation {
         let member = remaining.removeFirst()
         last = member
         return member
+    }
+}
+
+/// A finite bag changes only an eaten plate. A pictured request or unfinished
+/// visit keeps its familiar food; held foods on other plates never join the bag.
+struct FeedPlateFoodRotation<T: Equatable> {
+    private var pool: [T] = []
+    private var remaining: [T] = []
+
+    mutating func replacement(for used: T, from catalog: [T], excluding occupied: [T],
+                              preserving requests: [T], unfinishedVisit: Bool) -> T {
+        guard !unfinishedVisit, !requests.contains(used) else { return used }
+        let unique = catalog.reduce(into: [T]()) { values, item in
+            if !values.contains(item) { values.append(item) }
+        }
+        if pool != unique { pool = unique; remaining = [] }
+        let eligible = pool.filter { $0 != used && !occupied.contains($0) }
+        guard !eligible.isEmpty else { return used }
+        if !remaining.contains(where: { eligible.contains($0) }) { remaining = pool.shuffled() }
+        guard let index = remaining.firstIndex(where: { eligible.contains($0) }) else { return used }
+        return remaining.remove(at: index)
     }
 }
 

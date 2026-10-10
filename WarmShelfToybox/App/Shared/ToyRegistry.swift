@@ -16,6 +16,7 @@ enum ToyRegistry {
     static let humID = "hum"
     static let softDropID = "softDrop"
     static let stackID = "stack"
+    static let washID = "wash"
     static let bloomID = "bloom"
     static let mixUpID = "mixUp"
     static let glowboardID = "glowboard"
@@ -29,7 +30,7 @@ enum ToyRegistry {
     static let launchToyIDs = [
         bubblesID,
         feedThePeopleID,
-        stackID,
+        washID,
         sleepyDropBoxID,   // takes Glowboard's old free launch slot
         glowWindowID,      // flagship atmospheric room/window toy
         dropDotsID,        // chunky wooden gravity drop board
@@ -42,6 +43,7 @@ enum ToyRegistry {
     // with one physical verb. Bloom, Dough (clay) and Current (water) are likewise parked. All
     // code is kept and revivable; nothing child-facing references them.
     static let archivedToyIDs = [
+        stackID,
         clayBlocksID,
         softDropID,
         bloomID,
@@ -90,6 +92,14 @@ enum ToyRegistry {
             accessTier: .fullToybox,
             isDemoReady: true,
             makeScene: { size in SoftDropScene(size: size) }
+        ),
+        ToyDescriptor(
+            id: washID,
+            parentName: "Little Wash",
+            accentColor: WarmShelfPalette.waterBlue,
+            accessTier: .free,
+            isDemoReady: true,
+            makeScene: { size in WashScene(size: size) }
         ),
         ToyDescriptor(
             id: stackID,

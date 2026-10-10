@@ -152,7 +152,7 @@ final class LullOnboardingViewController: UIViewController {
 
         let eyebrow = makeEyebrow("WELCOME TO LULL")
         let title = makeTitle("Little hands.\nRoom to explore.")
-        let body = makeBody("Nine felt-and-wood toys for ages 2–6. Build, sort, feed, make music, and wander through a meadow. Pictures and touch invite your child to choose, try, and repeat at their own pace.")
+        let body = makeBody("Nine felt-and-wood toys for ages 2–6. Wash, sort, feed, make music, and wander through a meadow. Pictures and touch invite your child to choose, try, and repeat at their own pace.")
 
         let privacy = makeBody("No child account. Play and family settings are saved on this device.")
         privacy.font = .systemFont(ofSize: 13.5, weight: .medium)
@@ -255,7 +255,7 @@ final class LullOnboardingViewController: UIViewController {
                 makeTimelineRow(dot: WarmShelfPalette.butter, label: "Today",
                                 text: "The full toybox is open for \(days) more day\(days == 1 ? "" : "s")."),
                 makeTimelineRow(dot: WarmShelfPalette.waterBlue, label: "When the week ends",
-                                text: "The shelf will show Bubbles, Stack, and Drop Dots. These three stay free."),
+                                text: "The shelf will show Bubbles, Little Wash, and Drop Dots. These three stay free."),
                 makeTimelineRow(dot: WarmShelfPalette.terracotta, label: "Whenever you like",
                                 text: keepAll, isLast: true)
             ]
@@ -263,7 +263,7 @@ final class LullOnboardingViewController: UIViewController {
             titleText = "Three toys,\nyours to revisit."
             timelineRows = [
                 makeTimelineRow(dot: WarmShelfPalette.waterBlue, label: "Your free shelf",
-                                text: "Bubbles, Stack, and Drop Dots are ready to play. They stay free."),
+                                text: "Bubbles, Little Wash, and Drop Dots are ready to play. They stay free."),
                 makeTimelineRow(dot: WarmShelfPalette.sage, label: "At your own pace",
                                 text: "Choose a familiar toy, explore, and come back whenever you like."),
                 makeTimelineRow(dot: WarmShelfPalette.terracotta, label: "The full toybox",
@@ -275,7 +275,7 @@ final class LullOnboardingViewController: UIViewController {
                 makeTimelineRow(dot: WarmShelfPalette.butter, label: "Today",
                                 text: "All nine toys, free for seven days. No payment details needed."),
                 makeTimelineRow(dot: WarmShelfPalette.waterBlue, label: "After seven days",
-                                text: "Bubbles, Stack, and Drop Dots stay free. Nothing is charged."),
+                                text: "Bubbles, Little Wash, and Drop Dots stay free. Nothing is charged."),
                 makeTimelineRow(dot: WarmShelfPalette.terracotta, label: "Whenever you like",
                                 text: keepAll, isLast: true)
             ]

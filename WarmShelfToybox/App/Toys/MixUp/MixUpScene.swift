@@ -15,6 +15,7 @@ final class MixUpScene: BaseToyScene {
     private var flipping: Set<MixUpZone> = []
     private var changeCount = 0
     private var lastBuiltSize = CGSize.zero
+    private var lastBuiltSafeInsets = UIEdgeInsets.zero
     private var idleAccumulator: TimeInterval = 0
     private var lastUpdate: TimeInterval = 0
 
@@ -57,12 +58,24 @@ final class MixUpScene: BaseToyScene {
         let play = safePlayRect()
         let upperLimit = isLandscapeLayout ? play.maxY - 16
             : play.maxY - miniFrameBaseWidth * 1.42 - 16
-        let heightFit = (upperLimit - floorY - 24) / max(237, characterEnvelope.height + 28)
-        let widthFit = (play.width - 2 * (controlRadius * 2 + 18)) / max(130, characterEnvelope.width + 8)
-        return min(heightFit, widthFit).clamped(to: 0.68...2.6)
+        // Include the live breath, page overshoot and the tallest hop. A minimum
+        // character size must never overrule a short screen's actual safe space.
+        let heightFit = (upperLimit - floorY - 12) / max(237, characterEnvelope.height * 1.014 + 36)
+        let widthFit = (play.width - 2 * (controlRadius * 2 + 18)) / max(130, characterEnvelope.width * 1.014 + 16)
+        return min(heightFit, widthFit).clamped(to: 0.1...2.6)
     }
     private var characterRootY: CGFloat { floorY - characterEnvelope.minY * mixScale }
-    private var roomDecorScale: CGFloat { mixScale.clamped(to: 0.9...1.55) }
+    private var roomDecorScale: CGFloat { mixScale.clamped(to: 0.65...1.55) }
+    private var pedestalWidth: CGFloat {
+        min(safePlayRect().width * 0.72,
+            max(150, characterEnvelope.width * mixScale * 1.3), 440 * roomDecorScale)
+    }
+    private var pedestalBounds: CGRect {
+        let decor = roomDecorScale
+        return CGRect(x: size.width / 2 - pedestalWidth / 2 - 0.5,
+                      y: floorY - 32 * decor - 0.5,
+                      width: pedestalWidth + 1, height: 44 * decor + 1)
+    }
 
     private func controlPosition(for zone: MixUpZone) -> CGPoint {
         let rightLimit = safePlayRect().maxX - controlRadius - 6
@@ -93,13 +106,23 @@ final class MixUpScene: BaseToyScene {
 
     override func didChangeSize(_ oldSize: CGSize) {
         super.didChangeSize(oldSize)
-        guard abs(size.width - lastBuiltSize.width) > 2 || abs(size.height - lastBuiltSize.height) > 2 else { return }
+        guard abs(size.width - lastBuiltSize.width) > 2 || abs(size.height - lastBuiltSize.height) > 2 ||
+                safeInsets != lastBuiltSafeInsets else { return }
+        rebuild()
+    }
+
+    override func refreshSharedNavigationLayout() {
+        super.refreshSharedNavigationLayout()
+        // UIKit may finish its safe-area layout after SpriteKit receives the size.
+        // Refit the complete stage when those insets settle, keeping this recipe.
+        guard stage.parent != nil, safeInsets != lastBuiltSafeInsets else { return }
         rebuild()
     }
 
     private func rebuild() {
         guard size.width > 160, size.height > 160 else { return }
         lastBuiltSize = size
+        lastBuiltSafeInsets = safeInsets
         flipping.removeAll()
         chevrons.removeAll()
         creationFrames.removeAll()   // a fresh stage; the creations shelf is rebuilt from the store
@@ -596,8 +619,7 @@ final class MixUpScene: BaseToyScene {
         seam.zPosition = 2.05
         stage.addChild(seam)
 
-        let width = min(safePlayRect().width * 0.72,
-                        max(150, characterEnvelope.width * mixScale * 1.3), 440 * decor)
+        let width = pedestalWidth
         let front = SKShapeNode(rectOf: CGSize(width: width, height: 24 * decor), cornerRadius: 10 * decor)
         front.fillColor = WarmShelfPalette.sand.withAlpha(0.76)
         front.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.14)

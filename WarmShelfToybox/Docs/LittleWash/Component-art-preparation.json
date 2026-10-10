@@ -1,0 +1,94 @@
+{
+  "wash-wheel": {
+    "sourceSHA256": "6f121c84363fdc72954e76f84865012b58d428f100cdba4ba57e551c370134db",
+    "sourceCrop": [
+      29,
+      32,
+      1226,
+      1223
+    ],
+    "uniformScale": 0.39348370927318294,
+    "resizedSize": [
+      471,
+      469
+    ],
+    "placement": [
+      20,
+      21
+    ],
+    "canvasSize": [
+      512,
+      512
+    ],
+    "outputSHA256": "e24f905f8d40473c115e8e00cb56320989d134af5d79efe266c863d28faf9cab"
+  },
+  "wash-tool-sponge": {
+    "sourceSHA256": "73fe7e04320fc97306718c183f240b477cf12279da0a531590e5d0bf19964c81",
+    "sourceCrop": [
+      24,
+      203,
+      1233,
+      1083
+    ],
+    "uniformScale": 0.3391232423490488,
+    "resizedSize": [
+      410,
+      298
+    ],
+    "placement": [
+      51,
+      107
+    ],
+    "canvasSize": [
+      512,
+      512
+    ],
+    "outputSHA256": "c966501e490f257e9e23354b0c1502d29cb4828ec90f90a79c234afcfa37148c"
+  },
+  "wash-tool-hose": {
+    "sourceSHA256": "272f2aebc9a2665798982abc5da4bb2ed27ef9abcf7857f1606ab1b9c719cfb3",
+    "sourceCrop": [
+      76,
+      65,
+      1227,
+      1198
+    ],
+    "uniformScale": 0.35621198957428324,
+    "resizedSize": [
+      410,
+      404
+    ],
+    "placement": [
+      51,
+      54
+    ],
+    "canvasSize": [
+      512,
+      512
+    ],
+    "outputSHA256": "02d3f157335bbe169d3caae3f3606cd4e0b88e7b121cbe9d8e5dccc8b2215445"
+  },
+  "wash-tool-towel": {
+    "sourceSHA256": "6c154352024b5ae848162b3aec77eb83d4ce666f6b8e0303053ef555a0fb3188",
+    "sourceCrop": [
+      13,
+      262,
+      1246,
+      1090
+    ],
+    "uniformScale": 0.33252230332522303,
+    "resizedSize": [
+      410,
+      275
+    ],
+    "placement": [
+      51,
+      118
+    ],
+    "canvasSize": [
+      512,
+      512
+    ],
+    "outputSHA256": "7f1956a6f8ea48727552f67b339fb2ec8dc53a51fe41bdc1d5b0166cc9f91514"
+  }
+}

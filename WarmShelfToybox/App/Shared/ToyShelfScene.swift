@@ -782,6 +782,7 @@ final class ToyShelfScene: BaseToyScene {
         case ToyRegistry.bubblesID: return "shelf-bubbles"
         case ToyRegistry.feedThePeopleID: return "shelf-feed"
         case ToyRegistry.stackID: return "shelf-stack"
+        case ToyRegistry.washID: return "shelf-wash"
         case ToyRegistry.sleepyDropBoxID: return "shelf-sleepybox"
         case ToyRegistry.glowWindowID: return "shelf-window"
         case ToyRegistry.dropDotsID: return "shelf-dropdots"
@@ -795,17 +796,20 @@ final class ToyShelfScene: BaseToyScene {
     /// Export padding varies between authored objects. Fit their visible silhouettes,
     /// so padding cannot make one toy tiny or make its feet float above the shelf.
     static func shelfObjectArt(slot: String, fit: CGSize) -> SKSpriteNode? {
-        let visible: [String: (CGSize, CGRect)] = [
-            "shelf-bubbles": (CGSize(width: 1374, height: 1145), CGRect(x: 223, y: 73, width: 1060, height: 1004)),
+        var visible: [String: (CGSize, CGRect)] = [
+            "shelf-bubbles": (CGSize(width: 1024, height: 1024), CGRect(x: 94, y: 131, width: 854, height: 788)),
             "shelf-stack": (CGSize(width: 1374, height: 1145), CGRect(x: 342, y: 123, width: 693, height: 935)),
             "shelf-sleepybox": (CGSize(width: 1254, height: 1254), CGRect(x: 146, y: 103, width: 962, height: 1056)),
             "shelf-feed": (CGSize(width: 1293, height: 1217), CGRect(x: 184, y: 185, width: 925, height: 943)),
-            "shelf-dropdots": (CGSize(width: 1312, height: 1199), CGRect(x: 190, y: 170, width: 935, height: 899)),
+            "shelf-dropdots": (CGSize(width: 1024, height: 936), CGRect(x: 138, y: 89, width: 754, height: 765)),
             "shelf-hum": (CGSize(width: 1536, height: 1024), CGRect(x: 13, y: 148, width: 1512, height: 781)),
             "shelf-window": (CGSize(width: 1312, height: 1199), CGRect(x: 125, y: 118, width: 1062, height: 959)),
-            "shelf-mixup": (CGSize(width: 1312, height: 1199), CGRect(x: 83, y: 27, width: 1146, height: 1133)),
+            "shelf-mixup": (CGSize(width: 1024, height: 1024), CGRect(x: 19, y: 16, width: 985, height: 989)),
             "shelf-meadow": (CGSize(width: 1536, height: 1024), CGRect(x: 188, y: 318, width: 1180, height: 544))
         ]
+        if slot == "shelf-wash", let geometry = washShelfArtGeometry() {
+            visible[slot] = (geometry.pixels, geometry.bounds)
+        }
         if let texture = ToyArt.texture(slot + "-v2"), let (pixels, bounds) = visible[slot] {
             let rect = CGRect(x: bounds.minX / pixels.width,
                               y: (pixels.height - bounds.maxY) / pixels.height,
@@ -845,6 +849,14 @@ final class ToyShelfScene: BaseToyScene {
             art.position = CGPoint(x: 0, y: -cardSize.height * 0.40 + art.size.height / 2)
             art.zPosition = 0
             root.addChild(art)
+            if descriptor.id == ToyRegistry.washID,
+               let geometry = Self.washShelfArtGeometry(), let window = geometry.window {
+                let center = CGPoint(x: (window.midX - geometry.bounds.minX) / geometry.bounds.width - 0.5,
+                                     y: 0.5 - (window.midY - geometry.bounds.minY) / geometry.bounds.height)
+                let radius = min(window.width / geometry.bounds.width * art.size.width,
+                                 window.height / geometry.bounds.height * art.size.height) * 0.30
+                addWashShelfFace(to: art, center: CGPoint(x: center.x * art.size.width, y: center.y * art.size.height), radius: radius)
+            }
             let shadow = SKSpriteNode(texture: ProceduralTexture.softClayShadow(
                 size: CGSize(width: cardSize.width * 0.6, height: max(16, cardSize.height * 0.12))
             ))
@@ -868,6 +880,8 @@ final class ToyShelfScene: BaseToyScene {
             makeSoftDropToyObject(in: root, cardSize: artSize)
         case ToyRegistry.stackID:
             makeStackToyObject(in: root, cardSize: artSize)
+        case ToyRegistry.washID:
+            makeWashToyObject(in: root, cardSize: artSize, groundY: -cardSize.height * 0.40)
         case ToyRegistry.bloomID:
             makeBloomToyObject(in: root, cardSize: artSize)
         case ToyRegistry.glowboardID:
@@ -1092,6 +1106,122 @@ final class ToyShelfScene: BaseToyScene {
             card.addChild(piece)
             AmbientAnimator.idleDrift(node: piece, x: CGFloat(index - 1) * 3, y: 4, duration: 5.2 + Double(index) * 0.3)
         }
+    }
+
+    private func makeWashToyObject(in card: SKNode, cardSize: CGSize, groundY: CGFloat) {
+        let canvas = CGSize(width: cardSize.width * 0.94, height: cardSize.width * 0.94 / 1.6)
+        let rig = WashVehicleRig.forVehicle(.fireTruck)
+        let truck = SKNode()
+        // The delivered six-vehicle rig puts every tyre bottom at 88% of the canvas.
+        truck.position.y = groundY + canvas.height * 0.38
+        truck.zPosition = 3; card.addChild(truck)
+        func point(_ p: WashPoint) -> CGPoint {
+            CGPoint(x: (CGFloat(p.x) - 0.5) * canvas.width, y: (0.5 - CGFloat(p.y)) * canvas.height)
+        }
+        if let body = ToyArt.sprite("wash-fire-truck", fit: canvas) {
+            body.size = canvas; truck.addChild(body)
+        } else {
+            let body = SKShapeNode(rectOf: CGSize(width: canvas.width * 0.82, height: canvas.height * 0.37), cornerRadius: canvas.height * 0.11)
+            body.fillColor = WarmShelfPalette.terracotta; body.strokeColor = .clear
+            body.position.y = -canvas.height * 0.14
+            ProceduralTexture.applyClayFill(to: body, base: WarmShelfPalette.terracotta, size: body.frame.size); truck.addChild(body)
+            let cab = SKShapeNode(rectOf: CGSize(width: canvas.width * 0.22, height: canvas.height * 0.31), cornerRadius: canvas.height * 0.08)
+            cab.fillColor = WarmShelfPalette.waterBlue; cab.strokeColor = .clear
+            cab.position = point(rig.faceCenter); truck.addChild(cab)
+            let ladder = SKShapeNode(rectOf: CGSize(width: canvas.width * 0.43, height: canvas.height * 0.05), cornerRadius: canvas.height * 0.02)
+            ladder.fillColor = WarmShelfPalette.sand; ladder.strokeColor = .clear
+            ladder.position = CGPoint(x: -canvas.width * 0.16, y: canvas.height * 0.10); truck.addChild(ladder)
+        }
+        for wheel in rig.wheels {
+            let radius = CGFloat(wheel.radius) * canvas.height
+            let node: SKNode
+            if let art = ToyArt.sprite("wash-wheel", fit: CGSize(width: radius * 2,height: radius * 2)) {
+                node = art
+            } else {
+                let circle = SKShapeNode(circleOfRadius: radius)
+                circle.fillColor = WarmShelfPalette.raisin; circle.strokeColor = .clear
+                let hub = SKShapeNode(circleOfRadius: radius * 0.40)
+                hub.fillColor = WarmShelfPalette.warmCream; hub.strokeColor = .clear; circle.addChild(hub); node = circle
+            }
+            node.position = point(wheel.center); node.zPosition = 2; truck.addChild(node)
+        }
+        for i in 0..<3 {
+            let foam = SKShapeNode(circleOfRadius: canvas.height * (i == 1 ? 0.10 : 0.07))
+            foam.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.88); foam.strokeColor = WarmShelfPalette.bubblePearl.withAlpha(0.5)
+            foam.position = CGPoint(x: canvas.width * (-0.22 + CGFloat(i) * 0.075), y: -canvas.height * 0.11 + CGFloat(i % 2) * canvas.height * 0.06)
+            foam.zPosition = 4; truck.addChild(foam)
+        }
+        addWashShelfFace(to: truck, center: point(rig.faceCenter), radius: CGFloat(rig.faceRadius) * canvas.height)
+    }
+
+    private func addWashShelfFace(to parent: SKNode, center: CGPoint, radius rawRadius: CGFloat) {
+        let r = max(3, rawRadius)
+        let face = SKNode(); face.name = "washShelf.face"; face.position = center; face.zPosition = 5; parent.addChild(face)
+        let sleepy = SKNode(); sleepy.name = "sleepy"; face.addChild(sleepy)
+        let awake = SKNode(); awake.name = "awake"; awake.alpha = 0; face.addChild(awake)
+        for side: CGFloat in [-1,1] {
+            let path = CGMutablePath(); path.move(to: CGPoint(x: -r * 0.18,y: 0))
+            path.addQuadCurve(to: CGPoint(x: r * 0.18,y: 0),control: CGPoint(x: 0,y: -r * 0.13))
+            let lid = SKShapeNode(path: path); lid.position = CGPoint(x: side * r * 0.38,y: r * 0.14)
+            lid.strokeColor = WarmShelfPalette.raisin.withAlpha(0.78); lid.lineWidth = max(0.8,r * 0.085); lid.lineCap = .round; sleepy.addChild(lid)
+            let eye = SKShapeNode(ellipseOf: CGSize(width: r * 0.22,height: r * 0.29))
+            eye.fillColor = WarmShelfPalette.raisin; eye.strokeColor = .clear; eye.position = lid.position; awake.addChild(eye)
+        }
+        let smile = CGMutablePath(); smile.move(to: CGPoint(x: -r * 0.25,y: -r * 0.21))
+        smile.addQuadCurve(to: CGPoint(x: r * 0.25,y: -r * 0.21),control: CGPoint(x: 0,y: -r * 0.42))
+        let mouth = SKShapeNode(path: smile); mouth.strokeColor = WarmShelfPalette.raisin.withAlpha(0.75)
+        mouth.lineWidth = max(0.8,r * 0.08); mouth.lineCap = .round; face.addChild(mouth)
+    }
+
+    private func animateWashShelfFace(in card: SKNode) {
+        guard let face = card.childNode(withName: "//washShelf.face"),
+              let sleepy = face.childNode(withName: "sleepy"), let awake = face.childNode(withName: "awake") else { return }
+        let duration: TimeInterval = AmbientAnimator.reduceMotion ? 0 : 0.08
+        sleepy.removeAction(forKey: "wash.wake"); awake.removeAction(forKey: "wash.wake")
+        sleepy.run(.sequence([.fadeAlpha(to: 0,duration: duration),.wait(forDuration: 0.48),.fadeAlpha(to: 1,duration: duration)]),withKey: "wash.wake")
+        awake.run(.sequence([.fadeAlpha(to: 1,duration: duration),.wait(forDuration: 0.48),.fadeAlpha(to: 0,duration: duration)]),withKey: "wash.wake")
+    }
+
+    private struct WashShelfArtGeometry {
+        let pixels: CGSize
+        let bounds: CGRect
+        let window: CGRect?
+    }
+    private static var cachedWashShelfGeometry: WashShelfArtGeometry?
+    private static func washShelfArtGeometry() -> WashShelfArtGeometry? {
+        if let cachedWashShelfGeometry { return cachedWashShelfGeometry }
+        guard let image = UIImage(named: "shelf-wash-v2"), let cg = image.cgImage,
+              cg.bitsPerComponent == 8, cg.bitsPerPixel == 32,
+              let data = cg.dataProvider?.data, let bytes = CFDataGetBytePtr(data) else { return nil }
+        let first = cg.alphaInfo == .first || cg.alphaInfo == .premultipliedFirst
+        let little = cg.bitmapInfo.contains(.byteOrder32Little)
+        let alpha = little ? (first ? 3 : 0) : (first ? 0 : 3)
+        let red = little ? (first ? 2 : 3) : (first ? 1 : 0)
+        let green = little ? (first ? 1 : 2) : (first ? 2 : 1)
+        let blue = little ? (first ? 0 : 1) : (first ? 3 : 2)
+        var minX = cg.width, minY = cg.height, maxX = -1, maxY = -1
+        for y in 0..<cg.height { for x in 0..<cg.width {
+            let p = y * cg.bytesPerRow + x * 4
+            if bytes[p + alpha] > 24 { minX = min(minX,x); minY = min(minY,y); maxX = max(maxX,x); maxY = max(maxY,y) }
+        }}
+        guard maxX > minX, maxY > minY else { return nil }
+        let bounds = CGRect(x: minX,y: minY,width: maxX-minX+1,height: maxY-minY+1)
+        // The new shelf truck has one blank pale-blue cab at the upper right. Only add
+        // a face when actual blue pixels identify that window; foam remains undecorated.
+        var wx0 = cg.width, wy0 = cg.height, wx1 = -1, wy1 = -1, count = 0
+        let x0 = minX + Int(bounds.width * 0.52), x1 = min(cg.width-1,minX + Int(bounds.width * 0.94))
+        let y0 = minY + Int(bounds.height * 0.08), y1 = min(cg.height-1,minY + Int(bounds.height * 0.56))
+        for y in stride(from: y0,through: y1,by: 2) { for x in stride(from: x0,through: x1,by: 2) {
+            let p = y * cg.bytesPerRow + x * 4
+            let r = Int(bytes[p+red]),g = Int(bytes[p+green]),b = Int(bytes[p+blue])
+            if bytes[p+alpha] > 180, g > 80, r * 100 < g * 87, b * 100 > g * 96 {
+                wx0 = min(wx0,x); wy0 = min(wy0,y); wx1 = max(wx1,x); wy1 = max(wy1,y); count += 1
+            }
+        }}
+        let window = count >= 20 && wx1-wx0 >= 8 && wy1-wy0 >= 8 ? CGRect(x: wx0,y: wy0,width: wx1-wx0+1,height: wy1-wy0+1) : nil
+        let geometry = WashShelfArtGeometry(pixels: CGSize(width: cg.width,height: cg.height),bounds: bounds,window: window)
+        cachedWashShelfGeometry = geometry
+        return geometry
     }
 
     private func makeStackToyObject(in card: SKNode, cardSize: CGSize) {
@@ -1697,6 +1827,8 @@ final class ToyShelfScene: BaseToyScene {
             }
         case ToyRegistry.feedThePeopleID:
             descendants(of: card, as: CharacterNode.self).first?.playFriendshipReaction(force: true)
+        case ToyRegistry.washID:
+            animateWashShelfFace(in: card)
         case ToyRegistry.stackID:
             descendants(of: card, as: StackPieceNode.self)
                 .max(by: { $0.position.y < $1.position.y })?
@@ -1717,13 +1849,8 @@ final class ToyShelfScene: BaseToyScene {
     }
 
     private func weightedShelfInvitationToys() -> [ToyDescriptor] {
-        let shelfToys = ToyRegistry.childShelfToys
-        guard let stackIndex = shelfToys.firstIndex(where: { $0.id == ToyRegistry.stackID }) else { return shelfToys }
-
-        var weighted = shelfToys
-        let insertIndex = min(weighted.count, stackIndex + 2)
-        weighted.insert(shelfToys[stackIndex], at: insertIndex)
-        return weighted
+        // Each launched toy gets one quiet invitation; parked Stack keeps its code paths.
+        ToyRegistry.childShelfToys
     }
 
     private func playInvitationHalo(around card: SKNode, color: UIColor) {
@@ -1929,6 +2056,8 @@ final class ToyShelfScene: BaseToyScene {
                     includesRipple: false
                 )
             }
+        case ToyRegistry.washID:
+            animateWashShelfFace(in: card)
         case ToyRegistry.stackID:
             let stack = descendants(of: card, as: StackPieceNode.self).sorted { $0.position.y < $1.position.y }
             for (index, piece) in stack.enumerated() {

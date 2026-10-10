@@ -1,0 +1,27 @@
+Little Wash build 7 — vehicle registration verification
+
+Native ice-cream van: 1586 x 992 RGBA. Source SHA256:
+6de48d989a5ec0049e9f0e7f163a362c28d2dd738e7a4708a989f7ead99ef6d6
+
+Source crop: (46, 12)-(1550, 894). Body placement in canonical canvas:
+(160, 16), width 1280, height 751. Canvas 1600 x 1000.
+All six rigs measured from native sources; y measured from canvas top.
+Face and wheel radii are fractions of canvas height. Wheel bottoms 0.88.
+Only rectangular crop, proportional Lanczos resampling, and transparent
+padding applied. No background keying or alpha erasing. Original preserved.
+
+Vehicle-rigs-contact-sheet.png inspected: face circles lie on windshields,
+wheels align under body arches, shared ground line aligns all six vehicles.
+Diagnostic placeholder wheels do not represent the final wheel artwork.
+
+python3 Tools/verify_wash.py
+Little Wash: 13190 production-model checks passed; sponge-only completion in 5 full-vehicle passes. Device play and listening review remain with the founder.
+Little Wash: 65 registered-asset/provenance checks passed.
+
+plutil -lint Lull.xcodeproj/project.pbxproj: OK
+Xcode object inspection: both Wash Swift files present once in Lull build
+sources, under Toys/Wash; Debug and Release build numbers are 7.
+project.yml CURRENT_PROJECT_VERSION is also 7.
+
+SDK compilation and TestFlight are coordinated by the parent task.
+The founder owns gameplay, orientation, frame-rate, and listening testing.

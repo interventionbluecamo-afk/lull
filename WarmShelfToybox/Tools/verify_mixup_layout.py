@@ -14,7 +14,7 @@ def block(text,start):
  while d:
   d+=(text[i]=='{')-(text[i]=='}');i+=1
  return text[a:i]
-need=['private var controlRadius:','private var controlTouchRadius:','private var floorY:','private var mixScale:','private var characterRootY:','private func controlPosition','private var miniFrameBaseWidth:','private var creationDisplayCapacity:','private func shelfSlotPositions']
+need=['private var controlRadius:','private var controlTouchRadius:','private var floorY:','private var mixScale:','private var characterRootY:','private var roomDecorScale:','private var pedestalWidth:','private var pedestalBounds:','private func controlPosition','private var miniFrameBaseWidth:','private var creationDisplayCapacity:','private func shelfSlotPositions']
 methods='\n'.join(block(s,x).replace('private ','') for x in need)
 helpers='\n'.join(block(base,x) for x in ['var isLandscapeLayout:','var isTabletLayout:','func safePlayRect'])
 code='''import Foundation
@@ -52,14 +52,22 @@ let fixtures: [(CGSize, Insets)] = [
  (CGSize(width: 744, height: 1133), Insets(top:24,left:0,bottom:20,right:0)),
  (CGSize(width: 1133, height: 744), Insets(top:24,left:0,bottom:20,right:0)),
  (CGSize(width: 1024, height: 1366), Insets(top:24,left:0,bottom:20,right:0)),
- (CGSize(width: 1366, height: 1024), Insets(top:24,left:0,bottom:20,right:0))
+ (CGSize(width: 1366, height: 1024), Insets(top:24,left:0,bottom:20,right:0)),
+ (CGSize(width: 507, height: 375), Insets(top:0,left:0,bottom:21,right:0)),
+ (CGSize(width: 320, height: 1024), Insets(top:24,left:0,bottom:20,right:0)),
+ (CGSize(width: 744, height: 393), Insets(top:0,left:59,bottom:21,right:59))
 ]
 for (size, safe) in fixtures {
  let layout = Layout(size: size, safeInsets: safe,
-                     characterEnvelope: CGRect(x:-60,y:-98,width:120,height:239))
+                     characterEnvelope: CGRect(x:-60,y:-98,width:120,height:239.1))
  let play = layout.safePlayRect()
  let artRight = size.width / 2 + 60 * layout.mixScale * 1.014
  let control = layout.controlPosition(for: .body)
+ check(play.contains(layout.pedestalBounds), "wooden stage outside safe play \\(size)")
+ let upperLimit = layout.isLandscapeLayout ? play.maxY - 16
+     : play.maxY - layout.miniFrameBaseWidth * 1.42 - 16
+ let motionTop = layout.floorY + (layout.characterEnvelope.height * 1.014 + 36) * layout.mixScale
+ check(motionTop <= upperLimit - 12 + 0.001, "live character motion cut off \\(size)")
  check(control.x - layout.controlRadius - artRight >= 12, "control crosses painted body \\(size)")
  check(layout.controlRadius * 2 >= 44, "visual control too small")
  check(layout.controlTouchRadius * 2 >= 44, "touch control too small")
@@ -69,8 +77,8 @@ for (size, safe) in fixtures {
   check(play.contains(CGPoint(x:center.x-layout.controlRadius,y:center.y-layout.controlRadius)), "control bottom outside safe play \\(size)")
   check(play.contains(CGPoint(x:center.x+layout.controlRadius,y:center.y+layout.controlRadius)), "control top outside safe play \\(size)")
  }
- check(centers[0].y-centers[1].y >= layout.controlTouchRadius*2, "head/body touch controls overlap")
- check(centers[1].y-centers[2].y >= layout.controlTouchRadius*2, "body/legs touch controls overlap")
+ check(centers[0].y-centers[1].y >= layout.controlTouchRadius*2-0.001, "head/body touch controls overlap")
+ check(centers[1].y-centers[2].y >= layout.controlTouchRadius*2-0.001, "body/legs touch controls overlap")
  let capacity=layout.creationDisplayCapacity
  let positions=layout.shelfSlotPositions(count:capacity)
  let shelfPosition = layout.isLandscapeLayout
@@ -81,6 +89,10 @@ for (size, safe) in fixtures {
                    y:shelfPosition.y+position.y-layout.miniFrameSize.height/2,
                    width:layout.miniFrameSize.width,height:layout.miniFrameSize.height)
   check(play.contains(frame), "saved card outside safe play \\(size)")
+  let ledge = CGRect(x:frame.minX-layout.miniFrameSize.width*0.12,
+                     y:frame.midY-layout.miniFrameSize.height*0.55-4,
+                     width:layout.miniFrameSize.width*1.24,height:8)
+  check(play.contains(ledge), "saved card ledge outside safe play \\(size)")
   if layout.isLandscapeLayout {
    check(frame.maxX+12 < size.width/2-60*layout.mixScale, "card touches character")
   } else {

@@ -1,0 +1,348 @@
+{
+  "description": "Build 7 art imports. Native transparency/colors preserved. Only rectangular crop, uniform resize and transparent padding; opaque bay copied byte-for-byte. Shelf framing retains original canvas aspect.",
+  "foodOccupancyReference": {
+    "imageset": "feed-apple",
+    "sourceSize": [
+      1254,
+      1051
+    ],
+    "measuredAlphaBounds": [
+      248,
+      4,
+      1017,
+      824
+    ],
+    "measurementAlphaThreshold": 64,
+    "visibleLongSideFraction": 0.6539074960127592
+  },
+  "assets": [
+    {
+      "imageset": "wash-bay",
+      "sourceFile": "wash-bay-source.png",
+      "generatedSourceFile": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-44d717a9-2b54-4645-83f2-b77bae980063.png",
+      "sourceSHA256": "26592d1089d4f2b1f44452cbe4bc5439c138e7e6c40cf726100edf0bf2b8f990",
+      "sourceSize": [
+        1448,
+        1086
+      ],
+      "sourceMode": "RGB",
+      "preparation": "preserve_native",
+      "alphaEdited": false,
+      "colorEdited": false,
+      "operations": [
+        "byte_identical_copy"
+      ]
+    },
+    {
+      "imageset": "wash-mud-1",
+      "sourceFile": "wash-mud-1-source.png",
+      "generatedSourceFile": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-29ce6fbc-a97b-460d-b913-b6ed9315d095.png",
+      "sourceSHA256": "4c04e0e2ba49d8e2a41e482986d5a95e2d3cded8f04505809bcb6646fa2f5c96",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceMode": "RGBA",
+      "preparation": "pad_visible",
+      "alphaEdited": false,
+      "colorEdited": false,
+      "measuredAlphaBounds": [
+        48,
+        34,
+        1228,
+        1210
+      ],
+      "measurementAlphaThreshold": 8,
+      "sourceCrop": [
+        44,
+        30,
+        1232,
+        1214
+      ],
+      "canvasSize": [
+        512,
+        512
+      ],
+      "visibleLongSide": 471,
+      "operations": [
+        "rectangular_crop",
+        "proportional_resize",
+        "transparent_padding"
+      ]
+    },
+    {
+      "imageset": "wash-mud-2",
+      "sourceFile": "wash-mud-2-source.png",
+      "generatedSourceFile": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-d00047aa-f2c0-4b4c-a4ab-441f5aeaa43d.png",
+      "sourceSHA256": "fe1c5ab4e06bd3d0f188b7cefdb4e59952f324d21a8325e58e451cdc7d5d5463",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceMode": "RGBA",
+      "preparation": "pad_visible",
+      "alphaEdited": false,
+      "colorEdited": false,
+      "measuredAlphaBounds": [
+        8,
+        333,
+        1248,
+        925
+      ],
+      "measurementAlphaThreshold": 8,
+      "sourceCrop": [
+        4,
+        329,
+        1252,
+        929
+      ],
+      "canvasSize": [
+        512,
+        512
+      ],
+      "visibleLongSide": 471,
+      "operations": [
+        "rectangular_crop",
+        "proportional_resize",
+        "transparent_padding"
+      ]
+    },
+    {
+      "imageset": "wash-mud-3",
+      "sourceFile": "wash-mud-3-source.png",
+      "generatedSourceFile": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-8142e8c5-b3fc-4506-9641-dd4b49bb0bf1.png",
+      "sourceSHA256": "ebad4b8a0b2b5d017dff2b2cc15a74f26a0e103a70938e3946ef9cdf85a518f6",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceMode": "RGBA",
+      "preparation": "pad_visible",
+      "alphaEdited": false,
+      "colorEdited": false,
+      "measuredAlphaBounds": [
+        31,
+        66,
+        1229,
+        1136
+      ],
+      "measurementAlphaThreshold": 8,
+      "sourceCrop": [
+        27,
+        62,
+        1233,
+        1140
+      ],
+      "canvasSize": [
+        512,
+        512
+      ],
+      "visibleLongSide": 471,
+      "operations": [
+        "rectangular_crop",
+        "proportional_resize",
+        "transparent_padding"
+      ]
+    },
+    {
+      "imageset": "wash-mud-4",
+      "sourceFile": "wash-mud-4-source.png",
+      "generatedSourceFile": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-cca78ab7-c2e5-448e-b0f4-5d71deb5c46a.png",
+      "sourceSHA256": "eb8f6a139a8892a66a04290e6ccd7088cb5e92da4f9b143a12b8e4a3d94b64d5",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceMode": "RGBA",
+      "preparation": "pad_visible",
+      "alphaEdited": false,
+      "colorEdited": false,
+      "measuredAlphaBounds": [
+        31,
+        98,
+        1232,
+        1195
+      ],
+      "measurementAlphaThreshold": 8,
+      "sourceCrop": [
+        27,
+        94,
+        1236,
+        1199
+      ],
+      "canvasSize": [
+        512,
+        512
+      ],
+      "visibleLongSide": 471,
+      "operations": [
+        "rectangular_crop",
+        "proportional_resize",
+        "transparent_padding"
+      ]
+    },
+    {
+      "imageset": "shelf-wash-v2",
+      "sourceFile": "shelf-wash-v2-source.png",
+      "generatedSourceFile": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-f59bd404-d756-4be3-8fe2-8dfdfeb83a20.png",
+      "sourceSHA256": "1d3a9b4d90a000217824a88c0a3a3a7d65748333f4a1fd4e2de2ded0dab25d45",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceMode": "RGBA",
+      "preparation": "resize_canvas",
+      "alphaEdited": false,
+      "colorEdited": false,
+      "maximumCanvasSide": 1024,
+      "operations": [
+        "proportional_resize"
+      ]
+    },
+    {
+      "imageset": "shelf-dropdots-v2",
+      "sourceFile": "shelf-dropdots-v2-source.png",
+      "generatedSourceFile": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-e1f12e67-bece-473e-810d-7ed4a8634e7d.png",
+      "sourceSHA256": "1f05ee7f63ff6d002d9b3ced6b9ba5eea2aeb0e5921367fa7b29b1412adc3967",
+      "sourceSize": [
+        1312,
+        1199
+      ],
+      "sourceMode": "RGBA",
+      "preparation": "resize_canvas",
+      "alphaEdited": false,
+      "colorEdited": false,
+      "maximumCanvasSide": 1024,
+      "operations": [
+        "proportional_resize"
+      ]
+    },
+    {
+      "imageset": "feed-pear",
+      "sourceFile": "feed-pear-source.png",
+      "generatedSourceFile": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-36e194b2-6042-45d7-869d-f0ec4345ecfa.png",
+      "sourceSHA256": "f204c99d12dc311f2cf9c0932ed96c5f566ba8f077bc4ba5720eda950aa149b4",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceMode": "RGBA",
+      "preparation": "pad_visible",
+      "alphaEdited": false,
+      "colorEdited": false,
+      "measuredAlphaBounds": [
+        197,
+        67,
+        1057,
+        1207
+      ],
+      "measurementAlphaThreshold": 64,
+      "sourceCrop": [
+        192,
+        62,
+        1062,
+        1212
+      ],
+      "canvasSize": [
+        512,
+        512
+      ],
+      "visibleLongSide": 335,
+      "operations": [
+        "rectangular_crop",
+        "proportional_resize",
+        "transparent_padding"
+      ]
+    },
+    {
+      "imageset": "feed-grape",
+      "sourceFile": "feed-grape-source.png",
+      "generatedSourceFile": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-0c237f34-45b2-42c4-93a4-d52072fe7d12.png",
+      "sourceSHA256": "93e9f71d2ff4aee23d119af5e7c5ac0861f2e642692173aafcd9025bf0d19313",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceMode": "RGBA",
+      "preparation": "pad_visible",
+      "alphaEdited": false,
+      "colorEdited": false,
+      "measuredAlphaBounds": [
+        195,
+        48,
+        1064,
+        1162
+      ],
+      "measurementAlphaThreshold": 64,
+      "sourceCrop": [
+        189,
+        41,
+        1071,
+        1170
+      ],
+      "canvasSize": [
+        512,
+        512
+      ],
+      "visibleLongSide": 335,
+      "operations": [
+        "rectangular_crop",
+        "proportional_resize",
+        "transparent_padding"
+      ]
+    },
+    {
+      "imageset": "shelf-mixup-v2",
+      "sourceFile": "shelf-mixup-v2-source.png",
+      "generatedSourceFile": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-da708322-04f1-434f-88c2-bdf2bb630d37.png",
+      "sourceSHA256": "74b519b636dc08627f64ca9fbb6bc6edd385b12dcec9b385dcff9edc0fe08d92",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceMode": "RGBA",
+      "preparation": "resize_canvas",
+      "alphaEdited": false,
+      "colorEdited": false,
+      "maximumCanvasSide": 1024,
+      "operations": [
+        "proportional_resize"
+      ]
+    },
+    {
+      "imageset": "shelf-bubbles-v2",
+      "sourceFile": "shelf-bubbles-v2-source.png",
+      "generatedSourceFile": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-0e350df2-ff3c-4ca2-8850-f7621e9409f7.png",
+      "sourceSHA256": "c3e27301c34cbc11142a5e889eeb83e2cdaef080d7f8b83020d77f66496c7a42",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceMode": "RGBA",
+      "preparation": "resize_canvas",
+      "alphaEdited": false,
+      "colorEdited": false,
+      "maximumCanvasSide": 1024,
+      "operations": [
+        "proportional_resize"
+      ]
+    },
+    {
+      "imageset": "feed-stand-back",
+      "sourceFile": "feed-stand-back-source.png",
+      "generatedSourceFile": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-52b86a34-170e-426b-8ffa-effe1ccf0d05.png",
+      "sourceSHA256": "4568fbcc0eec7812e900d7142894f9c1d5a94df05c4624b96430088df90bbdd5",
+      "sourceSize": [
+        1499,
+        1049
+      ],
+      "sourceMode": "RGB",
+      "preparation": "preserve_native",
+      "alphaEdited": false,
+      "colorEdited": false,
+      "operations": [
+        "byte_identical_copy"
+      ]
+    }
+  ]
+}

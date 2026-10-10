@@ -592,7 +592,10 @@ enum LullSoundBook {
         "friend.robot", "friend.officer", "friend.firefighter", "friend.bunny.whole", "friend.bear.whole", "friend.songbird.whole",
         "friend.fox.whole", "friend.mouse.whole", "friend.frog.whole", "friend.robot.whole", "friend.officer.whole", "friend.firefighter.whole",
         "hum.knob", "hum.invite", "meadow.wake", "meadow.breeze", "meadow.invite", "meadow.paint",
-        "meadow.bloom", "meadow.spring", "meadow.fullspring", "meadow.frost", "meadow.landmark.wake"
+        "meadow.bloom", "meadow.spring", "meadow.fullspring", "meadow.frost", "meadow.landmark.wake",
+        "wash.arrive", "wash.foam", "wash.rinse", "wash.sparkle",
+        "wash.toot.fireTruck", "wash.toot.policeCar", "wash.toot.tractor",
+        "wash.toot.schoolBus", "wash.toot.digger", "wash.toot.iceCreamVan"
     ]
 
     /// How many variants each cue renders; plays rotate through them without repeating.
@@ -601,7 +604,7 @@ enum LullSoundBook {
         switch id {
         case "bubble.small", "bubble.medium", "bubble.large", "stack.settle.soft", "stack.settle.medium",
              "stack.settle.hard", "ui.tap", "dots.land.0", "dots.land.1", "dots.land.2", "dots.land.3",
-             "feed.chew.soft", "feed.chew.crunchy", "meadow.paint", "sleepy.tumble", "window.dial":
+             "feed.chew.soft", "feed.chew.crunchy", "meadow.paint", "sleepy.tumble", "window.dial", "wash.foam", "wash.rinse":
             return 5
         case "mix.flip", "ui.empty", "stack.lift", "feed.pickup", "sleepy.lift", "dots.pickup", "bubble.breath":
             return 4
@@ -711,6 +714,59 @@ enum LullSoundBook {
             return (S.whoosh(duration: 0.6, from: 380, to: 820, q: 0.7, rng: &rng), .effects, -9)
         case "bird":
             return (S.chirp(rng: &rng, count: 2), .voices, -7)
+
+        // — Little Wash ——————————————————————————————————————————————
+        // These answer clean patches and completed washes. Tools and bare touches
+        // remain silent; the scene rate-limits foam and plays rinse only on contact.
+        case "wash.arrive":
+            var x = S.feltThump(245 * jitter, duration: 0.18, rng: &rng)
+            S.mix(S.bubble(rng.range(330, 410), duration: 0.13, rise: 0.15, rng: &rng),
+                  into: &x, at: 0.025, gain: 0.3)
+            return (x, .effects, -7)
+        case "wash.foam":
+            return (S.bubble(rng.range(390, 510), duration: 0.1, rise: 0.12, rng: &rng), .effects, -12)
+        case "wash.rinse":
+            // Low round water bodies, no noise source or hiss. A short cue avoids
+            // a persistent loop; stopWashRinse() fades it when contact ends.
+            var x = S.tone(duration: 0.44, harmonics: [1, 0.12], attack: 0.045, release: 0.12) { p in
+                290 + 12 * sin(2 * Double.pi * p)
+            }
+            S.mix(S.bubble(rng.range(330, 390), duration: 0.15, rise: 0.1, rng: &rng),
+                  into: &x, at: 0.05, gain: 0.15)
+            S.mix(S.bubble(rng.range(360, 420), duration: 0.15, rise: 0.1, rng: &rng),
+                  into: &x, at: 0.22, gain: 0.12)
+            var low = S.Biquad.lowpass(1100)
+            for i in x.indices { x[i] = Float(low.process(Double(x[i]))) }
+            return (x, .effects, -13)
+        case "wash.sparkle":
+            return (arp([7, 9, 12, 10], step: 0.12, rng: &rng) { f, r in
+                S.softPluck(f, duration: 0.9, decay: 0.28, brightness: 0.15, rng: &r)
+            }, .music, -7)
+        case "wash.toot.fireTruck":
+            var x = S.voice(note(7), duration: 0.24, vowel: .oo, breath: 0, attack: 0.035, release: 0.1, rng: &rng)
+            S.mix(S.voice(note(5), duration: 0.30, vowel: .oo, breath: 0, attack: 0.035, release: 0.14, rng: &rng),
+                  into: &x, at: 0.19, gain: 0.85)
+            return (x, .voices, -7)
+        case "wash.toot.policeCar":
+            return (S.tone(duration: 0.30, harmonics: [1, 0.035], attack: 0.035, release: 0.14) { p in
+                note(10) * (1 + 0.025 * sin(Double.pi * p))
+            }, .voices, -9)
+        case "wash.toot.tractor":
+            var x = S.softPluck(note(5), duration: 0.18, decay: 0.06, brightness: 0.05, rng: &rng)
+            S.mix(S.softPluck(note(5), duration: 0.20, decay: 0.07, brightness: 0.05, rng: &rng),
+                  into: &x, at: 0.14, gain: 0.8)
+            return (x, .voices, -8)
+        case "wash.toot.schoolBus":
+            var x = S.tone(duration: 0.24, harmonics: [1, 0.15], attack: 0.03, release: 0.1) { _ in note(7) }
+            S.mix(S.tone(duration: 0.29, harmonics: [1, 0.13], attack: 0.035, release: 0.14) { _ in note(9) },
+                  into: &x, at: 0.18, gain: 0.8)
+            return (x, .voices, -8)
+        case "wash.toot.digger":
+            return (S.tone(duration: 0.24, harmonics: [1, 0.04], attack: 0.03, release: 0.12) { _ in note(9) }, .voices, -9)
+        case "wash.toot.iceCreamVan":
+            return (arp([9, 12, 10], step: 0.13, rng: &rng) { f, r in
+                S.softPluck(f, duration: 0.7, decay: 0.22, brightness: 0.12, rng: &r)
+            }, .voices, -8)
 
         // — Feed ——————————————————————————————————————————————————
         case "feed.pickup":

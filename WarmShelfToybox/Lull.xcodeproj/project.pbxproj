@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FA0055FF796C86B767E38F97 /* WashModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BFE9CF96B7D408919F585DE /* WashModel.swift */; };
+		7BBC475313E3F3CD1DE92A28 /* WashScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67ECA913A658D580B7217CD4 /* WashScene.swift */; };
 		6A1CCAA26CBE11CF9CF564FB /* FeedCatalog.json in Resources */ = {isa = PBXBuildFile; fileRef = 50F741D0BBF7B3579304E01D /* FeedCatalog.json */; };
 		00972C35E5AE9D6074628727 /* ClayBlockNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64FDEAAF7AC93380BF514916 /* ClayBlockNode.swift */; };
 		03A012C22EAF5D97FF8B5EB5 /* DraggableNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF5BB6BAAAC8DE8EBD829BB0 /* DraggableNode.swift */; };
@@ -84,6 +86,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		1BFE9CF96B7D408919F585DE /* WashModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WashModel.swift; sourceTree = "<group>"; };
+		67ECA913A658D580B7217CD4 /* WashScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WashScene.swift; sourceTree = "<group>"; };
 		50F741D0BBF7B3579304E01D /* FeedCatalog.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = FeedCatalog.json; sourceTree = "<group>"; };
 		04CAF64EE4E752F6FA9D085A /* ToyShelfViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToyShelfViewController.swift; sourceTree = "<group>"; };
 		08ED9C47AB7832615DC9085E /* PhysicsCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysicsCategory.swift; sourceTree = "<group>"; };
@@ -163,6 +167,15 @@
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
+		D2C7F998CD49E3D2FF180D34 /* Wash */ = {
+			isa = PBXGroup;
+			children = (
+				1BFE9CF96B7D408919F585DE /* WashModel.swift */,
+				67ECA913A658D580B7217CD4 /* WashScene.swift */,
+			);
+			path = Wash;
+			sourceTree = "<group>";
+		};
 		006B0451C6D2D6DBAEF795F0 /* Glowboard */ = {
 			isa = PBXGroup;
 			children = (
@@ -425,6 +438,7 @@
 		F6E309230D0C6DCFA59D514D /* Toys */ = {
 			isa = PBXGroup;
 			children = (
+				D2C7F998CD49E3D2FF180D34 /* Wash */,
 				D222DD4492FA5EBCFABEBC3C /* Bloom */,
 				C6992D64EBA837AF8025C926 /* Bubbles */,
 				B47F8C1676472C3BCCC95278 /* ClayBlocks */,
@@ -557,6 +571,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FA0055FF796C86B767E38F97 /* WashModel.swift in Sources */,
+				7BBC475313E3F3CD1DE92A28 /* WashScene.swift in Sources */,
 				2AF346BFB4E7AA1E8E592363 /* AdultGate.swift in Sources */,
 				F63198BBC916269C96ACD48F /* AmbientAnimator.swift in Sources */,
 				69B041723E052738B7107957 /* AppDelegate.swift in Sources */,
@@ -635,7 +651,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_TEAM = A5CT5FK3SY;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Info.plist;
@@ -781,7 +797,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_TEAM = A5CT5FK3SY;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Info.plist;

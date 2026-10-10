@@ -17,6 +17,7 @@ final class ParentInfoViewController: UIViewController {
     private var statusMessage: String?
     private var isLoadingProducts = true
     private var isPurchaseInProgress = false
+    private var expandedSections: Set<Int> = []
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -62,11 +63,11 @@ final class ParentInfoViewController: UIViewController {
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
-            contentView.topAnchor.constraint(equalTo: scrollView.topAnchor),
-            contentView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
-            contentView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
-            contentView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
-            contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
+            contentView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            contentView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+            contentView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+            contentView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            contentView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
 
             stack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 20),
             stack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 22),
@@ -80,105 +81,112 @@ final class ParentInfoViewController: UIViewController {
     // MARK: - Page
 
     private func render() {
+        let scroll = view.viewWithTag(777) as? UIScrollView
+        let oldOffset = scroll?.contentOffset
+        let hadContent = (scroll?.contentSize.height ?? 0) > 0
+        let focusedID = (UIAccessibility.focusedElement(using: .notificationVoiceOver) as? UIView)?.accessibilityIdentifier
         stack.arrangedSubviews.forEach { view in
             stack.removeArrangedSubview(view)
             view.removeFromSuperview()
         }
 
         stack.addArrangedSubview(makeHeaderBar())
-        stack.setCustomSpacing(18, after: stack.arrangedSubviews.last!)
+        stack.setCustomSpacing(20, after: stack.arrangedSubviews.last!)
 
         // A grown-up has now seen the post-trial state; the shelf chip's quiet dot can rest.
         let state = LullDemoState.shared
         if !state.hasPurchasedFullToybox, state.hasTrialStarted, !state.isTrialActive {
             state.hasAcknowledgedTrialEnd = true
         }
-
-        stack.addArrangedSubview(makeStatusHero())
         if let statusMessage {
             stack.addArrangedSubview(makeNoticeCard(text: statusMessage))
         }
-        stack.addArrangedSubview(makePlayApproachCard())
 
-        stack.setCustomSpacing(26, after: stack.arrangedSubviews.last!)
-        stack.addArrangedSubview(makeCaption("QUIET HOURS"))
+        stack.addArrangedSubview(makeCaption("FAMILY CONTROLS"))
+        stack.addArrangedSubview(makeGroupCard([
+            makeSwitchGroupRow(
+                icon: "speaker.wave.2.fill", tint: WarmShelfPalette.waterBlue,
+                title: "Sound", detail: "Soft sounds during play",
+                isOn: AudioManager.shared.isEnabled, tag: 0,
+                action: #selector(toggleSound)
+            ),
+            makeSwitchGroupRow(
+                icon: "hand.tap.fill", tint: WarmShelfPalette.petal,
+                title: "Haptics", detail: "Gentle touch feedback",
+                isOn: HapticsManager.shared.isEnabled, tag: 0,
+                action: #selector(toggleHaptics)
+            ),
+            makeSwitchGroupRow(
+                icon: "wind", tint: WarmShelfPalette.sage,
+                title: "Calmer motion", detail: "Less movement; also follows Reduce Motion",
+                isOn: state.isReducedMotion, tag: 0,
+                action: #selector(toggleReducedMotion)
+            )
+        ]))
         stack.addArrangedSubview(makeGroupCard([
             makeOptionGroupRow(
                 icon: "hourglass", tint: WarmShelfPalette.butter,
-                title: "Play timer",
-                detail: "When time is up, Lull rests behind a calm moon until a grown-up wakes it.",
+                title: "Play timer", detail: "Lull rests when time is up. A grown-up can wake it.",
                 labels: ["Off", "15m", "30m", "45m", "60m"],
                 selectedIndex: [0, 15, 30, 45, 60].firstIndex(of: state.playTimerMinutes) ?? 0,
                 action: #selector(playTimerPicked(_:))
             ),
             makeOptionGroupRow(
                 icon: "moon.zzz.fill", tint: WarmShelfPalette.lavender,
-                title: "Wind-down hour",
-                detail: "Evenings after this hour drift warmer and sleepier across the whole toybox.",
+                title: "Wind-down hour", detail: "Play feels warmer and sleepier after this time.",
                 labels: ["5 pm", "6 pm", "7 pm", "8 pm", "9 pm"],
                 selectedIndex: [17, 18, 19, 20, 21].firstIndex(of: state.windDownHour) ?? 2,
                 action: #selector(windDownPicked(_:))
             )
         ]))
 
-        stack.setCustomSpacing(26, after: stack.arrangedSubviews.last!)
-        stack.addArrangedSubview(makeCaption("THE SHELF"))
         var toyRows: [UIView] = []
         let hiddenToys = state.hiddenToyIDs
         for (index, toyID) in ToyRegistry.launchToyIDs.enumerated() {
             guard let toy = ToyRegistry.toy(id: toyID) else { continue }
             let isVisible = !hiddenToys.contains(toyID)
+            let detail: String
+            if ToyRegistry.isToyLocked(toyID) {
+                detail = isVisible ? "Full Toybox · shown when unlocked" : "Full Toybox · tucked away"
+            } else {
+                detail = isVisible ? "On the child's shelf" : "Tucked away"
+            }
             toyRows.append(makeSwitchGroupRow(
                 icon: "circle.grid.2x2.fill", tint: toyAccent(index),
-                title: toy.parentName,
-                detail: ToyRegistry.isToyLocked(toyID)
-                    ? "Part of the full toybox"
-                    : (isVisible ? "On the child's shelf" : "Tucked away for now"),
+                title: toy.parentName, detail: detail,
                 isOn: isVisible, tag: index,
                 action: #selector(toyRowTapped(_:))
             ))
         }
-        stack.addArrangedSubview(makeGroupCard(toyRows))
-        stack.addArrangedSubview(makeFootnote("The free shelf never goes empty — the last visible toy stays."))
+        let shownCount = ToyRegistry.launchToyIDs.filter {
+            !hiddenToys.contains($0) && !ToyRegistry.isToyLocked($0)
+        }.count
+        stack.addArrangedSubview(makeDisclosureCard(
+            title: "Choose shelf toys", detail: "\(shownCount) toys on the child's shelf", section: 0,
+            content: [makeGroupCard(toyRows),
+                      makeFootnote("Choose which toys appear. At least one free toy stays visible.")]
+        ))
 
-        stack.setCustomSpacing(26, after: stack.arrangedSubviews.last!)
-        stack.addArrangedSubview(makeCaption("FEEL"))
-        stack.addArrangedSubview(makeGroupCard([
-            makeSwitchGroupRow(
-                icon: "speaker.wave.2.fill", tint: WarmShelfPalette.waterBlue,
-                title: "Sound",
-                detail: "Gentle pops, ripples, food sounds, and soft taps",
-                isOn: AudioManager.shared.isEnabled, tag: 0,
-                action: #selector(toggleSound)
-            ),
-            makeSwitchGroupRow(
-                icon: "hand.tap.fill", tint: WarmShelfPalette.petal,
-                title: "Haptics",
-                detail: "Subtle touch feedback on supported devices",
-                isOn: HapticsManager.shared.isEnabled, tag: 0,
-                action: #selector(toggleHaptics)
-            ),
-            makeSwitchGroupRow(
-                icon: "wind", tint: WarmShelfPalette.sage,
-                title: "Calmer motion",
-                detail: "Softens idle movement and reduces larger effects. Also follows system Reduce Motion.",
-                isOn: LullDemoState.shared.isReducedMotion, tag: 0,
-                action: #selector(toggleReducedMotion)
-            )
-        ]))
+        stack.setCustomSpacing(24, after: stack.arrangedSubviews.last!)
+        stack.addArrangedSubview(makeStatusHero())
+        stack.setCustomSpacing(24, after: stack.arrangedSubviews.last!)
 
-        stack.setCustomSpacing(26, after: stack.arrangedSubviews.last!)
-        stack.addArrangedSubview(makeCaption("WHAT YOUR CHILD NEVER SEES"))
-        stack.addArrangedSubview(makePromisesCard())
-
-        stack.setCustomSpacing(26, after: stack.arrangedSubviews.last!)
+        let welcome = makeActionButton(title: "See the welcome again", style: .text)
+        welcome.addTarget(self, action: #selector(resetOnboarding), for: .touchUpInside)
+        stack.addArrangedSubview(makeDisclosureCard(
+            title: "About Lull", detail: "A quiet toybox for ages 2–6", section: 1,
+            content: [makeBody("Wash, post, make music, and explore. Let your child choose a familiar toy and repeat at their own pace."),
+                      makeBody("No ads, scores, streaks, or child-facing purchases."), welcome]
+        ))
+        let policy = makeActionButton(title: "Read privacy policy", style: .text)
+        policy.addTarget(self, action: #selector(showPrivacy), for: .touchUpInside)
+        stack.addArrangedSubview(makeDisclosureCard(
+            title: "Privacy", detail: "No child accounts or tracking", section: 2,
+            content: [makeBody("Family settings and Mix-Up creations stay on this device. Apple handles purchases."), policy]
+        ))
         stack.addArrangedSubview(makeGroupCard([
             makeChevronRow(icon: "envelope.fill", tint: WarmShelfPalette.butter,
-                           title: "Support — \(supportEmail)", action: #selector(contactSupport)),
-            makeChevronRow(icon: "hand.raised.fill", tint: WarmShelfPalette.sage,
-                           title: "Privacy", action: #selector(showPrivacy)),
-            makeChevronRow(icon: "arrow.counterclockwise", tint: WarmShelfPalette.petal,
-                           title: "See the welcome again", action: #selector(resetOnboarding))
+                           title: "Contact support", action: #selector(contactSupport))
         ]))
 
         #if DEBUG
@@ -191,11 +199,36 @@ final class ParentInfoViewController: UIViewController {
         stack.addArrangedSubview(devButton)
         #endif
 
-        let doneButton = makeActionButton(title: "Done", style: .text)
+        let doneButton = makeActionButton(title: "Back to play", style: .primary)
         doneButton.addTarget(self, action: #selector(close), for: .touchUpInside)
         stack.addArrangedSubview(doneButton)
-
         stack.addArrangedSubview(makeFootnote("lull — made with patience by two people and a toddler.", centered: true))
+
+        // Updating a switch or loading a price should not send a family back to the top.
+        if hadContent, let scroll, let oldOffset {
+            view.layoutIfNeeded()
+            let minY = -scroll.adjustedContentInset.top
+            let maxY = max(minY, scroll.contentSize.height - scroll.bounds.height + scroll.adjustedContentInset.bottom)
+            scroll.setContentOffset(CGPoint(x: oldOffset.x, y: min(maxY, max(minY, oldOffset.y))), animated: false)
+        }
+        if let focusedID, let replacement = descendant(in: stack, identifier: focusedID) {
+            UIAccessibility.post(notification: .layoutChanged, argument: replacement)
+        }
+    }
+
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        if isViewLoaded, stack.superview != nil, previousTraitCollection?.preferredContentSizeCategory != traitCollection.preferredContentSizeCategory {
+            render()
+        }
+    }
+
+    private func descendant(in view: UIView, identifier: String) -> UIView? {
+        if view.accessibilityIdentifier == identifier { return view }
+        for child in view.subviews {
+            if let match = descendant(in: child, identifier: identifier) { return match }
+        }
+        return nil
     }
 
     private func toyAccent(_ index: Int) -> UIColor {
@@ -210,18 +243,21 @@ final class ParentInfoViewController: UIViewController {
         let bar = UIView()
 
         let seal = LullHostMarkView(side: 46)
+        seal.isHidden = traitCollection.preferredContentSizeCategory.isAccessibilityCategory
+        seal.accessibilityElementsHidden = true
 
         let title = UILabel()
-        title.text = "The grown-up room"
-        title.font = UIFont(name: "Georgia", size: 30) ?? .systemFont(ofSize: 30, weight: .semibold)
+        title.text = "Family settings"
+        title.font = scaledFont(UIFont(name: "Georgia", size: 28) ?? .systemFont(ofSize: 28, weight: .semibold), style: .title1)
+        title.adjustsFontForContentSizeCategory = true
+        title.accessibilityTraits = .header
         title.textColor = WarmShelfPalette.clayInk
-        title.numberOfLines = 1   // scale, never wrap — "grown-" split in half read broken
-        title.adjustsFontSizeToFitWidth = true
-        title.minimumScaleFactor = 0.6
+        title.numberOfLines = 0
 
         let sub = UILabel()
-        sub.text = "For ages 2–6. Shape the shelf, sound, and quiet hours for your family."
-        sub.font = .systemFont(ofSize: 13.5, weight: .regular)
+        sub.text = "A quiet toybox for ages 2–6."
+        sub.font = scaledFont(.systemFont(ofSize: 14), style: .subheadline)
+        sub.adjustsFontForContentSizeCategory = true
         sub.textColor = WarmShelfPalette.cocoa.withAlphaComponent(0.78)
         sub.numberOfLines = 0
 
@@ -234,7 +270,9 @@ final class ParentInfoViewController: UIViewController {
             withConfiguration: UIImage.SymbolConfiguration(pointSize: 14, weight: .bold)), for: .normal)
         closeChip.tintColor = WarmShelfPalette.cocoa
         closeChip.backgroundColor = WarmShelfPalette.paperHighlight.withAlphaComponent(0.8)
-        closeChip.layer.cornerRadius = 19
+        closeChip.layer.cornerRadius = 22
+        closeChip.accessibilityLabel = "Back to play"
+        closeChip.accessibilityIdentifier = "parent-close"
         closeChip.layer.borderWidth = 1
         closeChip.layer.borderColor = WarmShelfPalette.softLine.withAlphaComponent(0.4).cgColor
         closeChip.addTarget(self, action: #selector(close), for: .touchUpInside)
@@ -246,21 +284,21 @@ final class ParentInfoViewController: UIViewController {
         NSLayoutConstraint.activate([
             seal.leadingAnchor.constraint(equalTo: bar.leadingAnchor),
             seal.centerYAnchor.constraint(equalTo: bar.centerYAnchor),
-            seal.widthAnchor.constraint(equalToConstant: 46),
+            seal.widthAnchor.constraint(equalToConstant: traitCollection.preferredContentSizeCategory.isAccessibilityCategory ? 0 : 46),
             seal.heightAnchor.constraint(equalToConstant: 46),
-            titles.leadingAnchor.constraint(equalTo: seal.trailingAnchor, constant: 12),
+            titles.leadingAnchor.constraint(equalTo: seal.trailingAnchor, constant: traitCollection.preferredContentSizeCategory.isAccessibilityCategory ? 0 : 12),
             titles.topAnchor.constraint(equalTo: bar.topAnchor),
             titles.bottomAnchor.constraint(equalTo: bar.bottomAnchor),
             titles.trailingAnchor.constraint(equalTo: closeChip.leadingAnchor, constant: -10),
             closeChip.trailingAnchor.constraint(equalTo: bar.trailingAnchor),
             closeChip.topAnchor.constraint(equalTo: bar.topAnchor),
-            closeChip.widthAnchor.constraint(equalToConstant: 38),
-            closeChip.heightAnchor.constraint(equalToConstant: 38)
+            closeChip.widthAnchor.constraint(equalToConstant: 44),
+            closeChip.heightAnchor.constraint(equalToConstant: 44)
         ])
         return bar
     }
 
-    // MARK: - Status hero (the membership card)
+    // MARK: - Full Toybox
 
     private func makeStatusHero() -> UIView {
         let card = UIView()
@@ -282,31 +320,33 @@ final class ParentInfoViewController: UIViewController {
         let eyebrow = UILabel()
         let title = UILabel()
         let body = UILabel()
+        title.text = "Full Toybox"
         if purchased {
-            eyebrow.text = "FULL TOYBOX"
-            title.text = "The whole shelf is open."
-            body.text = "Your full toybox is unlocked. Return to familiar toys whenever you like. Thank you for backing calm, unhurried play."
+            eyebrow.text = "UNLOCKED"
+            body.text = "All nine toys are unlocked. Thank you for supporting Lull."
         } else if state.isTrialActive {
             let d = state.trialDaysRemaining
             eyebrow.text = "FREE WEEK · \(d) DAY\(d == 1 ? "" : "S") LEFT"
-            title.text = "Keep a shelf they know."
-            body.text = "All nine toys are open during the free week. One optional purchase keeps Feed, Sleepy Box, Window, Mix-Up, Hum, and Meadow alongside the three free toys."
+            body.text = "Keep all nine toys for familiar friends, music, and quiet discovery. Bubbles, Little Wash, and Drop Dots stay free after your week."
         } else if state.hasTrialStarted {
-            eyebrow.text = "FREE SHELF"
-            title.text = "Their whole toybox, ready."
-            body.text = "The free week has ended. Bubbles, Stack, and Drop Dots stay free. One optional purchase opens all nine toys, including familiar friends, music, and the meadow."
+            eyebrow.text = "YOUR FREE WEEK HAS ENDED"
+            body.text = "Bubbles, Little Wash, and Drop Dots stay free. Open six more toys for familiar friends, music, and quiet discovery."
         } else {
-            eyebrow.text = "WELCOME"
-            title.text = "The calm toybox."
-            body.text = "Try all nine toys for seven days when you finish the welcome. No payment information is needed. Bubbles, Stack, and Drop Dots stay free afterward."
+            eyebrow.text = "TRY ALL NINE TOYS"
+            body.text = "Finish the welcome to try all nine toys free for seven days. Bubbles, Little Wash, and Drop Dots stay free afterward."
         }
-        eyebrow.font = .systemFont(ofSize: 11.5, weight: .heavy)
+        eyebrow.font = scaledFont(.systemFont(ofSize: 12, weight: .bold), style: .caption1)
+        eyebrow.adjustsFontForContentSizeCategory = true
+        eyebrow.numberOfLines = 0
         eyebrow.textColor = WarmShelfPalette.butter
-        title.font = UIFont(name: "Georgia", size: 30) ?? .systemFont(ofSize: 30, weight: .semibold)
+        title.font = scaledFont(UIFont(name: "Georgia", size: 28) ?? .systemFont(ofSize: 28, weight: .semibold), style: .title1)
+        title.adjustsFontForContentSizeCategory = true
+        title.accessibilityTraits = .header
         title.textColor = WarmShelfPalette.paperHighlight
         title.numberOfLines = 0
-        body.font = .systemFont(ofSize: 14.5, weight: .regular)
-        body.textColor = WarmShelfPalette.paperHighlight.withAlphaComponent(0.82)
+        body.font = scaledFont(.systemFont(ofSize: 15), style: .body)
+        body.adjustsFontForContentSizeCategory = true
+        body.textColor = WarmShelfPalette.paperHighlight.withAlphaComponent(0.9)
         body.numberOfLines = 0
 
         let content = UIStackView(arrangedSubviews: [eyebrow, title, body])
@@ -314,12 +354,9 @@ final class ParentInfoViewController: UIViewController {
         content.spacing = 8
         content.setCustomSpacing(5, after: eyebrow)
 
-        if state.isTrialActive, !purchased {
-            content.addArrangedSubview(makeTrialDots(daysRemaining: state.trialDaysRemaining))
+        if !purchased {
+            content.addArrangedSubview(makeLivingPreview())
         }
-
-        content.addArrangedSubview(makeToyboxBenefits())
-        content.addArrangedSubview(makeLivingPreview())
 
         if !purchased {
             let cta = UIButton(type: .system)
@@ -329,12 +366,15 @@ final class ParentInfoViewController: UIViewController {
             } else if isLoadingProducts {
                 ctaTitle = "Loading App Store price…"
             } else if let price {
-                ctaTitle = state.isTrialActive ? "Keep all nine toys · \(price)" : "Open all nine toys · \(price)"
+                ctaTitle = "Unlock Full Toybox · \(price)"
             } else {
                 ctaTitle = "Purchase unavailable"
             }
             cta.setTitle(ctaTitle, for: .normal)
-            cta.titleLabel?.font = .systemFont(ofSize: 18, weight: .bold)
+            cta.titleLabel?.font = scaledFont(.systemFont(ofSize: 17, weight: .bold), style: .headline)
+            cta.titleLabel?.adjustsFontForContentSizeCategory = true
+            cta.contentEdgeInsets = UIEdgeInsets(top: 14, left: 12, bottom: 14, right: 12)
+            cta.accessibilityIdentifier = "full-toybox-purchase"
             cta.titleLabel?.numberOfLines = 0
             cta.titleLabel?.textAlignment = .center
             cta.backgroundColor = WarmShelfPalette.butter
@@ -351,12 +391,13 @@ final class ParentInfoViewController: UIViewController {
             reassurance.text = price != nil && !purchasesAllowed
                 ? "In-App Purchases are turned off in Screen Time on this device. The free toys stay open."
                 : price != nil
-                ? "One payment. No subscription or automatic renewal. The free week never charges you."
+                ? "One payment. No subscription. The free week never charges you."
                 : (isLoadingProducts
                     ? "The free week never turns into a charge. You can keep playing the free toys."
                     : "The full toybox purchase is unavailable right now. You can keep playing the free toys.")
-            reassurance.font = .systemFont(ofSize: 12.5, weight: .medium)
-            reassurance.textColor = WarmShelfPalette.paperHighlight.withAlphaComponent(0.62)
+            reassurance.font = scaledFont(.systemFont(ofSize: 13, weight: .medium), style: .footnote)
+            reassurance.adjustsFontForContentSizeCategory = true
+            reassurance.textColor = WarmShelfPalette.paperHighlight.withAlphaComponent(0.86)
             reassurance.textAlignment = .center
             reassurance.numberOfLines = 0
             content.addArrangedSubview(reassurance)
@@ -372,7 +413,9 @@ final class ParentInfoViewController: UIViewController {
         }
 
         let restore = makeActionButton(title: "Restore purchase", style: .text)
-        restore.setTitleColor(WarmShelfPalette.paperHighlight.withAlphaComponent(0.82), for: .normal)
+        restore.setTitleColor(WarmShelfPalette.paperHighlight.withAlphaComponent(0.95), for: .normal)
+        restore.accessibilityIdentifier = "restore-purchase"
+        restore.accessibilityHint = "Checks for an existing Full Toybox purchase with your Apple Account."
         restore.isEnabled = !isPurchaseInProgress
         restore.addTarget(self, action: #selector(restorePurchases), for: .touchUpInside)
         content.addArrangedSubview(restore)
@@ -385,100 +428,6 @@ final class ParentInfoViewController: UIViewController {
             content.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 20),
             content.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -20),
             content.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -20)
-        ])
-        return card
-    }
-
-    private func makeToyboxBenefits() -> UIView {
-        let benefits: [(String, String)] = [
-            ("Choose, try, repeat", "Pictures and touch guide play. Familiar toys are ready for another try."),
-            ("Your family's pace", "Choose the shelf, sound, calmer motion, and a play timer.")
-        ]
-        let rows = benefits.map { title, detail -> UIView in
-            let heading = UILabel()
-            heading.text = title
-            heading.font = .systemFont(ofSize: 14, weight: .bold)
-            heading.textColor = WarmShelfPalette.paperHighlight
-            let body = UILabel()
-            body.text = detail
-            body.font = .systemFont(ofSize: 13, weight: .regular)
-            body.textColor = WarmShelfPalette.paperHighlight.withAlphaComponent(0.76)
-            body.numberOfLines = 0
-            let row = UIStackView(arrangedSubviews: [heading, body])
-            row.axis = .vertical
-            row.spacing = 3
-            return row
-        }
-        let column = UIStackView(arrangedSubviews: rows)
-        column.axis = .vertical
-        column.spacing = 10
-        return column
-    }
-
-    /// Seven little days; the spent ones filled, today glowing butter.
-    private func makeTrialDots(daysRemaining: Int) -> UIView {
-        let row = UIStackView()
-        row.axis = .horizontal
-        row.spacing = 7
-        row.alignment = .center
-        let spent = max(0, min(7, 7 - daysRemaining))
-        for i in 0..<7 {
-            let dot = UIView()
-            let isToday = i == spent
-            dot.backgroundColor = i < spent
-                ? WarmShelfPalette.paperHighlight.withAlphaComponent(0.34)
-                : (isToday ? WarmShelfPalette.butter : WarmShelfPalette.paperHighlight.withAlphaComponent(0.14))
-            dot.layer.cornerRadius = isToday ? 6 : 4.5
-            dot.translatesAutoresizingMaskIntoConstraints = false
-            dot.widthAnchor.constraint(equalToConstant: isToday ? 12 : 9).isActive = true
-            dot.heightAnchor.constraint(equalToConstant: isToday ? 12 : 9).isActive = true
-            row.addArrangedSubview(dot)
-        }
-        let label = UILabel()
-        label.text = "your week"
-        label.font = .systemFont(ofSize: 11.5, weight: .semibold)
-        label.textColor = WarmShelfPalette.paperHighlight.withAlphaComponent(0.55)
-        row.addArrangedSubview(label)
-        row.setCustomSpacing(10, after: row.arrangedSubviews[6])
-        return row
-    }
-
-    private func makePlayApproachCard() -> UIView {
-        let card = makeRaisedCard(fill: WarmShelfPalette.paperHighlight.withAlphaComponent(0.62), radius: 22)
-
-        let squircle = makeIconSquircle("hand.draw.fill", tint: WarmShelfPalette.terracotta)
-
-        let title = UILabel()
-        title.text = "Made to be revisited"
-        title.font = UIFont(name: "Georgia-Bold", size: 19) ?? .systemFont(ofSize: 19, weight: .bold)
-        title.textColor = WarmShelfPalette.clayInk
-        title.numberOfLines = 0
-
-        let body = UILabel()
-        body.text = "Stack, post, make music, and explore. Let your child choose a familiar toy and repeat at their own pace. Play and family settings are stored on this device, without a child account. Tuck toys away below to keep the shelf simple."
-        body.font = .systemFont(ofSize: 14, weight: .regular)
-        body.textColor = WarmShelfPalette.cocoa
-        body.numberOfLines = 0
-
-        let titles = UIStackView(arrangedSubviews: [title, body])
-        titles.axis = .vertical
-        titles.spacing = 4
-
-        let head = UIStackView(arrangedSubviews: [squircle, titles])
-        head.axis = .horizontal
-        head.spacing = 12
-        head.alignment = .top
-
-        let column = UIStackView(arrangedSubviews: [head])
-        column.axis = .vertical
-        column.spacing = 12
-        column.translatesAutoresizingMaskIntoConstraints = false
-        card.addSubview(column)
-        NSLayoutConstraint.activate([
-            column.topAnchor.constraint(equalTo: card.topAnchor, constant: 16),
-            column.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 16),
-            column.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -16),
-            column.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -16)
         ])
         return card
     }
@@ -545,6 +494,12 @@ final class ParentInfoViewController: UIViewController {
                                     isOn: Bool, tag: Int, action: Selector) -> UIView {
         let row = UIButton(type: .custom)
         row.tag = tag
+        row.isAccessibilityElement = true
+        row.accessibilityIdentifier = "setting-\(NSStringFromSelector(action))-\(tag)"
+        row.accessibilityLabel = title
+        row.accessibilityValue = isOn ? "On" : "Off"
+        row.accessibilityHint = detail
+        row.accessibilityTraits = isOn ? [.button, .selected] : .button
         row.addTarget(self, action: action, for: .touchUpInside)
 
         let squircle = makeIconSquircle(icon, tint: tint)
@@ -552,7 +507,7 @@ final class ParentInfoViewController: UIViewController {
 
         let titleLabel = makeSmallTitle(title)
         let detailLabel = makeSmallBody(detail)
-        detailLabel.textColor = WarmShelfPalette.cocoa.withAlphaComponent(0.66)
+        detailLabel.textColor = WarmShelfPalette.cocoa.withAlphaComponent(0.82)
         let labels = UIStackView(arrangedSubviews: [titleLabel, detailLabel])
         labels.axis = .vertical
         labels.spacing = 2
@@ -606,22 +561,30 @@ final class ParentInfoViewController: UIViewController {
         let squircle = makeIconSquircle(icon, tint: tint)
         let titleLabel = makeSmallTitle(title)
         let detailLabel = makeSmallBody(detail)
-        detailLabel.textColor = WarmShelfPalette.cocoa.withAlphaComponent(0.66)
+        detailLabel.textColor = WarmShelfPalette.cocoa.withAlphaComponent(0.82)
 
         let pillRow = UIStackView()
-        pillRow.axis = .horizontal
+        // Five equally sized pills become a readable list at larger text sizes.
+        pillRow.axis = UIFont.preferredFont(forTextStyle: .body, compatibleWith: traitCollection).pointSize > 20 ? .vertical : .horizontal
         pillRow.spacing = 7
         pillRow.distribution = .fillEqually
         for (i, text) in labels.enumerated() {
             let pill = UIButton(type: .system)
             pill.setTitle(text, for: .normal)
-            pill.titleLabel?.font = .systemFont(ofSize: 13.5, weight: .semibold)
+            pill.titleLabel?.font = scaledFont(.systemFont(ofSize: 14, weight: .semibold), style: .subheadline)
+            pill.titleLabel?.adjustsFontForContentSizeCategory = true
+            pill.titleLabel?.numberOfLines = 0
+            pill.titleLabel?.textAlignment = .center
+            pill.contentEdgeInsets = UIEdgeInsets(top: 10, left: 4, bottom: 10, right: 4)
+            pill.accessibilityIdentifier = "option-\(NSStringFromSelector(action))-\(i)"
+            pill.accessibilityLabel = "\(title), \(text)"
             pill.tag = i
             let selected = i == selectedIndex
+            pill.accessibilityTraits = selected ? [.button, .selected] : .button
             pill.backgroundColor = selected ? WarmShelfPalette.terracotta : WarmShelfPalette.warmCream.withAlphaComponent(0.55)
             pill.tintColor = selected ? WarmShelfPalette.paperHighlight : WarmShelfPalette.cocoa.withAlphaComponent(0.75)
             pill.layer.cornerRadius = 16
-            pill.heightAnchor.constraint(equalToConstant: 36).isActive = true
+            pill.heightAnchor.constraint(greaterThanOrEqualToConstant: 44).isActive = true
             pill.addTarget(self, action: action, for: .touchUpInside)
             pillRow.addArrangedSubview(pill)
         }
@@ -651,6 +614,9 @@ final class ParentInfoViewController: UIViewController {
 
     private func makeChevronRow(icon: String, tint: UIColor, title: String, action: Selector) -> UIView {
         let row = UIButton(type: .custom)
+        row.accessibilityLabel = title
+        row.accessibilityIdentifier = "link-\(NSStringFromSelector(action))"
+        row.isAccessibilityElement = true
         row.addTarget(self, action: action, for: .touchUpInside)
 
         let squircle = makeIconSquircle(icon, tint: tint)
@@ -672,42 +638,81 @@ final class ParentInfoViewController: UIViewController {
             squircle.centerYAnchor.constraint(equalTo: row.centerYAnchor),
             titleLabel.leadingAnchor.constraint(equalTo: squircle.trailingAnchor, constant: 11),
             titleLabel.centerYAnchor.constraint(equalTo: row.centerYAnchor),
-            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: chevron.leadingAnchor, constant: -8),
+            titleLabel.topAnchor.constraint(greaterThanOrEqualTo: row.topAnchor, constant: 12),
+            titleLabel.bottomAnchor.constraint(lessThanOrEqualTo: row.bottomAnchor, constant: -12),
+            titleLabel.trailingAnchor.constraint(equalTo: chevron.leadingAnchor, constant: -8),
             chevron.trailingAnchor.constraint(equalTo: row.trailingAnchor, constant: -16),
             chevron.centerYAnchor.constraint(equalTo: row.centerYAnchor)
         ])
         return row
     }
 
-    private func makePromisesCard() -> UIView {
+    private func makeDisclosureCard(title: String, detail: String, section: Int, content: [UIView]) -> UIView {
         let card = makeRaisedCard(fill: WarmShelfPalette.paperHighlight.withAlphaComponent(0.62), radius: 22)
-        let promises: [(String, String, UIColor)] = [
-            ("rectangle.slash", "No ads — no banners, videos, or sponsored toys", WarmShelfPalette.waterBlue),
-            ("star.slash", "No stars, streaks, levels, or engineered urgency", WarmShelfPalette.butter),
-            ("dollarsign.circle", "No child-facing prices or upgrade language", WarmShelfPalette.petal),
-            ("eye.slash", "No tracking or accounts — play stays on this device", WarmShelfPalette.sage)
-        ]
-        let column = UIStackView(arrangedSubviews: promises.map { symbol, text, tint in
-            let icon = makeIconSquircle(symbol, tint: tint)
-            let label = makeSmallBody(text)
-            label.font = .systemFont(ofSize: 14, weight: .medium)
-            let row = UIStackView(arrangedSubviews: [icon, label])
-            row.axis = .horizontal
-            row.spacing = 11
-            row.alignment = .center
-            return row
-        })
+        let expanded = expandedSections.contains(section)
+        let button = UIButton(type: .custom)
+        button.tag = section
+        button.isAccessibilityElement = true
+        button.accessibilityIdentifier = "disclosure-\(section)"
+        button.accessibilityLabel = title
+        button.accessibilityValue = expanded ? "Expanded" : "Collapsed"
+        button.accessibilityHint = expanded ? "Hide details" : "Show details"
+        button.addTarget(self, action: #selector(toggleSection(_:)), for: .touchUpInside)
+
+        let heading = makeSmallTitle(title)
+        let summary = makeSmallBody(detail)
+        let labels = UIStackView(arrangedSubviews: [heading, summary])
+        labels.axis = .vertical
+        labels.spacing = 3
+        labels.isUserInteractionEnabled = false
+        let arrow = UIImageView(image: UIImage(systemName: expanded ? "chevron.up" : "chevron.down"))
+        arrow.tintColor = WarmShelfPalette.cocoa
+        arrow.setContentHuggingPriority(.required, for: .horizontal)
+        [labels, arrow].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            button.addSubview($0)
+        }
+        NSLayoutConstraint.activate([
+            button.heightAnchor.constraint(greaterThanOrEqualToConstant: 64),
+            labels.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: 16),
+            labels.topAnchor.constraint(equalTo: button.topAnchor, constant: 14),
+            labels.bottomAnchor.constraint(equalTo: button.bottomAnchor, constant: -14),
+            labels.trailingAnchor.constraint(equalTo: arrow.leadingAnchor, constant: -12),
+            arrow.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -16),
+            arrow.centerYAnchor.constraint(equalTo: button.centerYAnchor),
+            arrow.widthAnchor.constraint(equalToConstant: 15),
+            arrow.heightAnchor.constraint(equalToConstant: 11)
+        ])
+        let column = UIStackView(arrangedSubviews: [button])
         column.axis = .vertical
-        column.spacing = 12
+        if expanded {
+            let details = UIStackView(arrangedSubviews: content)
+            details.axis = .vertical
+            details.spacing = 12
+            let inset = UIView()
+            details.translatesAutoresizingMaskIntoConstraints = false
+            inset.addSubview(details)
+            NSLayoutConstraint.activate([
+                details.leadingAnchor.constraint(equalTo: inset.leadingAnchor, constant: 16),
+                details.trailingAnchor.constraint(equalTo: inset.trailingAnchor, constant: -16),
+                details.topAnchor.constraint(equalTo: inset.topAnchor),
+                details.bottomAnchor.constraint(equalTo: inset.bottomAnchor, constant: -16)
+            ])
+            column.addArrangedSubview(inset)
+        }
         column.translatesAutoresizingMaskIntoConstraints = false
         card.addSubview(column)
         NSLayoutConstraint.activate([
-            column.topAnchor.constraint(equalTo: card.topAnchor, constant: 15),
-            column.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 14),
-            column.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -14),
-            column.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -15)
+            column.leadingAnchor.constraint(equalTo: card.leadingAnchor),
+            column.trailingAnchor.constraint(equalTo: card.trailingAnchor),
+            column.topAnchor.constraint(equalTo: card.topAnchor),
+            column.bottomAnchor.constraint(equalTo: card.bottomAnchor)
         ])
         return card
+    }
+
+    private func scaledFont(_ font: UIFont, style: UIFont.TextStyle) -> UIFont {
+        UIFontMetrics(forTextStyle: style).scaledFont(for: font, compatibleWith: traitCollection)
     }
 
     // MARK: - Small pieces
@@ -723,7 +728,7 @@ final class ParentInfoViewController: UIViewController {
     private func makeNoticeCard(text: String) -> UIView {
         let card = makeTintCard(color: WarmShelfPalette.sage)
         let label = makeBody(text)
-        label.font = .systemFont(ofSize: 14.5, weight: .semibold)
+        label.font = scaledFont(.systemFont(ofSize: 15, weight: .semibold), style: .body)
         label.translatesAutoresizingMaskIntoConstraints = false
         card.addSubview(label)
         NSLayoutConstraint.activate([
@@ -738,16 +743,20 @@ final class ParentInfoViewController: UIViewController {
     private func makeCaption(_ text: String) -> UILabel {
         let label = UILabel()
         label.text = text
-        label.font = .systemFont(ofSize: 11.5, weight: .heavy)
-        label.textColor = WarmShelfPalette.cocoa.withAlphaComponent(0.55)
+        label.font = scaledFont(.systemFont(ofSize: 12, weight: .bold), style: .caption1)
+        label.adjustsFontForContentSizeCategory = true
+        label.numberOfLines = 0
+        label.accessibilityTraits = .header
+        label.textColor = WarmShelfPalette.cocoa.withAlphaComponent(0.8)
         return label
     }
 
     private func makeFootnote(_ text: String, centered: Bool = false) -> UILabel {
         let label = UILabel()
         label.text = text
-        label.font = .systemFont(ofSize: 12, weight: .regular)
-        label.textColor = WarmShelfPalette.cocoa.withAlphaComponent(0.55)
+        label.font = scaledFont(.systemFont(ofSize: 13), style: .footnote)
+        label.adjustsFontForContentSizeCategory = true
+        label.textColor = WarmShelfPalette.cocoa.withAlphaComponent(0.8)
         label.numberOfLines = 0
         if centered { label.textAlignment = .center }
         return label
@@ -784,7 +793,12 @@ final class ParentInfoViewController: UIViewController {
     private func makeActionButton(title: String, style: ActionStyle) -> UIButton {
         let button = UIButton(type: .system)
         button.setTitle(title, for: .normal)
-        button.titleLabel?.font = .systemFont(ofSize: style == .text ? 16 : 17, weight: .semibold)
+        button.accessibilityIdentifier = "parent-action-\(title)"
+        button.titleLabel?.font = scaledFont(.systemFont(ofSize: style == .text ? 16 : 17, weight: .semibold), style: .headline)
+        button.titleLabel?.adjustsFontForContentSizeCategory = true
+        button.titleLabel?.numberOfLines = 0
+        button.titleLabel?.textAlignment = .center
+        button.contentEdgeInsets = UIEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
         button.layer.cornerRadius = 18
         button.heightAnchor.constraint(greaterThanOrEqualToConstant: style == .text ? 44 : 54).isActive = true
 
@@ -808,7 +822,7 @@ final class ParentInfoViewController: UIViewController {
     private func makeBody(_ text: String) -> UILabel {
         let label = UILabel()
         label.text = text
-        label.font = .systemFont(ofSize: 16, weight: .regular)
+        label.font = scaledFont(.systemFont(ofSize: 16), style: .body)
         label.textColor = WarmShelfPalette.cocoa
         label.numberOfLines = 0
         label.adjustsFontForContentSizeCategory = true
@@ -818,7 +832,8 @@ final class ParentInfoViewController: UIViewController {
     private func makeSmallTitle(_ text: String) -> UILabel {
         let label = UILabel()
         label.text = text
-        label.font = .systemFont(ofSize: 15.5, weight: .semibold)
+        label.font = scaledFont(.systemFont(ofSize: 16, weight: .semibold), style: .headline)
+        label.adjustsFontForContentSizeCategory = true
         label.textColor = WarmShelfPalette.clayInk
         label.numberOfLines = 0
         return label
@@ -827,13 +842,23 @@ final class ParentInfoViewController: UIViewController {
     private func makeSmallBody(_ text: String) -> UILabel {
         let label = UILabel()
         label.text = text
-        label.font = .systemFont(ofSize: 13, weight: .regular)
+        label.font = scaledFont(.systemFont(ofSize: 14), style: .subheadline)
+        label.adjustsFontForContentSizeCategory = true
         label.textColor = WarmShelfPalette.cocoa
         label.numberOfLines = 0
         return label
     }
 
     // MARK: - Actions
+
+    @objc private func toggleSection(_ sender: UIButton) {
+        if expandedSections.contains(sender.tag) {
+            expandedSections.remove(sender.tag)
+        } else {
+            expandedSections.insert(sender.tag)
+        }
+        render()
+    }
 
     @objc private func purchaseLifetime() {
         guard !isPurchaseInProgress,

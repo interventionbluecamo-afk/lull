@@ -63,6 +63,7 @@ final class AudioManager: LullTonePlayer {
         var startedAt: CFTimeInterval = 0
         var endsAt: CFTimeInterval = 0
         var heldToken: Int?
+        var cueID: String?
         init(bus: LullSoundBus) { self.bus = bus }
     }
 
@@ -122,7 +123,7 @@ final class AudioManager: LullTonePlayer {
         guard let buffer = nextBuffer(for: id) else { return false }
         lastPlayTime[id] = now
         let bus = cacheBus[id] ?? .effects
-        schedule(buffer, bus: bus, pan: pan, volume: volume * repeatSoftening(id, bus: bus, now: now), delay: delay)
+        schedule(buffer, bus: bus, pan: pan, volume: volume * repeatSoftening(id, bus: bus, now: now), delay: delay, cueID: id)
         return true
     }
 
@@ -207,6 +208,24 @@ final class AudioManager: LullTonePlayer {
             for voice in pool where voice.heldToken != nil {
                 voice.heldToken = nil
                 fadeNode(voice.node, to: 0, duration: fade, stopAtEnd: true)
+            }
+        }
+    }
+
+    /// A hose stops sounding when it leaves the vehicle, the finger lifts, or
+    /// the toy rests. Only the wash-rinse voices fade; other outcomes keep their tails.
+    func stopWashRinse() { stopWashCues(prefix: "wash.rinse") }
+
+    /// Toy departure and rest also cancel a completion phrase already playing.
+    func stopWashAudio() { stopWashCues(prefix: "wash.") }
+
+    private func stopWashCues(prefix: String) {
+        for pool in voices.values {
+            for voice in pool where voice.cueID?.hasPrefix(prefix) == true {
+                voice.cueID = nil
+                fadeNode(voice.node, to: 0, duration: 0.08, stopAtEnd: true) { [weak voice] in
+                    voice?.endsAt = 0
+                }
             }
         }
     }
@@ -536,6 +555,7 @@ final class AudioManager: LullTonePlayer {
             for voice in pool {
                 voice.node.stop()
                 voice.heldToken = nil
+                voice.cueID = nil
                 voice.endsAt = 0
             }
         }
@@ -621,7 +641,7 @@ final class AudioManager: LullTonePlayer {
 
     @discardableResult
     private func schedule(_ buffer: AVAudioPCMBuffer, bus: LullSoundBus, pan: Float, volume: Float,
-                          delay: TimeInterval) -> Voice? {
+                          delay: TimeInterval, cueID: String? = nil) -> Voice? {
         let poolBus: LullSoundBus = bus == .ambience ? .effects : bus
         guard let voice = takeVoice(poolBus) else { return nil }
         let node = voice.node
@@ -639,6 +659,7 @@ final class AudioManager: LullTonePlayer {
         voice.startedAt = now + delay
         voice.endsAt = now + delay + Double(buffer.frameLength) / LullSynth.sampleRate
         voice.heldToken = nil
+        voice.cueID = cueID
         return voice
     }
 
@@ -707,6 +728,8 @@ final class AudioManager: LullTonePlayer {
         if id.hasPrefix("bubble.") { return 0.035 }
         if id.hasPrefix("note.") { return 0.02 }
         switch id {
+        case "wash.foam": return 0.33
+        case "wash.rinse": return 0.35
         case "meadow.paint": return 0.14
         case "dots.fall", "dots.hover", "sleepy.hover": return 0.06
         case "window.dial": return 0.12

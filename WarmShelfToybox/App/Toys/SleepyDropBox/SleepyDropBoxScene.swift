@@ -441,10 +441,13 @@ final class SleepyDropBoxScene: BaseToyScene {
         ]
         for (index, spec) in specs.enumerated() {
             let center = specs[socketSlotOrder[index]].pos
-            // The shell is viewed slightly from above. Every silhouette shares the
-            // same gentle vertical projection, including the pointier shapes.
-            let socketSize = CGSize(width: spec.size.width,
-                                    height: spec.size.height * (usesPlainShell ? 0.94 : 1))
+            // The shell's posting face is frontal. Measure each treasure's visible
+            // silhouette and keep one clearance in both axes, rather than flattening
+            // a hand-sized rectangle differently for the triangle and star.
+            let bounds = treasureSilhouette(spec.shape, radius: r).boundingBoxOfPath
+            let socketSize = usesPlainShell
+                ? CGSize(width: bounds.width * 1.14, height: bounds.height * 1.14)
+                : spec.size
             var opening = Opening(center: center, size: socketSize,
                                   felt: usesPlainShell ? woodDark : spec.felt,
                                   shape: spec.shape, accepts: spec.accepts, rim: nil)
@@ -527,24 +530,28 @@ final class SleepyDropBoxScene: BaseToyScene {
         opening.rim = hover
     }
 
-    private func openingShape(_ shape: HoleShape, size s: CGSize) -> SKShapeNode {
-        let path: CGPath
+    /// Uses the same construction paths as the loose treasures. The visible bounds,
+    /// rather than the construction radius, define the carved opening and its mask.
+    private func treasureSilhouette(_ shape: HoleShape, radius r: CGFloat) -> CGPath {
         switch shape {
         case .round:
-            path = CGPath(ellipseIn: CGRect(x: -s.width / 2, y: -s.height / 2,
-                                            width: s.width, height: s.height), transform: nil)
+            return CGPath(ellipseIn: CGRect(x: -r, y: -r, width: r * 2, height: r * 2), transform: nil)
         case .triangle:
-            path = DropTreasureNode.roundedTrianglePath(radius: 1, corner: 0.44 / 1.24)
+            return DropTreasureNode.roundedTrianglePath(radius: r * 1.24, corner: r * 0.44)
         case .square:
-            path = CGPath(roundedRect: CGRect(x: -s.width / 2, y: -s.height / 2,
-                                              width: s.width, height: s.height),
-                          cornerWidth: s.width * 0.28, cornerHeight: s.height * 0.28, transform: nil)
+            let side = r * 1.78
+            return CGPath(roundedRect: CGRect(x: -side / 2, y: -side / 2, width: side, height: side),
+                          cornerWidth: side * 0.3, cornerHeight: side * 0.3, transform: nil)
         case .star:
-            path = DropTreasureNode.softStarPath(outer: 1, inner: 0.64 / 1.3, points: 5)
+            return DropTreasureNode.softStarPath(outer: r * 1.3, inner: r * 0.64, points: 5)
         }
-        // The old triangle/star used max(width,height), ignoring their height and
-        // leaving off-centre path bounds. Fit the actual silhouette into the same
-        // projected rectangle used by the round/square, rim and insertion mask.
+    }
+
+    private func openingShape(_ shape: HoleShape, size s: CGSize) -> SKShapeNode {
+        let path = treasureSilhouette(shape, radius: 1)
+        // All rim layers, the cavity, hover and insertion mask share exactly these
+        // centred visual bounds. Rounded triangle/star construction origins differ
+        // from the middle of their silhouettes.
         let bounds = path.boundingBoxOfPath
         let scaleX = s.width / max(0.001, bounds.width)
         let scaleY = s.height / max(0.001, bounds.height)
@@ -602,11 +609,11 @@ final class SleepyDropBoxScene: BaseToyScene {
     private func buildFace(on face: SKNode, faceH: CGFloat) {
         faceHeight = faceH
         let eyeY = faceH * 0.1
-        let eyeDX = boxW * 0.145 * faceScale
-        let ink = WarmShelfPalette.cocoa.withAlpha(0.6)
+        let eyeDX = boxW * 0.15 * faceScale
+        let ink = WarmShelfPalette.cocoa.withAlpha(0.64)
         for (eye, sign) in [(eyeL, CGFloat(-1)), (eyeR, CGFloat(1))] {
             eye.strokeColor = ink
-            eye.lineWidth = max(2.4, boxW * 0.012)
+            eye.lineWidth = max(2.2, boxW * 0.009)
             eye.lineCap = .round
             eye.fillColor = .clear
             eye.position = CGPoint(x: sign * eyeDX, y: eyeY)
@@ -614,18 +621,20 @@ final class SleepyDropBoxScene: BaseToyScene {
             face.addChild(eye)
         }
         mouth.strokeColor = ink
-        mouth.lineWidth = max(2.2, boxW * 0.011)
+        mouth.lineWidth = max(1.8, boxW * 0.0075)
         mouth.lineCap = .round
         mouth.fillColor = .clear
-        mouth.position = CGPoint(x: 0, y: eyeY - faceH * 0.16)
+        mouth.position = CGPoint(x: 0, y: eyeY - faceH * 0.20)
         mouth.zPosition = 0.5
         face.addChild(mouth)
 
         for (blush, sign) in [(blushL, CGFloat(-1)), (blushR, CGFloat(1))] {
-            blush.path = CGPath(ellipseIn: CGRect(x: -boxW * 0.05, y: -boxW * 0.035, width: boxW * 0.1, height: boxW * 0.07), transform: nil)
-            blush.fillColor = WarmShelfPalette.petal.withAlpha(0.0)
+            blush.path = CGPath(ellipseIn: CGRect(x: -boxW * 0.035 * faceScale, y: -boxW * 0.018 * faceScale,
+                                                 width: boxW * 0.07 * faceScale, height: boxW * 0.036 * faceScale), transform: nil)
+            blush.fillColor = WarmShelfPalette.petal
+            blush.alpha = 0
             blush.strokeColor = .clear
-            blush.position = CGPoint(x: sign * boxW * 0.24 * faceScale, y: eyeY - faceH * 0.06)
+            blush.position = CGPoint(x: sign * boxW * 0.245 * faceScale, y: eyeY - faceH * 0.10)
             blush.zPosition = 0.45
             face.addChild(blush)
         }
@@ -775,7 +784,7 @@ final class SleepyDropBoxScene: BaseToyScene {
     private func setBoxMood(_ newMood: BoxMood, animated: Bool = true) {
         mood = newMood
         let faceH = faceHeight > 0 ? faceHeight : boxH * 0.66
-        let w = boxW * 0.125 * faceScale
+        let w = boxW * 0.078 * faceScale
         let dur = animated ? 0.18 : 0.0
 
         func sleepyArc() -> CGPath {
@@ -784,29 +793,33 @@ final class SleepyDropBoxScene: BaseToyScene {
             return p
         }
         func openEye() -> CGPath {
-            CGPath(ellipseIn: CGRect(x: -w * 0.5, y: -w * 0.5, width: w, height: w), transform: nil)
+            CGPath(ellipseIn: CGRect(x: -w * 0.24, y: -w * 0.34, width: w * 0.48, height: w * 0.68), transform: nil)
         }
         func smile(_ depth: CGFloat) -> CGPath {
-            let p = CGMutablePath(); let mw = boxW * 0.12 * faceScale
+            let p = CGMutablePath(); let mw = boxW * 0.058 * faceScale
             p.move(to: CGPoint(x: -mw, y: 0)); p.addQuadCurve(to: CGPoint(x: mw, y: 0), control: CGPoint(x: 0, y: -faceH * depth))
             return p
         }
         func tinyO() -> CGPath {
-            CGPath(ellipseIn: CGRect(x: -w * 0.45, y: -w * 0.55, width: w * 0.9, height: w * 1.1), transform: nil)
+            CGPath(ellipseIn: CGRect(x: -w * 0.18, y: -w * 0.24, width: w * 0.36, height: w * 0.48), transform: nil)
         }
 
+        eyeL.fillColor = .clear; eyeR.fillColor = .clear
+        mouth.fillColor = .clear
         switch newMood {
         case .sleepy:
-            eyeL.path = sleepyArc(); eyeR.path = sleepyArc(); mouth.path = smile(0.085)   // a sweeter, wider smile
+            eyeL.path = sleepyArc(); eyeR.path = sleepyArc(); mouth.path = smile(0.085)
             fadeBlush(0.2, dur: dur)   // a soft always-on warmth in the cheeks
         case .curious:
-            eyeL.path = openEye(); eyeR.path = sleepyArc(); mouth.path = smile(0.06)
+            eyeL.path = openEye(); eyeL.fillColor = eyeL.strokeColor
+            eyeR.path = sleepyArc(); mouth.path = smile(0.06)
             fadeBlush(0.18, dur: dur)
         case .happy:
             eyeL.path = sleepyArc(); eyeR.path = sleepyArc(); mouth.path = smile(0.13)
             fadeBlush(0.5, dur: dur)
         case .surprised:
             eyeL.path = openEye(); eyeR.path = openEye(); mouth.path = tinyO()
+            eyeL.fillColor = eyeL.strokeColor; eyeR.fillColor = eyeR.strokeColor
             fadeBlush(0.22, dur: dur)
         }
     }
@@ -1419,7 +1432,7 @@ final class SleepyDropBoxScene: BaseToyScene {
 /// A new complete round keeps one of each shape while changing their loose tray order.
 enum SleepyBoxRoundLayout {
     static func shouldExchange(after completedRounds: Int) -> Bool {
-        completedRounds > 0 && completedRounds.isMultiple(of: 2)
+        completedRounds > 0
     }
 
     static func shuffledSlots(_ current: [Int]) -> [Int] {

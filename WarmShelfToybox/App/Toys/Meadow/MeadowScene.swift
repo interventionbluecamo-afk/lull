@@ -43,7 +43,7 @@ final class MeadowScene: BaseToyScene {
     /// summed every overlapping stamp, so it fired after ~45s of leading; true coverage
     /// of 0.10 keeps that pacing.
     private let bloomCoverage: CGFloat = 0.10
-    private var springEdgeColor: UIColor { isNight ? UIColor(hex: 0x6B7487) : UIColor(hex: 0x909947) }
+    private var springEdgeColor: UIColor { isNight ? UIColor(hex: 0x3B5671) : UIColor(hex: 0x909947) }
 
     // MARK: - Snail
     private var snail: SKNode?
@@ -91,7 +91,7 @@ final class MeadowScene: BaseToyScene {
     // Dormant != dead: late-winter sage-straw, already secretly green, so painted spring
     // reads as awakening rather than a hard cliff (founder daytime-contrast note).
     private let winterColor = UIColor(hex: 0xB4B889)
-    private let winterNightColor = UIColor(hex: 0x9A9AAC)
+    private let winterNightColor = UIColor(hex: 0x263952)
 
     /// The meadow keeps the household's hours, like the Window and the Shelf Room.
     private var isNight: Bool {
@@ -267,7 +267,7 @@ final class MeadowScene: BaseToyScene {
 
     private func buildWinterGround() {
         // Authored winter ground when it lands (night variant after dark); pale
-        // sleeping felt otherwise — slate-moonlit when the household sleeps.
+        // sleeping felt otherwise — deep blue moonlight when the household sleeps.
         let night = isNight
         let slot = night ? "meadow-winter-ground-night" : "meadow-winter-ground"
         let base = night ? winterNightColor : winterColor
@@ -276,8 +276,7 @@ final class MeadowScene: BaseToyScene {
             // Tiled at the art's own size (mirrored so every seam meets itself) instead of
             // one plate stretched over the whole world — that was a ~5x upscale that turned
             // the felt into blur next to the crisp creatures.
-            let moonlit = night && ToyArt.texture(slot) == nil   // day art moonlit until night art lands
-            addTiles(of: tex, to: groundLayer, tint: moonlit ? UIColor(hex: 0x2A2E4A) : nil)
+            addTiles(of: tex, to: groundLayer, tint: night ? winterNightColor : nil, tintFactor: 0.72)
         } else {
             let extent = MeadowWorldGeometry.groundSize(worldSize: worldSize)
             let ground = SKShapeNode(rectOf: extent)
@@ -290,7 +289,7 @@ final class MeadowScene: BaseToyScene {
         if night {
             // Moonlight pools softly over the sleeping world.
             let moonVeil = SKShapeNode(rectOf: MeadowWorldGeometry.groundSize(worldSize: worldSize))
-            moonVeil.fillColor = UIColor(hex: 0x20243A).withAlpha(0.12)
+            moonVeil.fillColor = UIColor(hex: 0x172841).withAlpha(0.12)
             moonVeil.strokeColor = .clear
             moonVeil.zPosition = 20
             groundLayer.addChild(moonVeil)
@@ -305,15 +304,15 @@ final class MeadowScene: BaseToyScene {
                             y: .random(in: -worldSize.height/2 + 60 ... worldSize.height/2 - 60))
             if Bool.random() {
                 let tuft = SKShapeNode(ellipseOf: CGSize(width: .random(in: 14...26), height: .random(in: 6...10)))
-                tuft.fillColor = (night ? UIColor(hex: 0x8B8DA3) : UIColor(hex: 0xA6AB78)).withAlpha(0.8)
+                tuft.fillColor = (night ? UIColor(hex: 0x3B5170) : UIColor(hex: 0xA6AB78)).withAlpha(0.8)
                 tuft.strokeColor = .clear
                 tuft.position = p
                 tuft.zPosition = 0.2
                 groundLayer.addChild(tuft)
             } else {
                 let pebble = SKShapeNode(ellipseOf: CGSize(width: .random(in: 10...18), height: .random(in: 8...14)))
-                pebble.fillColor = night ? UIColor(hex: 0x8E90A6) : UIColor(hex: 0xB0B48C)
-                pebble.strokeColor = (night ? UIColor(hex: 0x787A90) : UIColor(hex: 0x969B6F)).withAlpha(0.6)
+                pebble.fillColor = night ? UIColor(hex: 0x455A76) : UIColor(hex: 0xB0B48C)
+                pebble.strokeColor = (night ? UIColor(hex: 0x304765) : UIColor(hex: 0x969B6F)).withAlpha(0.6)
                 pebble.lineWidth = 1
                 pebble.position = p
                 pebble.zPosition = 0.2
@@ -364,12 +363,12 @@ final class MeadowScene: BaseToyScene {
 
         let night = isNight
         if let moss = ToyArt.texture("meadow-spring-moss") {
-            addTiles(of: moss, to: springReveal, tint: night ? UIColor(hex: 0x9AA0B8) : nil, tintFactor: 1)
+            addTiles(of: moss, to: springReveal, tint: night ? UIColor(hex: 0x466882) : nil, tintFactor: 1)
         } else {
-            springReveal.addChild(SKSpriteNode(color: night ? UIColor(hex: 0x5E7361) : springColor, size: worldSize))
+            springReveal.addChild(SKSpriteNode(color: night ? UIColor(hex: 0x3D5D74) : springColor, size: worldSize))
         }
-        let veil = SKSpriteNode(color: night ? UIColor(hex: 0x3E4560) : UIColor(hex: 0xB8B48E), size: worldSize)
-        veil.alpha = night ? 0.35 : 0.30
+        let veil = SKSpriteNode(color: night ? UIColor(hex: 0x20364F) : UIColor(hex: 0xB8B48E), size: worldSize)
+        veil.alpha = night ? 0.25 : 0.30
         veil.zPosition = 1
         springReveal.addChild(veil)
     }

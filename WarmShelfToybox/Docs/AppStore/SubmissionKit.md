@@ -85,7 +85,7 @@ need no attribution).
 > • Hum: touch the singers to make gentle music, alone or in chords.
 > • Window: turn the day into evening and see who visits.
 > • Sleepy Box: post each shape into its hole and open the drawer.
-> • Stack: balance sleepy stones as high as they'll go.
+> • Little Wash: scrub muddy trucks clean with a sponge, a hose and a towel.
 > • Drop Dots: drop coins into the columns and pour them out again.
 > • Bubbles: pop soft bubbles and find the little treasures some carry.
 >
@@ -100,11 +100,11 @@ need no attribution).
 > and motion down, set a play timer and a wind-down hour.
 >
 > FREE TO TRY
-> Bubbles, Stack and Drop Dots are free. Every new family gets a free week with all nine toys,
+> Bubbles, Little Wash and Drop Dots are free. Every new family gets a free week with all nine toys,
 > then one optional purchase keeps them. No subscription.
 
-Before pasting, check each toy line against the build (the founder confirmed all nine open and
-play on device in build 2). Keep learning claims at this level; do not claim outcomes.
+Before pasting, check each toy line against the approved shipping build. Little Wash replaces
+Stack in build 7 and needs the founder's device review. Keep learning claims at this level; do not claim outcomes.
 
 **App Review notes:**
 
@@ -116,7 +116,7 @@ play on device in build 2). Keep learning claims at this level; do not claim out
 > "four · seven · two"; type them as digits (472). Three misses rest the check for 30 seconds.
 >
 > Free week: finishing the welcome opens all nine toys for 7 days at no charge and with no
-> payment details. The last welcome page states the duration, that Bubbles, Stack and Drop Dots
+> payment details. The last welcome page states the duration, that Bubbles, Little Wash and Drop Dots
 > stay free, and the price of the one-time purchase before the week begins. After 7 days the
 > other six toys leave the child's shelf; nothing is charged.
 >
@@ -147,7 +147,8 @@ with rounded corners; no device frames, no fake UI).
 
 ## 5. Last checks before *Submit for Review* (Mac + Founder)
 
-- Build 1.0 (3) from this branch, run all `Tools/verify_*.py`, archive, upload, test on device:
+- Build the current 1.0 candidate from this branch, run all `Tools/verify_*.py`, install for the
+  founder's device review, and upload only after explicit approval. Before release, check:
   welcome → free week; grown-up check (words → digits, three misses rest it); privacy screen;
   support email (and the copy fallback with Mail signed out); purchase and restore in sandbox.
 - App Store Connect: version 1.0 page filled, build selected, purchase attached, screenshots,

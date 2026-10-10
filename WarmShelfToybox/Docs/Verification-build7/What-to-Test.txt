@@ -1,0 +1,19 @@
+Lull 1.0 (7) — founder testing
+
+NEW LITTLE WASH (replaces Stack; all nine toys remain)
+Scrub the six felt vehicles: fire truck, police car, tractor, bus, digger and ice-cream van. Sponge alone should finish; hose and towel can be used in any order. Look for rolling wheels, faces following your finger, gentle reactions, foam fading, and a quiet sparkle/toot before the next visitor. Rotate half-washed, leave/re-enter, and try a rest break. Check that cleaning feels broad and forgiving, with no hard-to-reach mud.
+
+FEED
+Look for grapes and pear among ten foods as eaten plates refill. Only the eaten plate changes; the other three should stay still. Requests must remain available, held food and partly served friends should survive rotation, and all five friends should cycle. Judge the new quieter felt pantry behind them in portrait and landscape.
+
+SHELF + OTHER FIXES
+Check that all nine shelf toys clearly resemble the game that opens. Bubbles now previews open-air bubbles, Mix-Up previews a mixed felt friend, Wash shows the foamy truck, and Drop Dots shows four colored channels.
+Sleepy Box: complete two rounds; hole positions should change each round, shapes should fit the hole perspective, and the face should feel calm.
+Mix-Up: check the stage and moving character stay visible in portrait/landscape, including after rotation.
+Meadow: check deeper navy/green night grass, ladybug visibility, discoveries and calm sound.
+Parents: controls should be easy to find first, with details in expandable sections; check unlock/trial/Restore as appropriate.
+
+SOUND + GENERAL
+Judge softness on iPhone speakers at a normal listening volume. Sound Off should be silent, Sound On should work in Silent Mode. Check Hum expressions/key spacing, four-channel Drop Dots, all nine toys opening, rotation and returning home. Optional: Reduce Motion and VoiceOver. Please report toy, orientation and steps for anything that fails.
+
+Gameplay, listening, device performance and purchase testing are owned by the founder. Automated checks do not establish those passes.

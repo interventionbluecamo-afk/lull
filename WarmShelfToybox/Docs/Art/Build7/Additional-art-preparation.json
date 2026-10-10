@@ -1,0 +1,290 @@
+{
+  "wash-bay": {
+    "uniformScale": 1,
+    "canvasSize": [
+      1448,
+      1086
+    ],
+    "sourceSHA256": "26592d1089d4f2b1f44452cbe4bc5439c138e7e6c40cf726100edf0bf2b8f990",
+    "outputSHA256": "26592d1089d4f2b1f44452cbe4bc5439c138e7e6c40cf726100edf0bf2b8f990",
+    "visibleAlphaBounds": [
+      0,
+      0,
+      1448,
+      1086
+    ],
+    "measurementAlphaThreshold": 32,
+    "outputMode": "RGB"
+  },
+  "wash-mud-1": {
+    "uniformScale": 0.39915254237288134,
+    "sourceCrop": [
+      44,
+      30,
+      1232,
+      1214
+    ],
+    "resizedSize": [
+      474,
+      473
+    ],
+    "placement": [
+      19,
+      19
+    ],
+    "canvasSize": [
+      512,
+      512
+    ],
+    "sourceSHA256": "4c04e0e2ba49d8e2a41e482986d5a95e2d3cded8f04505809bcb6646fa2f5c96",
+    "outputSHA256": "21838485d6efcba5116db6bb00b8e24706ff249f7dad02bbaafea9181ceba08a",
+    "visibleAlphaBounds": [
+      21,
+      21,
+      491,
+      490
+    ],
+    "measurementAlphaThreshold": 32,
+    "outputMode": "RGBA"
+  },
+  "wash-mud-2": {
+    "uniformScale": 0.37983870967741934,
+    "sourceCrop": [
+      4,
+      329,
+      1252,
+      929
+    ],
+    "resizedSize": [
+      474,
+      228
+    ],
+    "placement": [
+      19,
+      142
+    ],
+    "canvasSize": [
+      512,
+      512
+    ],
+    "sourceSHA256": "fe1c5ab4e06bd3d0f188b7cefdb4e59952f324d21a8325e58e451cdc7d5d5463",
+    "outputSHA256": "945fde415165d02265d6b5d24b28f63c5e3b92a5daf9fa295f65c87fed2cb4db",
+    "visibleAlphaBounds": [
+      21,
+      144,
+      490,
+      368
+    ],
+    "measurementAlphaThreshold": 32,
+    "outputMode": "RGBA"
+  },
+  "wash-mud-3": {
+    "uniformScale": 0.39315525876460766,
+    "sourceCrop": [
+      27,
+      62,
+      1233,
+      1140
+    ],
+    "resizedSize": [
+      474,
+      424
+    ],
+    "placement": [
+      19,
+      44
+    ],
+    "canvasSize": [
+      512,
+      512
+    ],
+    "sourceSHA256": "ebad4b8a0b2b5d017dff2b2cc15a74f26a0e103a70938e3946ef9cdf85a518f6",
+    "outputSHA256": "538471d9595fbf92de913900c5680941a983c2f3501c75db3364a832b40bf96a",
+    "visibleAlphaBounds": [
+      21,
+      47,
+      491,
+      466
+    ],
+    "measurementAlphaThreshold": 32,
+    "outputMode": "RGBA"
+  },
+  "wash-mud-4": {
+    "uniformScale": 0.39217318900915904,
+    "sourceCrop": [
+      27,
+      94,
+      1236,
+      1199
+    ],
+    "resizedSize": [
+      474,
+      433
+    ],
+    "placement": [
+      19,
+      39
+    ],
+    "canvasSize": [
+      512,
+      512
+    ],
+    "sourceSHA256": "eb8f6a139a8892a66a04290e6ccd7088cb5e92da4f9b143a12b8e4a3d94b64d5",
+    "outputSHA256": "f82ed8f6c112f6588f00e96842f28bd295199a949eaebbec39cc54ba6ed7ff60",
+    "visibleAlphaBounds": [
+      21,
+      41,
+      491,
+      470
+    ],
+    "measurementAlphaThreshold": 32,
+    "outputMode": "RGBA"
+  },
+  "shelf-wash-v2": {
+    "uniformScale": 0.8165869218500797,
+    "canvasSize": [
+      1024,
+      1024
+    ],
+    "sourceSHA256": "1d3a9b4d90a000217824a88c0a3a3a7d65748333f4a1fd4e2de2ded0dab25d45",
+    "outputSHA256": "ea3a69f8a81f2aceceeaa727c0e2d47cbda78984be5f32b653c097b2bf1776a2",
+    "visibleAlphaBounds": [
+      28,
+      202,
+      1003,
+      889
+    ],
+    "measurementAlphaThreshold": 32,
+    "outputMode": "RGBA"
+  },
+  "shelf-dropdots-v2": {
+    "uniformScale": 0.7804878048780488,
+    "canvasSize": [
+      1024,
+      936
+    ],
+    "sourceSHA256": "1f05ee7f63ff6d002d9b3ced6b9ba5eea2aeb0e5921367fa7b29b1412adc3967",
+    "outputSHA256": "59b9321b86d73b0a07e85ea742e3422607205bc1649b99b05a4b2049ac26760f",
+    "visibleAlphaBounds": [
+      138,
+      89,
+      892,
+      854
+    ],
+    "measurementAlphaThreshold": 32,
+    "outputMode": "RGBA"
+  },
+  "feed-pear": {
+    "uniformScale": 0.29385964912280704,
+    "sourceCrop": [
+      192,
+      62,
+      1062,
+      1212
+    ],
+    "resizedSize": [
+      256,
+      338
+    ],
+    "placement": [
+      128,
+      87
+    ],
+    "canvasSize": [
+      512,
+      512
+    ],
+    "sourceSHA256": "f204c99d12dc311f2cf9c0932ed96c5f566ba8f077bc4ba5720eda950aa149b4",
+    "outputSHA256": "46067e530e5e4a6544fde77572d48a05a178fb103153d11d760007e43984a28b",
+    "visibleAlphaBounds": [
+      129,
+      88,
+      383,
+      424
+    ],
+    "measurementAlphaThreshold": 32,
+    "outputMode": "RGBA"
+  },
+  "feed-grape": {
+    "uniformScale": 0.3007181328545781,
+    "sourceCrop": [
+      189,
+      41,
+      1071,
+      1170
+    ],
+    "resizedSize": [
+      265,
+      340
+    ],
+    "placement": [
+      123,
+      86
+    ],
+    "canvasSize": [
+      512,
+      512
+    ],
+    "sourceSHA256": "93e9f71d2ff4aee23d119af5e7c5ac0861f2e642692173aafcd9025bf0d19313",
+    "outputSHA256": "099ac7205f981469f3d2174afdccaefe505a8020998465f836b5380c7f8fb048",
+    "visibleAlphaBounds": [
+      125,
+      88,
+      386,
+      424
+    ],
+    "measurementAlphaThreshold": 32,
+    "outputMode": "RGBA"
+  },
+  "shelf-mixup-v2": {
+    "uniformScale": 0.8165869218500797,
+    "canvasSize": [
+      1024,
+      1024
+    ],
+    "sourceSHA256": "74b519b636dc08627f64ca9fbb6bc6edd385b12dcec9b385dcff9edc0fe08d92",
+    "outputSHA256": "3f6466ecbc0a9e586e586d66f6a4e497027657d7dc195c4f5d8efe0bd4ea64c4",
+    "visibleAlphaBounds": [
+      19,
+      16,
+      1004,
+      1005
+    ],
+    "measurementAlphaThreshold": 32,
+    "outputMode": "RGBA"
+  },
+  "shelf-bubbles-v2": {
+    "uniformScale": 0.8165869218500797,
+    "canvasSize": [
+      1024,
+      1024
+    ],
+    "sourceSHA256": "c3e27301c34cbc11142a5e889eeb83e2cdaef080d7f8b83020d77f66496c7a42",
+    "outputSHA256": "07cf096318df3f64c2d586cf7c8c251a01bfa2c3e18d40bb5bacd403f4718e09",
+    "visibleAlphaBounds": [
+      94,
+      131,
+      948,
+      919
+    ],
+    "measurementAlphaThreshold": 32,
+    "outputMode": "RGBA"
+  },
+  "feed-stand-back": {
+    "uniformScale": 1,
+    "canvasSize": [
+      1499,
+      1049
+    ],
+    "sourceSHA256": "4568fbcc0eec7812e900d7142894f9c1d5a94df05c4624b96430088df90bbdd5",
+    "outputSHA256": "4568fbcc0eec7812e900d7142894f9c1d5a94df05c4624b96430088df90bbdd5",
+    "visibleAlphaBounds": [
+      0,
+      0,
+      1499,
+      1049
+    ],
+    "measurementAlphaThreshold": 32,
+    "outputMode": "RGB"
+  }
+}

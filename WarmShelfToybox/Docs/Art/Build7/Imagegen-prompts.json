@@ -1,0 +1,81 @@
+{
+  "date": "2026-10-10",
+  "tool": "built-in imagegen",
+  "wash": [
+    [
+      "bay",
+      false,
+      "Handmade needle-felt and warm wood miniature for a calm premium children's app ages 2–6. Soft wool fibres, rounded chunky forms, warm diffuse upper-left light, sun-faded sage, terracotta, butter, water-blue and cream. Never neon, glossy plastic, faces, writing or logos. Create one landscape background, 2732 × 2048 aspect ratio. Cosy quiet toy car-wash bay, seen straight on: low-contrast soft sage felt wall, honey wooden floor; tiny drain and shallow felt puddle at lower left, wooden shower bar high across top with little felt nozzles, tall soft roller brushes only at far left and right edges. Central 65% is spacious empty floor and softly textured wall for a large vehicle to be overlaid. Floor horizon near mid-height. No vehicles, people, tools, signs or pegboard holes. Calm afternoon light; restrained detail, no dramatic spotlight."
+    ],
+    [
+      "mud1",
+      true,
+      "Handmade needle-felt and warm wood miniature for a calm premium children's app ages 2–6. Soft wool fibres, rounded chunky forms, warm diffuse upper-left light, sun-faded sage, terracotta, butter, water-blue and cream. Never neon, glossy plastic, faces, writing or logos. One organic rounded felt mud splat, cocoa-brown fuzzy edges and darker centre, tiny wool flecks; centred and filling 80% of a 512 square. Native transparent background, no shadow."
+    ],
+    [
+      "mud2",
+      true,
+      "Handmade needle-felt and warm wood miniature for a calm premium children's app ages 2–6. Soft wool fibres, rounded chunky forms, warm diffuse upper-left light, sun-faded sage, terracotta, butter, water-blue and cream. Never neon, glossy plastic, faces, writing or logos. One organic elongated horizontal felt mud smear with irregular softened tips, cocoa-brown fuzzy edges and darker centre, tiny wool flecks; centred and filling 80% of a 512 square. Native transparent background, no shadow."
+    ],
+    [
+      "mud3",
+      true,
+      "Handmade needle-felt and warm wood miniature for a calm premium children's app ages 2–6. Soft wool fibres, rounded chunky forms, warm diffuse upper-left light, sun-faded sage, terracotta, butter, water-blue and cream. Never neon, glossy plastic, faces, writing or logos. One organic felt mud drip blob with two small rounded droplets close beneath it, cocoa-brown fuzzy edges and darker centre, tiny wool flecks; centred and filling 80% of a 512 square. Native transparent background, no shadow."
+    ],
+    [
+      "mud4",
+      true,
+      "Handmade needle-felt and warm wood miniature for a calm premium children's app ages 2–6. Soft wool fibres, rounded chunky forms, warm diffuse upper-left light, sun-faded sage, terracotta, butter, water-blue and cream. Never neon, glossy plastic, faces, writing or logos. One small organic cluster of three overlapping round felt mud blobs, cocoa-brown fuzzy edges and darker centre, tiny wool flecks; centred and filling 80% of a 512 square. Native transparent background, no shadow."
+    ]
+  ],
+  "feedAndShelf": [
+    [
+      "shelfWash",
+      "Handmade needle-felt toy for a calm premium children's app. Wool fibres, soft hand-dyed colors, chunky simple silhouette, stitched seams, warm diffuse upper-left light, no glossy plastic. Native transparent background; no writing, logos, facial features, shadow or background. Use reference1 for composition, lighting, transparent framing and small wood/felt miniature scale. Replace its stack of stones with a compact tomato-red felt fire truck on a thin wooden wash platform, facing right, cream stripe, short ladder. Pale-blue front cab window at upper right is plain BLANK; no eyes or face. Separate cream-hub charcoal wheels. Half the back of truck covered with small fluffy white foam patches; yellow felt sponge beside it. Keep canvas1024 square and subject central, unobstructed; vehicle dominates, no background shelf or wall.",
+      [
+        "/Users/User2/Desktop/lull v.2/WarmShelfToybox/App/Resources/Assets.xcassets/shelf-stack-v2.imageset/shelf-stack-v2.png",
+        "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-8ed0df40-c8ba-4946-aeb6-6800367fec62.png"
+      ]
+    ],
+    [
+      "shelfDropDots",
+      "Handmade needle-felt toy for a calm premium children's app. Wool fibres, soft hand-dyed colors, chunky simple silhouette, stitched seams, warm diffuse upper-left light, no glossy plastic. Native transparent background; no writing, logos, facial features, shadow or background. Edit this wooden dot toy shelf image to accurately show FOUR wide vertical channels only (not five), evenly spaced. Four large round holes/rings at top, colors in order muted rust-red, butter-yellow, water-blue, lavender. Four colored felt balls correspond to those exact colors, one inside each channel. A compact warm wood cabinet with rounded edges, same camera angle and lighting and transparent composition as reference; simple continuous channels, no extra holes, no scattered balls, no greens. Felt ring centers must appear as openings. No face, no text.",
+      [
+        "/Users/User2/Desktop/lull v.2/WarmShelfToybox/App/Resources/Assets.xcassets/shelf-dropdots-v2.imageset/shelf-dropdots-v2.png"
+      ]
+    ],
+    [
+      "grape",
+      "Handmade needle-felt toy for a calm premium children's app. Wool fibres, soft hand-dyed colors, chunky simple silhouette, stitched seams, warm diffuse upper-left light, no glossy plastic. Native transparent background; no writing, logos, facial features, shadow or background. Match reference food material and framing. One purple felt bunch of grapes: 6–8 large rounded berries in a compact hanging bunch, small sage-green leaf and brown stem, no face. 512 square, food centred filling about75%, fully visible with generous clear margin.",
+      [
+        "/Users/User2/Desktop/lull v.2/WarmShelfToybox/App/Resources/Assets.xcassets/feed-apple.imageset/feed-apple.png"
+      ]
+    ],
+    [
+      "pear",
+      "Handmade needle-felt toy for a calm premium children's app. Wool fibres, soft hand-dyed colors, chunky simple silhouette, stitched seams, warm diffuse upper-left light, no glossy plastic. Native transparent background; no writing, logos, facial features, shadow or background. Match reference food material and framing. One plump sage-green needle-felt pear with gentle yellow undertone, short cocoa stem and one tiny sage leaf, rounded base and narrow shoulder, no face. 512 square, food centred filling about75%, fully visible with generous clear margin.",
+      [
+        "/Users/User2/Desktop/lull v.2/WarmShelfToybox/App/Resources/Assets.xcassets/feed-apple.imageset/feed-apple.png"
+      ]
+    ]
+  ],
+  "shelfCorrections": [
+    [
+      "shelfBubbles",
+      "Edit the reference into a shelf invitation for a calm bubble toy: remove the bowl and the wooden wand entirely. Five softly pearly iridescent bubbles in a compact playful cluster, two large and three smaller, delicate round translucent surfaces with pale pink, butter and water-blue reflections, warm upper-left soft light. Same handcrafted premium miniature world, no hard plastic gloss. Native transparent background; no environment, stand, text, hands, shadow or face. Fully visible 1024 square, cluster fills central80%, keep margins.",
+      [
+        "/Users/User2/Desktop/lull v.2/WarmShelfToybox/App/Resources/Assets.xcassets/shelf-bubbles-v2.imageset/shelf-bubbles-v2.png"
+      ]
+    ],
+    [
+      "shelfMixup",
+      "Edit reference1 to match the felt character game in reference2. Preserve the warm wooden little theatre silhouette, stage platform and muted terracotta FELT curtains, framing and upper-left warm light. REMOVE both crowns: top emblem becomes a small cream felt button medallion, and the crowned royal child is replaced by one unmistakably mix-and-match felt friend: the cream bunny head with pink ears from reference2, rust bear overalls/body in its middle column, and blue bird shorts/yellow feet from its right column. Three chunky separate sections aligned neatly as a single toy, small natural seams between sections. Soft wool fibers, sweet calm face as shown, no neck gaps or duplicated parts. Native transparent background beyond theatre/opening; no wall, text or logos. Fully visible1024square with clear margins.",
+      [
+        "/Users/User2/Desktop/lull v.2/WarmShelfToybox/App/Resources/Assets.xcassets/shelf-mixup-v2.imageset/shelf-mixup-v2.png",
+        "/Users/User2/Desktop/lull v.2/WarmShelfToybox/App/Resources/Assets.xcassets/mixup-friends-a.imageset/mixup-friends-a.png"
+      ]
+    ]
+  ],
+  "feedBackdrop": "Redesign this children's felt food-stand BACKGROUND, retaining cosy warmth but making it visibly handcrafted and calm. Wide landscape 2000×1400 composition, camera straight-on from a young child's counter height. Soft warm cream needle-felt/linen back wall with subtle fine wool grain, warm pale honey wood floor at bottom25%, restrained sage trim. A narrow pale wooden pantry shelf at far left and far right with just one small felt basket and two tiny muted felt vegetables each; details stay in outer15%. A soft rectangle of morning light near upper-left. Central70% between20–80%height empty gently lit wall, for large live felt friends overlaid. No counter, table, stools, hanging lamp, bunting, landscape vista, blurred photographic shapes, vehicles, people, faces, text or logos. Natural cream and sage, warm without amber/orange color cast, low contrast environmental shapes, all material needle-felt and warm wood with softly rounded craftsmanship. Portrait app crops middle so center must work independently. Background fully opaque. Match felt character softness in reference2, preserving simple uncluttered room.",
+  "notes": "Vehicle, wheel and tool prompts are in Docs/Polish-2026-10-09/Little-Wash-image-prompts.md. Native transparency retained. Production derivatives use only measured crop, proportional resize and transparent padding."
+}

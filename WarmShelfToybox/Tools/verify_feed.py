@@ -53,7 +53,7 @@ final class CharacterModel {
  var needsMoreFood: Bool { bitesRemaining > 0 }
  func transitionTo(_ m: CharacterMood) { mood = m }
  func runHappyShimmy() {}
-'''+methods+'\n}\n'+block(cs,'enum FeedCastCatalog')+'\n'+block(fs,'enum FeedServingRules')+'\n'+block(fs,'struct FeedCastRotation')+r'''
+'''+methods+'\n}\n'+block(cs,'enum FeedCastCatalog')+'\n'+block(fs,'enum FeedServingRules')+'\n'+block(fs,'struct FeedCastRotation')+'\n'+block(fs,'struct FeedPlateFoodRotation')+r'''
 var checks = 0
 func check(_ p: @autoclosure () -> Bool) { precondition(p()); checks += 1 }
 let c = CharacterModel()
@@ -201,6 +201,32 @@ for count in 2...10 {
  }
 }
 check(FeedServingRules.menu(from:[0,1],offset:0,preserving:[99]) == [0,1])
+// Only the eaten plate varies. One repeatedly used plate reaches every catalog
+// food while the other three choices stay still, with no duplicate or immediate repeat.
+for count in 4...10 {
+ let catalog = Array(0..<count)
+ for usedIndex in 0..<4 {
+  var menu = [0,1,2,3]
+  var seen = Set(menu)
+  var rotation = FeedPlateFoodRotation<Int>()
+  let untouched = menu.enumerated().filter { $0.offset != usedIndex }.map(\.element)
+  for _ in 0..<80 {
+   let old = menu[usedIndex]
+   let occupied = menu.enumerated().filter { $0.offset != usedIndex }.map(\.element)
+   let next = rotation.replacement(for:old,from:catalog,excluding:occupied,preserving:[],unfinishedVisit:false)
+   menu[usedIndex] = next; seen.insert(next)
+   check(menu.count == 4 && Set(menu).count == 4)
+   check(menu.enumerated().filter { $0.offset != usedIndex }.map(\.element) == untouched)
+   check(count == 4 ? next == old : next != old)
+  }
+  check(seen == Set(catalog))
+ }
+}
+var protectedPlate = FeedPlateFoodRotation<Int>()
+check(protectedPlate.replacement(for:0,from:Array(0..<10),excluding:[1,2,3],preserving:[0],unfinishedVisit:false) == 0)
+check(protectedPlate.replacement(for:0,from:Array(0..<10),excluding:[1,2,3],preserving:[],unfinishedVisit:true) == 0)
+check(protectedPlate.replacement(for:0,from:[],excluding:[],preserving:[],unfinishedVisit:false) == 0)
+
 // Every friend must appear once per bag, including across scene re-entry; bag boundaries
 // must never repeat a neighbour. Catalog reorder and duplicate names do not reset progress.
 for count in 2...8 {
@@ -235,7 +261,7 @@ check(FeedCastCatalog.completeCast(catalog) { allFrames.contains($0) }.count == 
 check(FeedCastCatalog.completeCast(catalog) { allFrames.subtracting(["feed-cast-newfriend-6"]).contains($0) }.isEmpty)
 check(FeedCastCatalog.decode(Data(#"{"version":2,"cast":[]}"#.utf8)) == nil)
 check(FeedCastCatalog.decode(Data(#"{"version":1,"cast":[{"name":"scarf","friendlyName":"parked","headWidth":0.9,"headCentre":0.4,"mouth":0.5}]}"#.utf8))!.isEmpty)
-print("PASS: \(checks) Feed request, mouth/edge, arrival bubble, menu/request preservation, complete-cast bags, catalog, timing and rotation checks using extracted production methods")
+print("PASS: \(checks) Feed request, mouth/edge, arrival bubble, menu/request preservation, consumed-plate variety, complete-cast bags, catalog, timing and rotation checks using extracted production methods")
 
 '''
 with tempfile.TemporaryDirectory(prefix="lull-feed-verification-") as temporary_directory:

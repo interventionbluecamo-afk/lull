@@ -1,0 +1,253 @@
+{
+  "canvas": [
+    1600,
+    1000
+  ],
+  "bodyWidth": 1280,
+  "wheelBottom": 880,
+  "operations": "rectangular crop, proportional resample, transparent padding only; no RGB-keying or alpha erasing",
+  "vehicles": [
+    {
+      "kind": "fireTruck",
+      "imageset": "wash-fire-truck",
+      "sourceFile": "wash-fire-truck-source.png",
+      "sourceCrop": [
+        11,
+        40,
+        1580,
+        878
+      ],
+      "faceCenter": [
+        1225,
+        378
+      ],
+      "faceRadius": 88,
+      "measuredWheelArches": [
+        {
+          "center": [
+            379.28135796,
+            864.35402756
+          ],
+          "radius": 140.31141671
+        },
+        {
+          "center": [
+            1197.06545536,
+            863.26172329
+          ],
+          "radius": 140.76592009
+        }
+      ],
+      "wheelOverlapScale": 1.08,
+      "windowBounds": [
+        1070,
+        244,
+        1396,
+        506
+      ],
+      "generatedFile": "exec-8ed0df40-c8ba-4946-aeb6-6800367fec62.png"
+    },
+    {
+      "kind": "policeCar",
+      "imageset": "wash-police-car",
+      "sourceFile": "wash-police-car-source.png",
+      "sourceCrop": [
+        11,
+        62,
+        1579,
+        875
+      ],
+      "faceCenter": [
+        880,
+        357
+      ],
+      "faceRadius": 83,
+      "measuredWheelArches": [
+        {
+          "center": [
+            380.53926392,
+            856.4969672
+          ],
+          "radius": 139.36794078
+        },
+        {
+          "center": [
+            1229.10032991,
+            856.41329418
+          ],
+          "radius": 137.75085432
+        }
+      ],
+      "wheelOverlapScale": 1.08,
+      "windowBounds": [
+        706,
+        244,
+        1092,
+        471
+      ],
+      "generatedFile": "exec-f8b7893a-f37c-47e2-aedb-391f06a34f12.png"
+    },
+    {
+      "kind": "tractor",
+      "imageset": "wash-tractor",
+      "sourceFile": "wash-tractor-source.png",
+      "sourceCrop": [
+        19,
+        13,
+        1570,
+        900
+      ],
+      "faceCenter": [
+        577,
+        349
+      ],
+      "faceRadius": 95,
+      "measuredWheelArches": [
+        {
+          "center": [
+            399.54640303,
+            860.85958124
+          ],
+          "radius": 185.88064819
+        },
+        {
+          "center": [
+            1272.58016025,
+            893.96506381
+          ],
+          "radius": 135.36391075
+        }
+      ],
+      "wheelOverlapScale": 1.08,
+      "windowBounds": [
+        368,
+        205,
+        797,
+        489
+      ],
+      "generatedFile": "exec-627796f5-22e0-4fe9-8d59-bf1f45572c1e.png"
+    },
+    {
+      "kind": "schoolBus",
+      "imageset": "wash-school-bus",
+      "sourceFile": "wash-school-bus-source.png",
+      "sourceCrop": [
+        12,
+        105,
+        1576,
+        870
+      ],
+      "faceCenter": [
+        1241,
+        405
+      ],
+      "faceRadius": 88,
+      "measuredWheelArches": [
+        {
+          "center": [
+            405.70105353,
+            859.98321251
+          ],
+          "radius": 122.06081409
+        },
+        {
+          "center": [
+            1230.64777886,
+            861.03593598
+          ],
+          "radius": 124.72399081
+        }
+      ],
+      "wheelOverlapScale": 1.08,
+      "windowBounds": [
+        1110,
+        287,
+        1396,
+        524
+      ],
+      "generatedFile": "exec-96c159c7-1c55-41c2-886c-69a0d5a796a2.png"
+    },
+    {
+      "kind": "digger",
+      "imageset": "wash-digger",
+      "sourceFile": "wash-digger-source.png",
+      "generatedFile": "exec-12314771-695b-4c0b-9d2a-6b27bfcd3a8b.png",
+      "sourceCrop": [
+        19,
+        150,
+        1583,
+        909
+      ],
+      "faceCenter": [
+        582,
+        405
+      ],
+      "faceRadius": 90,
+      "measuredWheelArches": [
+        {
+          "center": [
+            320.44945311,
+            855.59439611
+          ],
+          "radius": 108.34822673
+        },
+        {
+          "center": [
+            830.82002909,
+            848.80609267
+          ],
+          "radius": 100.75301822
+        }
+      ],
+      "wheelOverlapScale": 1.08,
+      "windowBounds": [
+        450,
+        284,
+        725,
+        534
+      ]
+    },
+    {
+      "kind": "iceCreamVan",
+      "imageset": "wash-ice-cream-van",
+      "sourceFile": "wash-ice-cream-van-source.png",
+      "generatedFile": "exec-0260148f-5b67-4fab-b9fc-c8b1eb8ee133.png",
+      "sourceCrop": [
+        46,
+        12,
+        1550,
+        894
+      ],
+      "faceCenter": [
+        1225,
+        448
+      ],
+      "faceRadius": 88,
+      "measuredWheelArches": [
+        {
+          "center": [
+            416.0248372,
+            892.84552252
+          ],
+          "radius": 133.45507178
+        },
+        {
+          "center": [
+            1196.68525047,
+            891.90102464
+          ],
+          "radius": 133.14755547
+        }
+      ],
+      "wheelOverlapScale": 1.08,
+      "windowBounds": [
+        1070,
+        328,
+        1395,
+        568
+      ],
+      "measurementNotes": "Native source 1586 x 992 RGBA. Wheel inner arches fitted to the last native-alpha >=128 pixel in source columns 300...520 and 1080...1320; residual RMS 0.448 and 0.630 px. Window bounds and live-face circle measured on the main blue windshield. Alpha threshold is used for measurement only; the source and prepared art are never keyed or erased."
+    }
+  ],
+  "sourceDirectory": "Docs/Art/LittleWash/Source"
+}

@@ -1,0 +1,153 @@
+{
+  "description": "Native transparent Little Wash wheel and tools. Measurement reads alpha only; export never keys, erases or repaints RGB/alpha. Raw generated sources are copied unchanged.",
+  "components": [
+    {
+      "kind": "wheel",
+      "imageset": "wash-wheel",
+      "sourceFile": "wash-wheel-source.png",
+      "generatedSourceFile": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-5d74e20e-7216-45bc-b9f3-4283b9d93432.png",
+      "sourceSHA256": "6f121c84363fdc72954e76f84865012b58d428f100cdba4ba57e551c370134db",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "measuredAlphaBounds": [
+        33,
+        36,
+        1222,
+        1219
+      ],
+      "measurementAlphaThreshold": 8,
+      "sourceCrop": [
+        29,
+        32,
+        1226,
+        1223
+      ],
+      "canvasSize": [
+        512,
+        512
+      ],
+      "fillFraction": 0.92,
+      "resampling": "LANCZOS",
+      "operations": [
+        "rectangular_crop",
+        "proportional_resize",
+        "transparent_padding"
+      ],
+      "alphaEdited": false,
+      "colorEdited": false
+    },
+    {
+      "kind": "sponge",
+      "imageset": "wash-tool-sponge",
+      "sourceFile": "wash-tool-sponge-source.png",
+      "generatedSourceFile": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-c8e58e4f-9303-4e49-b092-440c8e1692d9.png",
+      "sourceSHA256": "73fe7e04320fc97306718c183f240b477cf12279da0a531590e5d0bf19964c81",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "measuredAlphaBounds": [
+        28,
+        207,
+        1229,
+        1079
+      ],
+      "measurementAlphaThreshold": 8,
+      "sourceCrop": [
+        24,
+        203,
+        1233,
+        1083
+      ],
+      "canvasSize": [
+        512,
+        512
+      ],
+      "fillFraction": 0.8,
+      "resampling": "LANCZOS",
+      "operations": [
+        "rectangular_crop",
+        "proportional_resize",
+        "transparent_padding"
+      ],
+      "alphaEdited": false,
+      "colorEdited": false
+    },
+    {
+      "kind": "hose",
+      "imageset": "wash-tool-hose",
+      "sourceFile": "wash-tool-hose-source.png",
+      "generatedSourceFile": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-c6d1f312-ff26-4d37-8db6-96673c826248.png",
+      "sourceSHA256": "272f2aebc9a2665798982abc5da4bb2ed27ef9abcf7857f1606ab1b9c719cfb3",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "measuredAlphaBounds": [
+        80,
+        69,
+        1223,
+        1194
+      ],
+      "measurementAlphaThreshold": 8,
+      "sourceCrop": [
+        76,
+        65,
+        1227,
+        1198
+      ],
+      "canvasSize": [
+        512,
+        512
+      ],
+      "fillFraction": 0.8,
+      "resampling": "LANCZOS",
+      "operations": [
+        "rectangular_crop",
+        "proportional_resize",
+        "transparent_padding"
+      ],
+      "alphaEdited": false,
+      "colorEdited": false
+    },
+    {
+      "kind": "towel",
+      "imageset": "wash-tool-towel",
+      "sourceFile": "wash-tool-towel-source.png",
+      "generatedSourceFile": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-e432091e-91f2-4bec-8024-5ba11b1e3a06.png",
+      "sourceSHA256": "6c154352024b5ae848162b3aec77eb83d4ce666f6b8e0303053ef555a0fb3188",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "measuredAlphaBounds": [
+        17,
+        266,
+        1242,
+        1086
+      ],
+      "measurementAlphaThreshold": 8,
+      "sourceCrop": [
+        13,
+        262,
+        1246,
+        1090
+      ],
+      "canvasSize": [
+        512,
+        512
+      ],
+      "fillFraction": 0.8,
+      "resampling": "LANCZOS",
+      "operations": [
+        "rectangular_crop",
+        "proportional_resize",
+        "transparent_padding"
+      ],
+      "alphaEdited": false,
+      "colorEdited": false
+    }
+  ]
+}

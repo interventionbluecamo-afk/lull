@@ -65,6 +65,17 @@ final class LullDemoState {
         defaults.removeObject(forKey: Key.legacyChildName)
         defaults.removeObject(forKey: Key.legacyChildAge)
         migrateLegacyDemoState()
+        migrateRetiredToyPreferences()
+    }
+
+    /// Little Wash takes Stack's shelf place without renewing trials or
+    /// touching StoreKit entitlements. Preserve a family's tucked-away choice.
+    private func migrateRetiredToyPreferences() {
+        var hidden = Set(defaults.stringArray(forKey: "lull.hiddenToyIDs") ?? [])
+        if hidden.remove("stack") != nil {
+            hidden.insert("wash")
+            defaults.set(Array(hidden).sorted(), forKey: "lull.hiddenToyIDs")
+        }
     }
 
     var hasCompletedOnboarding: Bool {
@@ -186,7 +197,7 @@ final class LullDemoState {
     // MARK: - Free trial (7 days of the full toybox, then it settles back to the free shelf)
 
     /// Full access is free for the first 7 days so a family can fall in love with the whole
-    /// shelf before deciding. After it ends, Bubbles and Stack stay free forever and the rest
+    /// shelf before deciding. After it ends, Bubbles, Little Wash and Drop Dots stay free forever and the rest
     /// quietly returns to the grown-up area — never a child-facing lock or price.
     let trialDuration: TimeInterval = 7 * 24 * 60 * 60
 

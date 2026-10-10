@@ -118,12 +118,10 @@ final class ToyShelfViewController: UIViewController {
         guard !hasPresentedInitialScene, skView.bounds.width > 20, skView.bounds.height > 20 else { return }
         hasPresentedInitialScene = true
 
-        let launchScene = WarmShelfLaunchScene(size: skView.bounds.size)
-        launchScene.onComplete = { [weak self, weak skView] in
-            guard let self, let skView else { return }
-            self.presentShelfScene(in: skView, animated: true)
-        }
-        skView.presentScene(launchScene)
+        // No separate loading animation (founder, build 7: "I hate the loading screen"). The
+        // launch screen is the shelf's own room, so the shelf continues the same picture and its
+        // toys rise onto the shelf: no flash, no wait, and play starts about two seconds sooner.
+        presentShelfScene(in: skView, animated: false)
     }
 
     private func presentShelfScene(in skView: SKView, animated: Bool) {

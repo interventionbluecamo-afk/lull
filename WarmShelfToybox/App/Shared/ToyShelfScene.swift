@@ -206,9 +206,16 @@ final class ToyShelfScene: BaseToyScene {
         let grade = SKSpriteNode(color: sky.isNight ? UIColor(hex: 0x354456) : UIColor(hex: 0xD5AC79),
                                  size: CGSize(width: size.width + 12, height: size.height + 12))
         grade.position = CGPoint(x: size.width / 2, y: size.height / 2)
-        grade.alpha = sky.isNight ? 0.24 : (isWindDown ? 0.12 : 0.025)
+        let gradeAlpha: CGFloat = sky.isNight ? 0.24 : (isWindDown ? 0.12 : 0.025)
         grade.zPosition = 0.2
         layer.addChild(grade)
+        if hasAnimatedEntrance || AmbientAnimator.reduceMotion {
+            grade.alpha = gradeAlpha
+        } else {
+            // First appearance continues from the (daylight) launch picture: ease the evening in.
+            grade.alpha = 0
+            grade.run(.fadeAlpha(to: gradeAlpha, duration: 0.9))
+        }
     }
 
     private func rebuildShelf() {

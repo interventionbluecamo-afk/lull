@@ -14,8 +14,19 @@
                     <view key="view" contentMode="scaleToFill" id="launch-view">
                         <rect key="frame" x="0.0" y="0.0" width="1024" height="1366"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleToFill" image="shelfroom-v2-day" translatesAutoresizingMaskIntoConstraints="NO" id="launch-room">
+                                <rect key="frame" x="-6" y="-6" width="1036" height="1378"/>
+                            </imageView>
+                        </subviews>
                         <viewLayoutGuide key="safeArea" id="launch-safe-area"/>
                         <color key="backgroundColor" name="LaunchBackground"/>
+                        <constraints>
+                            <constraint firstItem="launch-room" firstAttribute="top" secondItem="launch-view" secondAttribute="top" constant="-6" id="launch-room-top"/>
+                            <constraint firstItem="launch-room" firstAttribute="bottom" secondItem="launch-view" secondAttribute="bottom" constant="6" id="launch-room-bottom"/>
+                            <constraint firstItem="launch-room" firstAttribute="leading" secondItem="launch-view" secondAttribute="leading" constant="-6" id="launch-room-leading"/>
+                            <constraint firstItem="launch-room" firstAttribute="trailing" secondItem="launch-view" secondAttribute="trailing" constant="6" id="launch-room-trailing"/>
+                        </constraints>
                     </view>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="launch-first-responder" userLabel="First Responder" sceneMemberID="firstResponder"/>
@@ -24,8 +35,9 @@
         </scene>
     </scenes>
     <resources>
+        <image name="shelfroom-v2-day" width="1254" height="1254"/>
         <namedColor name="LaunchBackground">
-            <color red="0.9568627451" green="0.9294117647" blue="0.8117647059" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <color red="0.9411764706" green="0.9058823529" blue="0.8627450980" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </namedColor>
     </resources>
 </document>

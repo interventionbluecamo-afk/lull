@@ -28,11 +28,32 @@ as they close. Nothing here has been submitted to Apple.
 
 ## 2. Accounts, legal and web (Founder unless noted)
 
-- [ ] **Support email on a domain you own.** `support@lull.app` is on a domain that was for sale.
-  Pick one; then Claude swaps the address everywhere and rebuilds the privacy page.
-- [ ] **Website live** (`LandingPageDeploy/`: home, privacy, support), e.g. Netlify or
-  Cloudflare Pages, on that domain.
-- [ ] **Privacy policy URL in the app** (`LullLinks.privacyPolicyURL`). Claude, once the site is live.
+- [ ] **Domain** (Founder is choosing one). Everything below waits on it.
+- [ ] **Support email on that domain.** `support@lull.app` is on a domain that was for sale.
+  Claude swaps the address everywhere (app and site) and rebuilds the privacy page.
+
+### The landing page (`LandingPageDeploy/`)
+
+Ready apart from the domain. The site has three pages:
+
+- **Home:** the nine toys including Little Wash, free toys and free week, no ads/tracking/accounts,
+  and an App Store button that shows "Coming soon" until launch.
+- **Privacy:** the full policy, matching the one inside the app.
+- **Support.**
+
+All links are relative, so it works on any domain.
+
+- [ ] Host it on the domain, e.g. Netlify drop or Cloudflare Pages. Founder.
+  `_headers` adds strict security headers.
+- [ ] Swap the support email (one command). Claude.
+- [ ] Privacy link everywhere it's needed, all pointing at `https://<domain>/privacy.html`:
+  - home footer (already there);
+  - the app's grown-up area (`LullLinks.privacyPolicyURL`; Claude);
+  - App Store Connect Privacy Policy URL.
+- [ ] App Store Connect URLs: Support `https://<domain>/support.html`, Marketing `https://<domain>/`.
+- [ ] Check every page on a phone and a desktop after hosting: links, images, the email.
+- [ ] Launch day: swap "Coming soon" for the real App Store button (comment in `index.html`).
+- [ ] Later (§7): a small press-kit section on the same site.
 - [ ] **Paid Apps Agreement, tax and banking active.** The purchase can't load for App Review
   or sandbox without it.
 - [ ] **Copyright line**: your legal name or company.
@@ -78,7 +99,7 @@ rest go to §8._
 - [ ] App icon final at every size; looks right on light and dark home screens.
 - [ ] App Privacy: Data Not Collected. Age rating questionnaire answered (expect 4+).
   Category: Kids › 5 and under (primary Education, secondary Games › Family).
-- [ ] Support, Marketing and Privacy URLs (§2).
+- [ ] Support, Marketing and Privacy URLs from the landing page (§2).
 - [ ] In-app purchase: review screenshot uploaded, **attached to the 1.0 version**, availability
   matches the app's territories.
 - [ ] Review notes (SubmissionKit §3): grown-up area and check, free week, purchase, no accounts.

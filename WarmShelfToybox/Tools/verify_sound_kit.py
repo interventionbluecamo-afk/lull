@@ -93,16 +93,24 @@ with tempfile.TemporaryDirectory() as directory:
         bus, n = struct.unpack("<II", raw[:8])
         sounds[f.stem] = (bus, np.frombuffer(raw[8:], dtype="<f4").astype(np.float64))
 
-    # Every cue name used by the app exists in the book.
+    # Literal cue calls and sound ternaries must exist; SF Symbol names are not cues.
     used = set()
     for swift in (root / "App").rglob("*.swift"):
         if swift.name == "LullToneEngine.swift":
             continue
-        used |= set(re.findall(r'play\(cue: "([a-z0-9.]+)"', swift.read_text()))
-        used |= set(re.findall(r'prewarm\(cue: "([a-z0-9.]+)"', swift.read_text()))
-        used |= set(re.findall(r'\btone\("([a-z0-9.]+)"', swift.read_text()))
-        for a, b in re.findall(r'\? "([a-z0-9.]+)" : "([a-z0-9.]+)"', swift.read_text()):
-            used |= {a, b}
+        source = swift.read_text()
+        for call in [r'play\(cue: ', r'prewarm\(cue: ', r'\btone\(']:
+            used |= set(re.findall(call + r'"([A-Za-z0-9.]+)"(?!\s*\+)', source))
+        for line in source.splitlines():
+            if any(call in line for call in ['play(cue:', 'prewarm(cue:', 'tone(', 'let cue =']):
+                for a, b in re.findall(r'\? "([A-Za-z0-9.]+)" : "([A-Za-z0-9.]+)"', line):
+                    used |= {a, b}
+    # Wash concatenates a prefix with the actual production cast's raw values.
+    model = (root / "App/Toys/Wash/WashModel.swift").read_text()
+    cast = model.split("enum WashVehicleKind: String, CaseIterable {", 1)[1].split("var imageName:", 1)[0]
+    vehicles = re.findall(r'case\s+(\w+)', cast)
+    check(len(vehicles) == 6, "all six Wash vehicles are checked for an outcome cue")
+    used |= {"wash.toot." + vehicle for vehicle in vehicles}
     book = {name.split("#")[0] for name in sounds}
     missing = sorted(u for u in used if u not in book)
     check(not missing, f"every cue the app plays exists ({missing})")

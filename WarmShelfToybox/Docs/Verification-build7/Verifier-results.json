@@ -1,0 +1,73 @@
+{
+  "source": "26fc2652c96d3c26bc17cc7f65777b5ac677bb9e",
+  "results": [
+    {
+      "script": "verify_adult_gate.py",
+      "exit": 0,
+      "seconds": 3.12
+    },
+    {
+      "script": "verify_audio_lifecycle.py",
+      "exit": 0,
+      "seconds": 26.99
+    },
+    {
+      "script": "verify_dropdots.py",
+      "exit": 0,
+      "seconds": 1.73
+    },
+    {
+      "script": "verify_feed.py",
+      "exit": 0,
+      "seconds": 2.77
+    },
+    {
+      "script": "verify_hum.py",
+      "exit": 0,
+      "seconds": 2.46
+    },
+    {
+      "script": "verify_mixup_layout.py",
+      "exit": 0,
+      "seconds": 2.24
+    },
+    {
+      "script": "verify_mixup_stack.py",
+      "exit": 0,
+      "seconds": 5.16
+    },
+    {
+      "script": "verify_onboarding_state.py",
+      "exit": 0,
+      "seconds": 1.99
+    },
+    {
+      "script": "verify_rest_suspension.py",
+      "exit": 0,
+      "seconds": 1.87
+    },
+    {
+      "script": "verify_sound_kit.py",
+      "exit": 0,
+      "seconds": 16.68,
+      "verifier_updated": true
+    },
+    {
+      "script": "verify_wash.py",
+      "exit": 0,
+      "seconds": 2.62
+    },
+    {
+      "script": "verify_window.py",
+      "exit": 0,
+      "seconds": 2.24
+    },
+    {
+      "script": "verify_world_interactions.py",
+      "exit": 0,
+      "seconds": 4.43,
+      "verifier_updated": true
+    }
+  ],
+  "note": "Initial run: 11/13. Updated stale round expectation to founder every-round requirement and limited cue scanning to sounds plus production six-vehicle toot names; retained initial logs."
+}

@@ -145,7 +145,7 @@ for _ in 0..<100 {
 check(SleepyBoxRoundLayout.shuffledSlots([]).isEmpty, "An empty layout is safe")
 check(SleepyBoxRoundLayout.shuffledSlots([0]) == [0], "A single slot is stable")
 for round in 0...12 {
-    check(SleepyBoxRoundLayout.shouldExchange(after: round) == (round > 0 && round % 2 == 0), "Only every second completed round exchanges the box")
+    check(SleepyBoxRoundLayout.shouldExchange(after: round) == (round > 0), "Every completed round exchanges the box; round zero stays stable")
 }
 // Reordered sockets retain the same shape fit targets and separated capture regions.
 let centers = [CGPoint(x: 100, y: 300), CGPoint(x: 200, y: 300), CGPoint(x: 100, y: 200), CGPoint(x: 200, y: 200)]

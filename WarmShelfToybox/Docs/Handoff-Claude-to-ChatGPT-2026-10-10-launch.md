@@ -20,15 +20,15 @@ Never commit signing keys.
   - At night the shelf's evening tint eases in.
   - `WarmShelfLaunchScene.swift` is no longer presented. The file is kept and unused.
 - `CURRENT_PROJECT_VERSION` is **8** in both project definitions.
-- **Still to come on this branch from Claude:**
-  - fixes from a code audit of the build 7 test checklist (only verified, reproducible bugs);
-  - an Apple Design Award style jury review.
-
-  Claude appends them as §6 of this file and updates the checklist. Pull again before building.
+- The code audit of the build 7 checklist was **stopped by the founder** (token budget), so build 8
+  carries no audit fixes. Bugs now come from the founder's hands-on TestFlight testing (toy,
+  orientation, steps).
+- An Apple Design Award style jury review is still running. Claude adds its results as §6 of
+  this file, and any small "before launch" items to the checklist.
 
 ## 2. Your Mac work, in order
 
-1. **Build 1.0 (8)** once §6 says the audit fixes are in. If you build earlier, build again after.
+1. **Build 1.0 (8) now.** It contains only the launch-screen change since build 7.
    - Compile Debug and Release; fix compile errors minimally and say so in the commit.
    - Run every `Tools/verify_*.py`; put logs in `Docs/Verification-build8/`.
    - Upload to TestFlight, Founder Testing. The founder has authorised TestFlight uploads.
@@ -106,7 +106,7 @@ The prompts are written and the code adopts the files automatically if added:
 - Don't add sounds that play on their own or on bare taps (see the sound diet in `LullToneEngine.swift`).
 - Don't submit for public App Review until checklist §1–§6 are done and the founder says so.
 
-## 6. Audit fixes and jury review
+## 6. Jury review
 
-_Pending: Claude appends results here when the two reviews finish, with commit hashes, and
-moves any jury "before launch" items into the checklist._
+_Pending: Claude appends the results here when the review finishes, and moves any small
+"before launch" items into the checklist. The audit was stopped; there are no audit fixes._

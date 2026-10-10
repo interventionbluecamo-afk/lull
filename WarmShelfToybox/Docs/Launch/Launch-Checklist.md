@@ -62,7 +62,7 @@ All links are relative, so it works on any domain.
 
 ## 3. The release candidate build (Mac + Claude)
 
-- [ ] Fix the confirmed audit bugs (§4). Claude.
+- [ ] Fix the reproducible bugs from testing (§4). Claude.
 - [ ] Build 1.0 (8)+ compiles Debug and Release, all verifiers pass, logs go in
   `Docs/Verification-build8/`. Mac.
 - [ ] TestFlight to Founder Testing. Mac.
@@ -78,9 +78,12 @@ All links are relative, so it works on any domain.
 - [ ] Launch to shelf feels instant. Toys open quickly. Nothing plays sound on its own or on a
   bare tap.
 
-## 4. Confirmed bugs from the build 7 audit
+## 4. Bugs to fix before launch
 
-_To be filled from the audit now running. Only reproducible, verified issues are listed._
+The code audit was stopped (token budget). Bugs come from hands-on TestFlight testing of build 8.
+Report each one with the toy, the orientation and the steps. Only reproducible bugs are fixed.
+
+- [ ] Founder plays every toy on build 8, portrait and landscape, and lists anything broken.
 
 ## 5. Jury items worth doing before launch
 

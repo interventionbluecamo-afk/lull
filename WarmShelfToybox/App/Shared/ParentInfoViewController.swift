@@ -357,14 +357,14 @@ final class ParentInfoViewController: UIViewController {
         } else if purchased && state.hasSubscription {
             eyebrow.text = "LULL FAMILY"
             body.text = state.planWillRenew == false
-                ? "All nine toys stay open until this plan ends. It won't renew; Bubbles, Little Wash, and Drop Dots stay free afterward."
+                ? "All nine toys stay open until this plan ends. It won't renew; Bubbles, Drop Dots, and Hum stay free afterward."
                 : "All nine toys, and new ones as they arrive each season. Renews automatically each \(period)."
         } else if purchased {
             eyebrow.text = "UNLOCKED"
             body.text = "All nine toys are unlocked. Thank you for supporting Lull."
         } else {
             eyebrow.text = state.hasUnseenPlanEnd ? "LULL FAMILY HAS ENDED" : "THREE FREE TOYS · NINE TO PLAY"
-            body.text = "Bubbles, Little Wash, and Drop Dots stay free. Open all nine toys for familiar friends, music, and quiet discovery, plus new toys each season."
+            body.text = "Bubbles, Drop Dots, and Hum stay free. Open all nine toys for familiar friends, music, and quiet discovery, plus new toys each season."
         }
         eyebrow.font = scaledFont(.systemFont(ofSize: 12, weight: .bold), style: .caption1)
         eyebrow.adjustsFontForContentSizeCategory = true

@@ -244,7 +244,7 @@ final class LullOnboardingViewController: UIViewController {
             titleText = "Your free week,\nstill open."
             let days = state.freeWeekDaysRemaining
             let afterWeek = state.planWillRenew == false
-                ? "The shelf goes back to Bubbles, Little Wash, and Drop Dots. These three stay free."
+                ? "The shelf goes back to Bubbles, Drop Dots, and Hum. These three stay free."
                 : "Lull Family continues at \(store.displayPrice(for: LullStoreProduct.familyYearly)) a \(period) unless you cancel in your Apple Account settings at least a day before."
             timelineRows = [
                 makeTimelineRow(dot: WarmShelfPalette.butter, label: "Today",
@@ -276,7 +276,7 @@ final class LullOnboardingViewController: UIViewController {
             }
             timelineRows = [
                 makeTimelineRow(dot: WarmShelfPalette.waterBlue, label: "Free, always",
-                                text: "Bubbles, Little Wash, and Drop Dots. No ads, no accounts, nothing to pay."),
+                                text: "Bubbles, Drop Dots, and Hum. No ads, no accounts, nothing to pay."),
                 makeTimelineRow(dot: WarmShelfPalette.butter, label: "Lull Family", text: familyText),
                 makeTimelineRow(dot: WarmShelfPalette.terracotta, label: "Keep Forever",
                                 text: keepForeverPrice.map { "Or pay \($0) once and keep every toy for good." }

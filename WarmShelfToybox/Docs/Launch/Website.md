@@ -8,7 +8,7 @@ applies both everywhere.
 
 | Page | What it has |
 |---|---|
-| `index.html` | Hero with Wren and the App Store button ("Coming soon" until launch); the nine toys with names, one-line descriptions and **Free** tags on Bubbles, Little Wash and Drop Dots; why families choose Lull; the three plans (Free, Lull Family $29.99/year after a free week, Keep Forever $59.99) with the subscription terms and the Terms of Use link |
+| `index.html` | Hero with Wren and the App Store button ("Coming soon" until launch); the nine toys with names, one-line descriptions and **Free** tags on Bubbles, Drop Dots and Hum; why families choose Lull; the three plans (Free, Lull Family $29.99/year after a free week, Keep Forever $59.99) with the subscription terms and the Terms of Use link |
 | `support.html` | Settings; plans; the free week; cancelling; Family Sharing; restoring on another device; greyed-out buttons; the play-timer moon; refunds; terms |
 | `privacy.html` | The in-app policy, word for word (built from the Swift) |
 | `press.html` | The 100-word story, a fact sheet, artwork downloads (icon, social card, the toy strip, each toy) |

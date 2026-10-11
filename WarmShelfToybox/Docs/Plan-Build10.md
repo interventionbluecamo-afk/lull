@@ -63,7 +63,7 @@ already have been uploaded by the Mac, and skipping a number is harmless.
 ## 3. Steps (check off as done; each ends with a commit and push)
 
 - [x] **0. This plan committed.**
-- [ ] **1. Free toys swap.**
+- [x] **1. Free toys swap.**
   - `ToyRegistry`: Hum `.free`, Little Wash `.fullToybox`.
   - Copy everywhere "Bubbles, Little Wash, and Drop Dots" appears becomes "Bubbles, Drop Dots,
     and Hum": the app (onboarding, plans card), site templates (index tags, plans, support,
@@ -231,4 +231,10 @@ universal, like the other Meadow art). The code picks them up automatically.
 
 ## 6. Status log
 
-- Oct 11: plan written. Nothing implemented yet.
+- Oct 11: plan written.
+- Oct 11, step 1 done:
+  - `ToyRegistry`: Hum is `.free`, Little Wash `.fullToybox`. (Glowboard, Stack and Bloom are
+    `.free` but aren't in `launchToyIDs`.)
+  - Copy updated in the app, site (Free tags; free toys listed first), SubmissionKit,
+    Website.md and the plans handoff. Site rebuilt.
+  - No verifier depends on the free set.

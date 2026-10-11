@@ -81,7 +81,7 @@ enum ToyRegistry {
             id: humID,
             parentName: "Hum",
             accentColor: WarmShelfPalette.terracotta,
-            accessTier: .fullToybox,
+            accessTier: .free,
             isDemoReady: true,
             makeScene: { size in HumScene(size: size) }
         ),
@@ -97,7 +97,7 @@ enum ToyRegistry {
             id: washID,
             parentName: "Little Wash",
             accentColor: WarmShelfPalette.waterBlue,
-            accessTier: .free,
+            accessTier: .fullToybox,
             isDemoReady: true,
             makeScene: { size in WashScene(size: size) }
         ),

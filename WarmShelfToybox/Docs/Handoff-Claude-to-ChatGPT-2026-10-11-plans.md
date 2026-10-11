@@ -22,7 +22,7 @@ week are replaced by two App Store plans:
 | **Lull Family** | `com.lull.family.yearly` (new) | Auto-renewable, 1 year, group "Lull Family" | $29.99 a year, **introductory offer: free for 1 week** |
 | **Keep Forever** | `com.lull.full.lifetime` (existing, Apple ID 6820224689) | Non-consumable | **$59.99** (was $9.99) |
 
-- Bubbles, Little Wash and Drop Dots stay free forever. No ads, no data, no accounts.
+- Bubbles, Drop Dots and Hum stay free forever (changed October 11 from Little Wash; see `Docs/Plan-Build10.md`). No ads, no data, no accounts.
 - Lull Family promises new toys each season. Keep Forever includes every future toy.
 
 **Commits:**

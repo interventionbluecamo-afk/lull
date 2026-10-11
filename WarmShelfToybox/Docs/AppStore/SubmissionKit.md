@@ -117,7 +117,7 @@ need no attribution).
 > haptics on or off, choose calmer motion, and set a play timer and a wind-down hour.
 >
 > THREE TOYS FREE, ALL NINE TO PLAY
-> Bubbles, Little Wash and Drop Dots are free, with no ads and no account. Lull Family opens
+> Bubbles, Drop Dots and Hum are free, with no ads and no account. Lull Family opens
 > all nine toys, and the new ones that arrive each season, with a free week for new
 > subscribers. Or choose Keep Forever: one payment for every toy, for good. Purchases are made
 > by a grown-up, behind the adult check.
@@ -149,7 +149,7 @@ the hosted one. Keep learning claims at this level; do not claim outcomes.
 > below Family controls and Choose shelf toys, with the subscription terms, Terms of Use,
 > Privacy Policy, Manage subscription and Restore purchases. The last welcome page explains
 > both plans; its "Try all nine free" button opens the same card through the adult check. The
-> app has no local or timed trial; without a purchase, Bubbles, Little Wash and Drop Dots
+> app has no local or timed trial; without a purchase, Bubbles, Drop Dots and Hum
 > stay open.
 > The child's shelf never shows prices, locks or upgrade prompts. Support email is inside the
 > grown-up area; the optional web privacy link is currently unset. The device's tilt moves

@@ -23,7 +23,7 @@ Rules:
 | 3 Sleepy Box holes on the front face | ✅ | `SleepyBoxShellLayout`: sockets on the measured front face, the face between them and the drawer, slightly smaller pieces on phones. `verify_sleepy_box_layout.py`. |
 | 4 Mix-Up felt theatre | ✅ | A soft floor (no seam), the round felt `mixup-stage`, a tiled valance and corner curtains. The heart is below the stage in portrait and beside it in landscape. `verify_mixup_layout.py`: 546 checks. |
 | 5 Drop Dots colour rounds | ✅ | 5 felt sets take turns: after each pour a fresh shuffled hand pops in and the rings re-tint (felt overlays on the painted rings). `verify_dropdots.py`: 45 checks. |
-| 6 Build 11 | ⏳ next | Version 11, parse, verifiers, final handoff. |
+| 6 Build 11 | ✅ | `CURRENT_PROJECT_VERSION` 11 in both places. All 15 Swift files changed since `21eb8d2` parse. All 14 Linux verifiers pass. |
 
 ## Mac work once the steps are done
 
@@ -55,4 +55,39 @@ Rules:
      - The felt ring overlays line up with the painted rings. If not, adjust the radii in
        `makeRingTint` (inner 0.044, outer 0.080 × board art width).
      - Rotation keeps the round.
-4. **TestFlight 1.0 (11)** with a What to Test (written in the final step).
+4. **Meadow art** from the build 10 handoff §3, if not yet added (four PNGs; the code adopts
+   them automatically).
+5. **TestFlight 1.0 (11)** to Founder Testing. Build 11 includes everything in build 10.
+   **What to Test** (paste):
+
+```
+Build 11: your notes from build 10.
+
+Little Wash: the vehicles stand on the floor now, in portrait and landscape.
+
+Sleepy Box: the four holes sit on the box's front face, below the lid, with the sleepy face
+between them and the drawer.
+
+Mix-Up: a felt theatre like the shelf card: a round wooden stage, red felt curtains and a
+valance, and a soft floor with no hard line. The save heart is below the stage (beside it in
+landscape).
+
+Drop Dots: pour the dots out with the tab and a new colour set arrives (5 sets take turns);
+the rings change colour to match.
+
+Full Toybox: plans and prices are on their own page now. In the grown-up area, tap the
+"Full Toybox" row. The welcome's "Try all nine free" opens the same page.
+
+Everything from build 10 is included (free toys, play timer, Meadow little ones).
+```
+
+## If something looks wrong on device
+
+| Area | What to adjust |
+|---|---|
+| Wash | Contact line: `WashBayFit.floorContactFy` (0.79). Lower it to sit further back on the floor, raise it to come forward. |
+| Sleepy Box | Rows and size: `SleepyBoxShellLayout` (hole band 0.125–0.565, `maxPieceRadius` 0.076, face 0.655). |
+| Mix-Up | Curtain width: `addTheatreCurtains` (0.30 portrait, 0.18 landscape). Valance height: 46/58. Stage size: `stageArtWidth`. |
+| Drop Dots | Ring overlay radii: `makeRingTint` call (0.044/0.080 × art width). Colours: `DropDotsColourSets`. |
+
+Rerun the matching `Tools/verify_*.py` after any change.

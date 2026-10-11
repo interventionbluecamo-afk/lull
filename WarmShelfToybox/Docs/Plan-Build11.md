@@ -85,7 +85,7 @@ ChatGPT continues from the first unchecked step in §3, following §4.
   hole size and face. Mock renders for phone and iPad, portrait and landscape. Verifier.
 - [x] **4. Mix-Up room** (per the founder's answer, §5).
 - [x] **5. Drop Dots** (per the founder's answer, §5).
-- [ ] **6. Build 11.** Version bump, parse, verifiers, handoff.
+- [x] **6. Build 11.** Version bump, parse, verifiers, handoff.
 
 ## 4. Specs
 
@@ -172,3 +172,7 @@ ChatGPT continues from the first unchecked step in §3, following §4.
   - `verify_dropdots.py`: 45 checks, including colour distance for every pair in every set.
   - Needs a device check: the ring overlays sit exactly on the painted rings, adjusting the
     radii if needed (`makeRingTint`, 0.044 and 0.080). And the swap feels calm.
+- Oct 11, step 6 done:
+  - Build 11: version bumped; 15 Swift files parse; all 14 Linux verifiers pass.
+  - The handoff has the What to Test and an "adjust here" table.
+  - **The pass is complete in the cloud. Next is the Mac: compile, device checks, TestFlight 11.**

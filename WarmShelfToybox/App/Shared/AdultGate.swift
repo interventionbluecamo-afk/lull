@@ -250,36 +250,118 @@ final class AdultGateViewController: UIViewController {
 
 // MARK: - Play timer ("Lull is resting")
 
+/// The play timer's arithmetic, kept free of UIKit so it can be checked off-device.
+///
+/// One *sitting* is play with less than an hour away. It survives backgrounding, relaunch and
+/// force-quit, so swiping Lull away can't reset the count or skip the rest; only a grown-up
+/// (waking Lull or changing the timer) or an hour away starts a fresh sitting.
+struct LullPlaySitting: Equatable {
+    static let freshAfterAway: TimeInterval = 60 * 60
+
+    /// Seconds played in this sitting, not counting the stretch running now.
+    var played: TimeInterval = 0
+    /// When the stretch running now began; nil while Lull is in the background. Never saved.
+    var activeSince: Date?
+    /// The last moment play was known to be happening (saved every tick and on pause).
+    var lastActive: Date?
+    /// The rest veil is up and waiting for a grown-up.
+    var resting = false
+
+    func elapsed(at now: Date) -> TimeInterval {
+        played + (activeSince.map { max(0, now.timeIntervalSince($0)) } ?? 0)
+    }
+
+    func isDue(limitMinutes: Int, at now: Date) -> Bool {
+        limitMinutes > 0 && (resting || elapsed(at: now) >= TimeInterval(limitMinutes * 60))
+    }
+
+    /// Lull is in front again. Returns true when an hour or more away made it a fresh sitting.
+    /// A clock turned back never counts as time away.
+    @discardableResult
+    mutating func resume(at now: Date) -> Bool {
+        guard activeSince == nil else { return false }
+        var fresh = false
+        if let lastActive, now.timeIntervalSince(lastActive) >= Self.freshAfterAway {
+            played = 0
+            resting = false
+            fresh = true
+        }
+        activeSince = now
+        lastActive = now
+        return fresh
+    }
+
+    mutating func pause(at now: Date) {
+        checkpoint(at: now)
+        activeSince = nil
+    }
+
+    /// Fold the running stretch into `played`, so a force-quit loses at most one tick.
+    mutating func checkpoint(at now: Date) {
+        if let start = activeSince {
+            played += max(0, now.timeIntervalSince(start))
+            activeSince = now
+        }
+        lastActive = now
+    }
+
+    mutating func startFresh(at now: Date, active: Bool) {
+        played = 0
+        resting = false
+        activeSince = active ? now : nil
+        lastActive = now
+    }
+}
+
 /// Counts gentle foreground play time. When the parent-set limit elapses, Lull doesn't buzz or
 /// slam anything shut — the room simply gets sleepy: a calm moon veil settles over the screen
-/// and a grown-up wakes the app back up through the gate.
+/// and a grown-up wakes the app back up through the gate. The sitting is saved as play goes,
+/// so the rest comes back after a relaunch until a grown-up wakes Lull or an hour has passed.
 final class LullPlayTimer {
     static let shared = LullPlayTimer()
 
-    private var accumulated: TimeInterval = 0
-    private var lastResume: Date?
+    private enum Key {
+        static let played = "lull.timer.played"
+        static let lastActive = "lull.timer.lastActive"
+        static let resting = "lull.timer.resting"
+    }
+
+    private let defaults = UserDefaults.standard
+    private var sitting = LullPlaySitting()
     private var ticker: Timer?
-    private var restPresented = false
+    private weak var restController: LullRestViewController?
+    private var retryScheduled = false
 
     private init() {
+        sitting.played = defaults.double(forKey: Key.played)
+        let last = defaults.double(forKey: Key.lastActive)
+        sitting.lastActive = last > 0 ? Date(timeIntervalSinceReferenceDate: last) : nil
+        sitting.resting = defaults.bool(forKey: Key.resting)
         NotificationCenter.default.addObserver(self, selector: #selector(resume), name: UIApplication.didBecomeActiveNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(pause), name: UIApplication.willResignActiveNotification, object: nil)
     }
+
+    /// Minutes played in this sitting (for the grown-up area).
+    var minutesPlayed: Int { Int(sitting.elapsed(at: Date()) / 60) }
 
     /// Called once from the shelf so the singleton starts observing/ticking.
     func activate() {
         resume()
         guard ticker == nil else { return }
         ticker = Timer.scheduledTimer(withTimeInterval: 20, repeats: true) { [weak self] _ in
-            self?.checkLimit()
+            guard let self else { return }
+            self.sitting.checkpoint(at: Date())
+            self.save()
+            self.checkLimit()
         }
+        // A rest that was showing when Lull was swiped away comes straight back.
+        scheduleRetry(after: 0.8)
     }
 
     func settingsChanged() {
-        // A new limit starts a fresh, fair window.
-        accumulated = 0
-        lastResume = Date()
-        restPresented = false
+        // A new limit starts a fresh, fair sitting.
+        sitting.startFresh(at: Date(), active: sitting.activeSince != nil)
+        save()
     }
 
     func parentWoke() {
@@ -287,36 +369,57 @@ final class LullPlayTimer {
     }
 
     @objc private func resume() {
-        if lastResume == nil { lastResume = Date() }
+        if sitting.resume(at: Date()), let rest = restController {
+            // An hour or more away: a fresh sitting, so the veil lifts by itself.
+            rest.wakeWithoutGrownUp()
+        }
+        save()
+        scheduleRetry(after: 0.8)
     }
 
     @objc private func pause() {
-        if let start = lastResume { accumulated += Date().timeIntervalSince(start) }
-        lastResume = nil
+        sitting.pause(at: Date())
+        save()
     }
 
-    private var elapsed: TimeInterval {
-        accumulated + (lastResume.map { Date().timeIntervalSince($0) } ?? 0)
+    private func save() {
+        defaults.set(sitting.played, forKey: Key.played)
+        defaults.set(sitting.lastActive?.timeIntervalSinceReferenceDate ?? 0, forKey: Key.lastActive)
+        defaults.set(sitting.resting, forKey: Key.resting)
+    }
+
+    private func scheduleRetry(after delay: TimeInterval) {
+        guard !retryScheduled else { return }
+        retryScheduled = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+            self?.retryScheduled = false
+            self?.checkLimit()
+        }
     }
 
     private func checkLimit() {
         let minutes = LullDemoState.shared.playTimerMinutes
-        guard minutes > 0, !restPresented, LullDemoState.shared.hasCompletedOnboarding else { return }
-        guard elapsed >= TimeInterval(minutes * 60) else { return }
+        guard restController == nil, LullDemoState.shared.hasCompletedOnboarding,
+              sitting.isDue(limitMinutes: minutes, at: Date()) else { return }
         // Parent setup, the grown-up check, and purchases stay usable when the deadline
-        // arrives. Recheck on the next tick once a child play screen is visible again.
+        // arrives. Try again shortly once a child play screen is visible again.
         guard UIApplication.shared.applicationState == .active,
               let top = LullPlayTimer.topmostViewController(),
               top is ToyViewController || top is ToyShelfViewController,
               !top.isBeingPresented, !top.isBeingDismissed,
               top.transitionCoordinator == nil,
               top.viewIfLoaded?.window != nil,
-              let suspension = LullRestPlaybackSuspension(presenter: top) else { return }
-        restPresented = true
+              let suspension = LullRestPlaybackSuspension(presenter: top) else {
+            scheduleRetry(after: 1)
+            return
+        }
+        sitting.resting = true
+        save()
         let rest = LullRestViewController()
         rest.onWake = { suspension.resume() }
         rest.modalPresentationStyle = .overFullScreen
         rest.modalTransitionStyle = .crossDissolve
+        restController = rest
         top.present(rest, animated: true)
     }
 
@@ -397,6 +500,13 @@ final class LullRestViewController: UIViewController {
         }
 
         view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(askGrownUp)))
+    }
+
+    /// An hour away made a fresh sitting: lift the veil without the grown-up check.
+    func wakeWithoutGrownUp() {
+        let onWake = self.onWake
+        self.onWake = nil
+        dismiss(animated: true, completion: onWake)
     }
 
     @objc private func askGrownUp() {

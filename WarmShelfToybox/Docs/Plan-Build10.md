@@ -70,7 +70,7 @@ already have been uploaded by the Mac, and skipping a number is harmless.
     press) plus a rebuild, SubmissionKit, the checklist, the handoff, Website.md and the
     screenshots spec.
   - Check the verifiers for the free set.
-- [ ] **2. Play timer per sitting, survives relaunch.** Spec §4.1. Add `Tools/verify_play_timer.py`.
+- [x] **2. Play timer per sitting, survives relaunch.** Spec §4.1. Add `Tools/verify_play_timer.py`.
 - [ ] **3. Welcome page 2: "Your family's rhythm".** Spec §4.2.
 - [ ] **4. Grown-up area: a clear play timer card.** Spec §4.3.
 - [ ] **5. Drop Dots: more matches, more to discover.** Spec §4.4. Update `verify_dropdots.py`.
@@ -238,3 +238,11 @@ universal, like the other Meadow art). The code picks them up automatically.
   - Copy updated in the app, site (Free tags; free toys listed first), SubmissionKit,
     Website.md and the plans handoff. Site rebuilt.
   - No verifier depends on the free set.
+- Oct 11, step 2 done:
+  - `LullPlaySitting` (a UIKit-free struct in `AdultGate.swift`) holds played time, last active
+    and resting. `LullPlayTimer` saves it every 20-second tick and on pause.
+  - On launch or return: a rest that was showing comes straight back (retried every second
+    until a child screen is in front). An hour away lifts the veil by itself
+    (`LullRestViewController.wakeWithoutGrownUp`).
+  - `Tools/verify_play_timer.py`: 14 checks pass.
+  - Needs a device check: force-quit while the rest is showing, then reopen. The rest returns.

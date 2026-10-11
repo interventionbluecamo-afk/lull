@@ -74,7 +74,7 @@ already have been uploaded by the Mac, and skipping a number is harmless.
 - [x] **3. Welcome page 2: "Your family's rhythm".** Spec §4.2.
 - [x] **4. Grown-up area: a clear play timer card.** Spec §4.3.
 - [x] **5. Drop Dots: more matches, more to discover.** Spec §4.4. Update `verify_dropdots.py`.
-- [ ] **6. Meadow little ones.** Spec §4.5. Add `Tools/verify_meadow_little_ones.py` for the
+- [x] **6. Meadow little ones.** Spec §4.5. Add `Tools/verify_meadow_little_ones.py` for the
   pure model.
 - [ ] **7. Build 10.**
   - `CURRENT_PROJECT_VERSION` 10 in `project.yml` and `Lull.xcodeproj/project.pbxproj`
@@ -282,3 +282,30 @@ universal, like the other Meadow art). The code picks them up automatically.
   - **Needs a device check:** the two-row tray in portrait and landscape on a small iPhone, an
     iPhone Pro Max and an iPad. Dots must not overlap the trough lips, and the board shouldn't
     feel cramped. If the back trough's art looks odd, a single taller tray is the fallback.
+- Oct 11, step 6 done:
+  - **New file** `App/Toys/Meadow/MeadowLittleOnes.swift`, added to `Lull.xcodeproj`
+    (file reference, build file, Meadow group, Sources). XcodeGen picks it up from `App/`.
+    It contains:
+    - `MeadowSeededRandom`;
+    - `MeadowLittleOnesModel` (pure): hiding spots, find radius 64, parade 30 apart along her
+      path, `flowerHop` lift and sideways nudge within 16 pt of a flower, house in the home
+      garden, a snapshot;
+    - `MeadowLittleOnesNode` (SpriteKit): leaves that rustle; babies that lean out as she nears;
+      pop-out and join; the parade with hop scale; the house growing in at the first find;
+      hop-in at the door with a glow per baby; an all-home finale with sparks.
+  - **Art:** uses ChatGPT's art when present (`meadow-baby-ladybug`, `meadow-leaf-house`,
+    `meadow-leaf-house-glow`, `meadow-hide-leaf`). Otherwise: her own art small, and a
+    code-drawn leaf house and leaves.
+  - **`MeadowScene`:**
+    - `buildLittleOnes` in `rebuild`;
+    - stepped every frame in `update`;
+    - `MeadowSnap.littleOnes` plus a per-visit seed for rotation;
+    - `answerLittleOnes` sounds: a pluck when one joins, rising plucks as they go in,
+      "meadow.fullspring" when all are home. Light/soft haptics.
+  - `Tools/verify_meadow_little_ones.py`: 12,820 model checks and 6 scene checks pass.
+  - **Needs a device check:**
+    - babies' size beside her and the flowers;
+    - the hop reads as hopping;
+    - the house is visible at home;
+    - Reduce Motion;
+    - the finale.

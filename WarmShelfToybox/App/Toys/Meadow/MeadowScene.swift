@@ -87,6 +87,10 @@ final class MeadowScene: BaseToyScene {
     private let trailWidth: CGFloat = 26
     // MARK: - Landmarks (approved delight: destinations that wake)
     private var landmarks: [MeadowLandmark] = []
+    // MARK: - The little ones (MeadowLittleOnes.swift)
+    private var littleOnes: MeadowLittleOnesNode?
+    /// One seed per visit, so a rotation rebuild hides them in the same places.
+    private let littleOnesSeed = UInt64.random(in: 1...UInt64.max)
     private let springColor = UIColor(hex: 0x8FBE74)
     // Dormant != dead: late-winter sage-straw, already secretly green, so painted spring
     // reads as awakening rather than a hard cliff (founder daytime-contrast note).
@@ -140,7 +144,8 @@ final class MeadowScene: BaseToyScene {
             trail: trailPoints,
             flowerSpots: flowers.compactMap { $0.parent != nil ? $0.position : nil },
             flowerTrail: flowerTrail,
-            landmarksAwake: landmarks.map { $0.isAwake }
+            landmarksAwake: landmarks.map { $0.isAwake },
+            littleOnes: littleOnes?.model.snapshot
         )
         rebuild(restoring: snap)
     }
@@ -156,6 +161,7 @@ final class MeadowScene: BaseToyScene {
         let flowerSpots: [CGPoint]
         let flowerTrail: MeadowFlowerTrail
         let landmarksAwake: [Bool]
+        let littleOnes: MeadowLittleOnesModel.Snapshot?
     }
 
     private func rebuild(restoring snap: MeadowSnap? = nil) {
@@ -185,6 +191,7 @@ final class MeadowScene: BaseToyScene {
         buildLandmarks()
         buildSnail()
         buildFlowerTrail()
+        buildLittleOnes(restoring: snap?.littleOnes)
 
         goldenVeil.size = size
         goldenVeil.position = CGPoint(x: size.width / 2, y: size.height / 2)
@@ -213,6 +220,7 @@ final class MeadowScene: BaseToyScene {
                 lm.wake(instantly: true)
             }
             snail?.position = snap.snailPos
+            littleOnes?.snapParade(to: snap.snailPos)
             if snap.bloomFired {
                 if let puffPosition = snap.dandelionPosition {
                     offerDandelion(at: puffPosition, animated: false)
@@ -484,6 +492,35 @@ final class MeadowScene: BaseToyScene {
             }]))
         }
         #endif
+    }
+
+    /// Five little ones hide around the meadow; the leaf house waits in the home garden.
+    private func buildLittleOnes(restoring snapshot: MeadowLittleOnesModel.Snapshot?) {
+        let homeRadius = min(size.width, size.height) * 0.30   // the home spring's radius
+        let model = snapshot.map(MeadowLittleOnesModel.init(restoring:)) ?? MeadowLittleOnesModel(
+            worldSize: worldSize, homeRadius: homeRadius,
+            avoid: landmarks.map { $0.position }, seed: littleOnesSeed)
+        let s = min(size.width, size.height) * 0.05   // her own scale (buildSnail)
+        let node = MeadowLittleOnesNode(model: model, babySize: s * 1.15, houseSize: s * 5.5, night: isNight)
+        node.zPosition = 0.8   // above her flower trail, below her
+        lifeLayer.addChild(node)
+        littleOnes = node
+    }
+
+    /// Outcomes only (the sound diet): a little one joining, little ones going home, all home.
+    private func answerLittleOnes(_ events: MeadowLittleOnesEvents) {
+        if events.found > 0 {
+            tone("note.pluck.16", minInterval: 0.3, volume: 0.42)
+            HapticsManager.shared.impact(style: .light, intensity: 0.2)
+        }
+        guard events.arrived > 0 else { return }
+        for n in 0..<min(events.arrived, 5) {
+            AudioManager.shared.play(cue: "note.pluck.\(14 + n)", volume: 0.34, delay: 0.3 + Double(n) * 0.32)
+        }
+        HapticsManager.shared.impact(style: .soft, intensity: 0.2)
+        if events.allHome {
+            AudioManager.shared.play(cue: "meadow.fullspring", volume: 0.55, delay: 0.5 + Double(events.arrived) * 0.32)
+        }
     }
 
     // MARK: - The snail (seen from above; the shell spiral is the hero)
@@ -799,6 +836,11 @@ final class MeadowScene: BaseToyScene {
                 }
                 walkStep(at: snail.position)
             }
+        }
+
+        if let littleOnes {
+            answerLittleOnes(littleOnes.step(mother: snail.position, heading: snail.zRotation,
+                                             flowers: flowerTrail.positions, dt: dt))
         }
 
         // The camera drifts after the snail — soft lag, never a hard lock — and stops at the

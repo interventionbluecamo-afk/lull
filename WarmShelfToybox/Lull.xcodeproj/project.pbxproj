@@ -70,6 +70,7 @@
 		CA2384C37C2531DECC231823 /* GlowWindowScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = B84313450038A044EE4AC947 /* GlowWindowScene.swift */; };
 		D3D6236EF9394FF6F65DFFB2 /* onboarding-ref-3.png in Resources */ = {isa = PBXBuildFile; fileRef = 2AC69F3695C006BA94C7DB5A /* onboarding-ref-3.png */; };
 		D61B2174011152786A8516B6 /* MeadowScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = A69D78C33FF7AEE923D4E1F8 /* MeadowScene.swift */; };
+		68A29800673F91E31A774B10 /* MeadowLittleOnes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A41608927FF86FCEF51DC8C /* MeadowLittleOnes.swift */; };
 		DA67FA01F576EED2739CEF62 /* DropBoxPieces.swift in Sources */ = {isa = PBXBuildFile; fileRef = 259A5590D7198AF6CD9B0CEC /* DropBoxPieces.swift */; };
 		DB5469DC55E67BA088969BB7 /* BubbleStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A4506864CDD2A99A83009B3 /* BubbleStyle.swift */; };
 		DD1F512DA1D842273FA812E6 /* TimeOfDay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65FBB4E87AE44182463AC1FB /* TimeOfDay.swift */; };
@@ -141,6 +142,7 @@
 		9B2DC2B914AF82DF0B7DCBF3 /* BubbleScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BubbleScene.swift; sourceTree = "<group>"; };
 		A16110DF044505C1DDFBAEEB /* ToyRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToyRegistry.swift; sourceTree = "<group>"; };
 		A4AB698868AD4148491DFF1E /* LeafNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeafNode.swift; sourceTree = "<group>"; };
+		1A41608927FF86FCEF51DC8C /* MeadowLittleOnes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeadowLittleOnes.swift; sourceTree = "<group>"; };
 		A69D78C33FF7AEE923D4E1F8 /* MeadowScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeadowScene.swift; sourceTree = "<group>"; };
 		AE66EEDCB1991BC20642D778 /* ParticleManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParticleManager.swift; sourceTree = "<group>"; };
 		AF5BB6BAAAC8DE8EBD829BB0 /* DraggableNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DraggableNode.swift; sourceTree = "<group>"; };
@@ -200,6 +202,7 @@
 		0DB3AA04F0F891ADDD36CA16 /* Meadow */ = {
 			isa = PBXGroup;
 			children = (
+				1A41608927FF86FCEF51DC8C /* MeadowLittleOnes.swift */,
 				A69D78C33FF7AEE923D4E1F8 /* MeadowScene.swift */,
 			);
 			path = Meadow;
@@ -614,6 +617,7 @@
 				574673DC3DBD28E1B943F94C /* LullHostNode.swift in Sources */,
 				0C785FA5C83000D952E9092D /* LullOnboardingViewController.swift in Sources */,
 				4678222AD3993CA4F37C4E41 /* LullToneEngine.swift in Sources */,
+				68A29800673F91E31A774B10 /* MeadowLittleOnes.swift in Sources */,
 				D61B2174011152786A8516B6 /* MeadowScene.swift in Sources */,
 				49C4352487D4B266BEA5B9C4 /* MixUpPart.swift in Sources */,
 				5D7D861C26925AF67F4CEC37 /* MixUpScene.swift in Sources */,

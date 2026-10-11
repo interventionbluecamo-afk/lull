@@ -1,16 +1,22 @@
 <!doctype html>
+<!-- Built by Tools/Store/build_site.py from Tools/Store/site/index.html. Edit there, not here. -->
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Lull — calm toys for little hands</title>
   <meta name="description" content="Lull is a quiet toybox for ages 2–6: nine felt-and-wood toys with no ads, no tracking, and no accounts.">
-  <meta name="theme-color" content="#F8F3E9">
-  <!-- At launch, uncomment so Safari offers the app: -->
-  <!-- <meta name="apple-itunes-app" content="app-id=6819919245"> -->
+  <meta name="theme-color" content="#F8F3E9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#241B16" media="(prefers-color-scheme: dark)">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Lull">
   <meta property="og:title" content="Lull — calm toys for little hands">
-  <meta property="og:description" content="Nine felt-and-wood toys for ages 2–6. No ads, no tracking, no accounts.">
+  <meta property="og:description" content="Lull is a quiet toybox for ages 2–6: nine felt-and-wood toys with no ads, no tracking, and no accounts.">
   <meta property="og:image" content="assets/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Wren, Lull's felt friend, above a row of nine felt-and-wood toys">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="assets/icon-64.png">
   <link rel="apple-touch-icon" href="assets/icon-180.png">
   <link rel="stylesheet" href="site.css">
@@ -18,38 +24,39 @@
 <body>
   <div class="wrap">
     <header class="site">
-      <a class="brand" href="./"><img src="assets/icon-64.png" alt=""><span>Lull</span></a>
-      <nav class="site"><a href="support.html">Support</a><a href="privacy.html">Privacy</a></nav>
+      <a class="brand" href="./"><img src="assets/icon-64.png" width="40" height="40" alt=""><span>Lull</span></a>
+      <nav class="site" aria-label="Main"><a href="./#plans">Plans</a><a href="support.html">Support</a><a href="privacy.html">Privacy</a></nav>
     </header>
 
     <main>
       <section class="hero">
-        <img class="icon" src="assets/icon-512.png" width="132" height="132" alt="The Lull app icon: Wren, a terracotta felt friend with a butter-yellow capstone under a crescent moon">
+        <img class="icon" src="assets/icon-264.webp" width="132" height="132" alt="The Lull app icon: Wren, a terracotta felt friend with a butter-yellow capstone under a crescent moon">
         <h1>Calm toys for<br>little hands.</h1>
         <p class="lede">Nine felt-and-wood toys for ages 2–6. Feed, wash, sort, make music, and wander through a meadow. No ads, no tracking, no accounts.</p>
-
-        <!-- AT LAUNCH: replace the span below with
-             <a class="button" href="https://apps.apple.com/app/id6819919245">Download on the App Store</a> -->
         <span class="button soon" aria-disabled="true">Coming soon to the App Store</span>
-        <p class="fine">For iPhone and iPad.</p>
+        <p class="fine">For iPhone and iPad. Free to download, with three toys free forever.</p>
       </section>
 
-      <div class="toys" aria-label="Lull’s nine toys">
-        <img src="assets/shelf-bubbles-v2.png" width="200" height="200" alt="Floating pearly bubbles" loading="lazy">
-        <img src="assets/shelf-wash-v2.png" width="200" height="200" alt="A little felt fire truck in foam" loading="lazy">
-        <img src="assets/shelf-dropdots-v2.png" width="200" height="200" alt="Four colored dot channels" loading="lazy">
-        <img src="assets/shelf-feed-v2.png" width="200" height="200" alt="A felt food stand" loading="lazy">
-        <img src="assets/shelf-hum-v2.png" width="200" height="200" alt="A colored xylophone" loading="lazy">
-        <img src="assets/shelf-window-v2.png" width="200" height="200" alt="A day and night window" loading="lazy">
-        <img src="assets/shelf-mixup-v2.png" width="200" height="200" alt="A mixed felt friend on a little stage" loading="lazy">
-        <img src="assets/shelf-sleepybox-v2.png" width="200" height="200" alt="A wooden shape box" loading="lazy">
-        <img src="assets/shelf-meadow-v2.png" width="200" height="200" alt="A felt ladybug garden" loading="lazy">
-      </div>
+      <section class="shelf" aria-labelledby="toys">
+        <h2 id="toys" class="section-title">Nine toys on one quiet shelf</h2>
+        <p class="section-lede">Each toy answers touch the way a real one would. There is nothing to read, nothing to win, and nothing to lose.</p>
+        <ul class="toy-list">
+          <li class="toy"><img src="assets/toys/bubbles.webp" width="320" height="294" alt="" loading="lazy"><div><h3>Bubbles <span class="tag">Free</span></h3><p>Pop soft bubbles and find the little treasures some carry.</p></div></li>
+          <li class="toy"><img src="assets/toys/wash.webp" width="320" height="227" alt="" loading="lazy"><div><h3>Little Wash <span class="tag">Free</span></h3><p>Scrub muddy trucks clean with a sponge, a hose, and a towel.</p></div></li>
+          <li class="toy"><img src="assets/toys/dropdots.webp" width="315" height="320" alt="" loading="lazy"><div><h3>Drop Dots <span class="tag">Free</span></h3><p>Drop coins into the columns and pour them out again.</p></div></li>
+          <li class="toy"><img src="assets/toys/feed.webp" width="313" height="320" alt="" loading="lazy"><div><h3>Feed</h3><p>Each friend asks for a snack. Give it, and watch them chew and smile.</p></div></li>
+          <li class="toy"><img src="assets/toys/hum.webp" width="320" height="165" alt="" loading="lazy"><div><h3>Hum</h3><p>Touch the singers to make gentle music, alone or in chords.</p></div></li>
+          <li class="toy"><img src="assets/toys/window.webp" width="320" height="289" alt="" loading="lazy"><div><h3>Window</h3><p>Turn the day into evening and see who visits.</p></div></li>
+          <li class="toy"><img src="assets/toys/mixup.webp" width="318" height="320" alt="" loading="lazy"><div><h3>Mix-Up</h3><p>Swap heads, tops, and legs across nine friends: 729 combinations.</p></div></li>
+          <li class="toy"><img src="assets/toys/sleepybox.webp" width="291" height="320" alt="" loading="lazy"><div><h3>Sleepy Box</h3><p>Post each shape into its hole and open the drawer.</p></div></li>
+          <li class="toy"><img src="assets/toys/meadow.webp" width="320" height="147" alt="" loading="lazy"><div><h3>Meadow</h3><p>Lead a ladybug through a meadow that wakes as it passes.</p></div></li>
+        </ul>
+      </section>
 
       <section class="cards" aria-label="Why families choose Lull">
         <div class="card">
           <h2><span class="dot dot-clay"></span>Made for small hands</h2>
-          <p>Pictures and touch guide every toy. Nothing to read, no levels, no scores, and nothing to lose.</p>
+          <p>Pictures and touch guide every toy. Every sound is made softly, in code, and only in answer to a child's hand.</p>
         </div>
         <div class="card">
           <h2><span class="dot dot-sage"></span>Grown-ups set the pace</h2>
@@ -63,18 +70,36 @@
     </main>
   </div>
 
-  <section class="band" aria-labelledby="try">
+  <section class="band" id="plans" aria-labelledby="plans-title">
     <div class="wrap">
-      <h2 id="try">Three toys free, all nine to play</h2>
-      <p>Bubbles, Little Wash, and Drop Dots are always free. <strong>Lull Family</strong> opens all nine toys, and the new ones that arrive each season, for $29.99 a year after a free week. Cancel anytime in your Apple Account settings. Or choose <strong>Keep Forever</strong>: one payment of $59.99 for every toy, for good. Prices are in US dollars and may vary by country.</p>
+      <h2 id="plans-title">Three toys free, all nine to play</h2>
+      <div class="plans">
+        <div class="plan">
+          <h3 class="plan-name">Free</h3>
+          <p class="plan-price">$0</p>
+          <p>Bubbles, Little Wash, and Drop Dots, for good. No ads and no account.</p>
+        </div>
+        <div class="plan plan-featured">
+          <h3 class="plan-name">Lull Family</h3>
+          <p class="plan-price">$29.99 <span>a year</span></p>
+          <p class="plan-note">First week free for new subscribers</p>
+          <p>All nine toys, plus new ones each season. Cancel anytime.</p>
+        </div>
+        <div class="plan">
+          <h3 class="plan-name">Keep Forever</h3>
+          <p class="plan-price">$59.99 <span>once</span></p>
+          <p>Every toy, now and later, for good. Nothing to renew.</p>
+        </div>
+      </div>
+      <p class="fineprint">Both plans work with Family Sharing, so everyone in your Apple family group can play on their own devices. A grown-up buys them in Lull's grown-up area, behind an adult check, and Apple charges your Apple Account. Lull Family renews automatically each year unless cancelled at least 24 hours before the end of the current period; manage or cancel it in your Apple Account settings. Prices are in US dollars and may vary by country. <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/">Terms of Use</a></p>
     </div>
   </section>
 
   <div class="wrap">
     <footer class="site">
       <p>Questions or ideas? Write to <a href="mailto:support@lull.app">support@lull.app</a>.</p>
-      <p><a href="support.html">Support</a> · <a href="privacy.html">Privacy</a></p>
-      <p>© 2026 Lull. This site uses no cookies or trackers.</p>
+      <p class="links"><a href="support.html">Support</a><a href="privacy.html">Privacy</a><a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/">Terms of Use</a><a href="press.html">Press</a></p>
+      <p>© 2026 Lull. Made with patience by two people and a toddler.<br>This site uses no cookies or trackers.</p>
     </footer>
   </div>
 </body>

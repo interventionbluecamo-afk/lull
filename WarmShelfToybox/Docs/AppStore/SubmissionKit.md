@@ -14,18 +14,17 @@ outstanding work in `Docs/Launch/Launch-Checklist.md`.
    a mailbox you own and verify sending and receiving before publishing. A paid domain is
    optional; a working existing mailbox can serve the free website. Apple requires a working
    support contact ([Guideline 1.5](https://developer.apple.com/app-store/review/guidelines/)).
-   Once chosen, update `LullLinks.supportEmail` and matching website copy, then regenerate the
-   privacy page with `python3 Tools/Store/build_privacy_page.py` from `WarmShelfToybox/`.
-2. **Put the website online** (`LandingPageDeploy/`: home, privacy, support). Recommended free
+   Once chosen, apply it everywhere with `python3 Tools/Store/build_site.py --email ADDRESS`
+   from `WarmShelfToybox/` (app, website and privacy page; see `Docs/Launch/Website.md`).
+2. **Put the website online** (`LandingPageDeploy/`: home, support, privacy, press). Recommended free
    option, **not yet chosen or deployed**: Cloudflare Pages on its
    [Free plan](https://developers.cloudflare.com/pages/platform/limits/), at `https://YOURPROJECT.pages.dev/`,
    with the working mailbox above. A paid custom domain can be added later. Cloudflare's
    [Direct Upload guide](https://developers.cloudflare.com/pages/get-started/direct-upload/)
-   covers uploading the folder and getting a `pages.dev` address. Set
-   `LullLinks.privacyPolicyURL` in `App/Shared/ParentInfoViewController.swift` to the final
-   `https://YOURPROJECT.pages.dev/privacy.html`, update the website's `og:image` to an absolute
-   URL, and put the same live URLs in App Store Connect. Test all three public pages and the
-   contact link before submission.
+   covers uploading the folder and getting a `pages.dev` address. Then run
+   `python3 Tools/Store/build_site.py --url https://YOURPROJECT.pages.dev`: it sets the app's
+   privacy link, absolute share links, the sitemap and these URLs, and you re-upload. Put the
+   same live URLs in App Store Connect. Test every page and the contact link before submission.
 3. **Paid Apps Agreement, tax and banking** (Account Holder, App Store Connect → Business). The
    purchase cannot load for App Review, or in sandbox, until the agreement is Active.
 4. **Set up the two products** (founder decision, October 11: Lull Family + Keep Forever).

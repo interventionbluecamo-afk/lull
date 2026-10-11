@@ -24,7 +24,23 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def build_cards() -> list[str]:
+    """One small, trimmed WebP per toy for the website's toy list (2x for a ~150 pt card)."""
+    (WEB / "toys").mkdir(exist_ok=True)
+    names = []
+    for toy in TOYS:
+        source = Image.open(ASSETS / f"shelf-{toy}-v2.imageset" / f"shelf-{toy}-v2.png").convert("RGBA")
+        card = source.crop(source.getchannel("A").point(lambda alpha: 255 if alpha > 4 else 0).getbbox())
+        scale = 320 / max(card.size)
+        card = card.resize((round(card.width * scale), round(card.height * scale)), RESAMPLE)
+        name = f"toys/{toy}.webp"
+        card.save(WEB / name, quality=90, alpha_quality=100, method=6)
+        names.append(name)
+    return names
+
+
 def build() -> None:
+    cards = build_cards()
     strip = Image.new("RGBA", (1600, 222), (0, 0, 0, 0))
     margin, gap, baseline = 16, 14, 212
     cell_width = (strip.width - margin * 2 - gap * (len(TOYS) - 1)) / len(TOYS)
@@ -64,6 +80,8 @@ def build() -> None:
     row = strip.resize((1080, 150), RESAMPLE)
     og.paste(row, (60, 408), row)
     og.save(WEB / "og.png", optimize=True)
+    # The hero shows Wren at 132 pt: a 2x WebP instead of the 512 px PNG (kept for press).
+    Image.open(icon_path).convert("RGB").resize((264, 264), RESAMPLE).save(WEB / "icon-264.webp", quality=90, method=6)
 
     manifest = {
         "purpose": "Launch website social card and transparent nine-toy strip",
@@ -74,7 +92,7 @@ def build() -> None:
         "icon": {"source": str(icon_path.relative_to(ROOT)), "sha256": sha256(icon_path), "identity": "Wren, unchanged"},
         "outputs": [
             {"file": name, "size": list(Image.open(WEB / name).size), "sha256": sha256(WEB / name)}
-            for name in ("og.png", "toys.webp")
+            for name in ("og.png", "toys.webp", "icon-264.webp", *cards)
         ],
     }
     (WEB / "Composite-export.json").write_text(json.dumps(manifest, indent=2) + "\n")

@@ -34,28 +34,21 @@ as they close. Nothing here has been submitted to Apple.
 
 ### The landing page (`LandingPageDeploy/`)
 
-Prepared locally; hosting, the working support email and final absolute social-image URL are still needed. The site has three pages:
-
-- **Home:** the nine toys including Little Wash, free toys and free week, no ads/tracking/accounts,
-  and an App Store button that shows "Coming soon" until launch.
-- **Privacy:** the full policy, matching the one inside the app.
-- **Support.**
-
-Page links are relative. Set `og:image` to the absolute hosted URL before launch.
+**Finished October 11** and deploy-ready: home (the nine toys with Free tags, the three
+plans with subscription terms), support, privacy, press, a 404 page, robots and sitemap.
+No scripts or trackers. Light and dark. Checked at phone and desktop widths. How to build,
+host and launch it: `Docs/Launch/Website.md`.
 
 - [x] Refresh `assets/og.png` (1200 × 630) and `toys.webp` (1600 × 222) from all nine current shelf cards, keeping Wren. Completed October 11; reproducible script and source hashes included. No generated art.
-
-- [ ] Host it at the chosen address, e.g. the free Cloudflare Pages subdomain. Founder.
-  `_headers` adds strict security headers.
-- [ ] Swap the support email (one command). Claude.
-- [ ] Privacy link everywhere it's needed, all pointing at `https://<domain>/privacy.html`:
-  - home footer (already there);
-  - the app's grown-up area (`LullLinks.privacyPolicyURL`; Claude);
-  - App Store Connect Privacy Policy URL.
-- [ ] App Store Connect URLs: Support `https://<domain>/support.html`, Marketing `https://<domain>/`.
-- [ ] Check every page on a phone and a desktop after hosting: links, images, the email.
-- [ ] Launch day: swap "Coming soon" for the real App Store button (comment in `index.html`).
-- [ ] Later (§7): a small press-kit section on the same site.
+- [x] Pages complete, with the plans, Family Sharing, Terms of Use links and a press page. One build command: `python3 Tools/Store/build_site.py`.
+- [ ] Host it on Cloudflare Pages (free `NAME.pages.dev`). Founder; about 10 minutes (Website.md).
+- [ ] Apply the address and the owned mailbox with **one command**. It updates every page, the
+  app's `LullLinks`, SubmissionKit, the sitemap and the absolute share links. Then re-upload:
+  `python3 Tools/Store/build_site.py --url https://NAME.pages.dev --email you@yourmail.com`
+- [ ] App Store Connect URLs: Privacy `…/privacy.html`, Support `…/support.html`, Marketing `…/`.
+- [ ] Check every page on a phone and a desktop after hosting: links, images, the email, a share preview.
+- [ ] Launch day: `python3 Tools/Store/build_site.py --launched`, then re-upload.
+- [ ] Later (§7): screenshots and the preview video on the press page; a founder note.
 - [ ] **Paid Apps Agreement, tax and banking active.** Blocks both products, sandbox included. On October 11, ASC Business showed Free Apps Agreement Active and Paid Apps Agreement **New**, with “View and Agree to Terms.” Account Holder must complete this; tax/banking readiness has not been verified. No agreement was accepted by the agent.
 - [ ] **Copyright line**: your legal name or company.
 - [ ] **Make the GitHub repository private.** Revoke old tokens; give agents an App Manager role,
@@ -135,8 +128,8 @@ Still worth doing before launch, if founder testing agrees (small, Claude):
 - [ ] **App Store featuring nomination** in App Store Connect, submitted well before launch
   (Apple’s current guidance recommends a minimum of three weeks; confirm the launch date first). [Apple guidance](https://developer.apple.com/help/app-store-connect/manage-featuring-nominations/nominate-your-app-for-featuring/). Lead with the story: a calm, wordless toybox with no ads
   and no data, where every sound is made in code.
-- [ ] Press kit page on the website: three screenshots, the preview video, a 100-word story and
-  a founder note.
+- [x] Press page on the website: the 100-word story, a fact sheet and artwork downloads.
+- [ ] Add three screenshots, the preview video and a founder note to it once they exist.
 - [ ] Apple Design Awards: there is no application; Apple's team chooses from shipped apps. The
   jury plan (§5, §8) is how we raise the odds.
 - [ ] Launch-day message ready for the website and social posts.
@@ -163,5 +156,5 @@ Still worth doing before launch, if founder testing agrees (small, Claude):
 1. Final build selected on the 1.0 version page; both products attached.
 2. Everything in §6 complete; App Review contact details filled in.
 3. Submit for Review with **manual release**.
-4. When approved: release on the chosen day. Switch the website button to the App Store link
-   (see the comment in `LandingPageDeploy/index.html`).
+4. When approved: release on the chosen day. Then `python3 Tools/Store/build_site.py --launched`
+   and re-upload the website (`Docs/Launch/Website.md`).

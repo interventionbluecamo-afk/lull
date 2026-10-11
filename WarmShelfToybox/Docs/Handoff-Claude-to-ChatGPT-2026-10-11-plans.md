@@ -205,18 +205,18 @@ Expected results:
 
 ## 5. Website
 
-- `LandingPageDeploy/` copy now describes:
-  - the free toys;
-  - Lull Family at $29.99/year after a free week;
-  - Keep Forever at $59.99;
-  - "prices in US dollars may vary".
-- `support.html` has new answers: the plans, the free week, how to cancel, restore.
-- `privacy.html` was regenerated from the app.
-- Still to do, unchanged:
-  - host it;
-  - the support email;
-  - an absolute `og:image`;
-  - the in-app privacy URL (`LullLinks.privacyPolicyURL`).
+**Finished and deploy-ready** (October 11). Full guide: `Docs/Launch/Website.md`.
+
+- Pages:
+  - home: the nine toys with Free tags, and the three plans with subscription terms;
+  - support, privacy, press, and a 404 page.
+- Built by `python3 Tools/Store/build_site.py` from the templates in `Tools/Store/site/` and the
+  in-app policy. Don't hand-edit `LandingPageDeploy/*.html`.
+- Once the founder has an address and a mailbox, run:
+  `python3 Tools/Store/build_site.py --url https://NAME.pages.dev --email ADDRESS`
+  It updates every page, the app's `LullLinks` (rebuild the app), SubmissionKit, the sitemap
+  and the absolute share links. Then re-upload the folder to Cloudflare Pages.
+- At launch: `python3 Tools/Store/build_site.py --launched`, then re-upload.
 - Stale; don't host or use:
   - `LandingPageSource/` (an old draft at $39.99 for ages 2–4);
   - the older marketing cards other than `6-price.html`.

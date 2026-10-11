@@ -180,7 +180,7 @@
         1200,
         630
       ],
-      "sha256": "38de734616196a2f2fe516a2107bf725c0ab8794b6e3a71aa25ef0f266aa55d7"
+      "sha256": "9ea9e3770f94fa2aad4fbacb0c0ceebf1cc7cabbe55b94e257698680344b61ec"
     },
     {
       "file": "toys.webp",
@@ -189,6 +189,86 @@
         222
       ],
       "sha256": "1813e128e9e0a52bcbb18d94b5b959cc5ca3aeb414fe2f23390111e86cdc8442"
+    },
+    {
+      "file": "icon-264.webp",
+      "size": [
+        264,
+        264
+      ],
+      "sha256": "f6c08fc4836b83f9198f9cfee125418348caec878098b99f6237ed15183dbc5c"
+    },
+    {
+      "file": "toys/bubbles.webp",
+      "size": [
+        320,
+        294
+      ],
+      "sha256": "f0873b16ad02822752805d61d0887a95575e62cb4643f80006f831a6f04cf29a"
+    },
+    {
+      "file": "toys/wash.webp",
+      "size": [
+        320,
+        227
+      ],
+      "sha256": "6599355c2aebbfb73c33e31f62fd338e89ef8da48dd8d586e2b7eea0dc8d3ae3"
+    },
+    {
+      "file": "toys/dropdots.webp",
+      "size": [
+        315,
+        320
+      ],
+      "sha256": "d531da3a000a0579e6e555d0df755568c5e80acfe788c76774b324791a0899ed"
+    },
+    {
+      "file": "toys/feed.webp",
+      "size": [
+        313,
+        320
+      ],
+      "sha256": "7f9a2a561a0755450b45405ca99450ae1545fc80da13b6f6db7a519a42cff3ee"
+    },
+    {
+      "file": "toys/hum.webp",
+      "size": [
+        320,
+        165
+      ],
+      "sha256": "9ec899fc2a342a38b8b79871abef024b5c17ddb5f69db539e827441ce6242870"
+    },
+    {
+      "file": "toys/window.webp",
+      "size": [
+        320,
+        289
+      ],
+      "sha256": "cfdd0da43878113fdd13145b30d6b9853de4beae122c1ff14570da88d64297b1"
+    },
+    {
+      "file": "toys/mixup.webp",
+      "size": [
+        318,
+        320
+      ],
+      "sha256": "9b9662ea7b6dee68b335dd2d3c1e7307d94a9b3ff8ecb5d30b4ddb9ef990bc96"
+    },
+    {
+      "file": "toys/sleepybox.webp",
+      "size": [
+        291,
+        320
+      ],
+      "sha256": "f1cecec4a31b6696df8a30111484ea0fe0ab7aca720f797f1ef422e8b0523784"
+    },
+    {
+      "file": "toys/meadow.webp",
+      "size": [
+        320,
+        147
+      ],
+      "sha256": "5a72cf26431ac9e4e01117821b2ad621d5351aadbee0cc6c38fc41ce37f442fa"
     }
   ]
 }

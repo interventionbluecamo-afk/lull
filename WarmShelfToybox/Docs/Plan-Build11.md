@@ -73,7 +73,7 @@ ChatGPT continues from the first unchecked step in §3, following §4.
 ## 3. Steps (check off as done; each ends with a commit and push)
 
 - [x] **0.** This plan, plus the founder's answers on Drop Dots and the Mix-Up room (§5).
-- [ ] **1. Purchases on their own page.** `LullPlansViewController` holds the plans card and all
+- [x] **1. Purchases on their own page.** `LullPlansViewController` holds the plans card and all
   purchase actions.
   - The grown-up area keeps a single compact "Full Toybox" status row with a chevron that
     opens it.
@@ -106,3 +106,13 @@ ChatGPT continues from the first unchecked step in §3, following §4.
 ## 6. Status log
 
 - Oct 11: findings and plan written.
+- Oct 11, step 1 done:
+  - **New `App/Shared/LullPlansViewController.swift`** (added to the Xcode project) holds the
+    plans card, the tiles, the subscription terms, Terms/Privacy, Manage, Restore and every
+    purchase action, all moved verbatim from `ParentInfoViewController`.
+  - **Grown-up area:** a "FULL TOYBOX" row with a live status line
+    (`LullPlansViewController.statusLine()`) opens the page as a sheet. It refreshes on
+    `.lullAccessDidChange`.
+  - **Welcome:** "Try all nine free" opens the plans page directly (behind the adult check).
+  - Support page and SubmissionKit review notes now say "Full Toybox".
+  - Needs the Mac compile, and a look at the sheet on iPhone and iPad.

@@ -145,10 +145,10 @@ the hosted one. Keep learning claims at this level; do not claim outcomes.
 >
 > Purchases (grown-up area only, behind the adult check): an auto-renewable subscription,
 > com.lull.family.yearly ("Lull Family", 1 year, with a 1-week free introductory offer), and
-> a non-consumable, com.lull.full.lifetime ("Keep Forever"). Both are in the Full Toybox card
-> below Family controls and Choose shelf toys, with the subscription terms, Terms of Use,
+> a non-consumable, com.lull.full.lifetime ("Keep Forever"). Both are on the Full Toybox page,
+> opened from the "Full Toybox" row in the grown-up area, with the subscription terms, Terms of Use,
 > Privacy Policy, Manage subscription and Restore purchases. The last welcome page explains
-> both plans; its "Try all nine free" button opens the same card through the adult check. The
+> both plans; its "Try all nine free" button opens the same page through the adult check. The
 > app has no local or timed trial; without a purchase, Bubbles, Drop Dots and Hum
 > stay open.
 > The child's shelf never shows prices, locks or upgrade prompts. Support email is inside the

@@ -19,7 +19,7 @@ as they close. Nothing here has been submitted to Apple.
 | | Decision | Recommendation |
 |---|---|---|
 | [x] | **Free week model** | Resolved October 11 (build 9): the local timer is gone. The free week is Lull Family's introductory offer, run by Apple (Guideline 3.1.2 disclosures in the plans card). |
-| [ ] | **Family Sharing** for both products (cannot be turned off later) | On. |
+| [x] | **Family Sharing** for both products (cannot be turned off later) | **On for both** (founder, October 11). |
 | [ ] | **Kids age band** (permanent once approved) | Made for Kids → 5 and under. |
 | [ ] | **Territories** | English-speaking first: US, UK, Canada, Australia and New Zealand if excluding the EU for 1.0. Ireland is in the EU; include it only with the applicable EU trader requirements resolved. |
 | [x] | **Price** | Changed October 11 (founder): **Lull Family** $29.99 a year with a free week, or **Keep Forever** $59.99 once. Three toys free forever. Replaces $9.99 one-time. |

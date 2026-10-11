@@ -98,7 +98,7 @@ Apps → Lull → Monetization → **Subscriptions**:
    - countries: all;
    - start: today, no end date;
    - type **Free**, duration **1 Week**.
-7. **Family Sharing:** on, if the founder confirms (checklist §1). It cannot be turned off later.
+7. **Family Sharing: on** (founder decision, October 11). It cannot be turned off later.
 8. **Localization**, English (U.S.):
    - Display Name `Lull Family`;
    - Description `All nine toys, plus new ones each season.`
@@ -117,7 +117,7 @@ Monetization → **In-App Purchases** → `com.lull.full.lifetime`:
 3. Localization, English (U.S.):
    - Display Name `Keep Forever`;
    - Description `Every toy, now and later, for good.`
-4. **Family Sharing:** on, if confirmed.
+4. **Family Sharing: on** (founder decision, October 11).
 5. A new review screenshot: the plans card.
 
 ### 2.4 The 1.0 version page
@@ -246,7 +246,6 @@ results are in the checklist:
 
 ## 7. Founder decisions still open (checklist §1–§2)
 
-- **Family Sharing** on both products (recommended: on).
 - Kids age band (5 and under).
 - Territories.
 - Release date (manual).

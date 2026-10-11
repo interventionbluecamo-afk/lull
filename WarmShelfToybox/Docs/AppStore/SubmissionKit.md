@@ -37,7 +37,7 @@ outstanding work in `Docs/Launch/Launch-Checklist.md`.
      6820224689), renamed and repriced from $9.99 to **$59.99** US.
    - A review screenshot for each, from a TestFlight build with a sandbox account (the
      grown-up area's plans card with real prices).
-   - **Family Sharing** on both (it cannot be turned off once on). Recommended: on.
+   - **Family Sharing: on for both** (founder decision, October 11; it cannot be turned off).
    - Test in sandbox: free week, renewal, cancel during the week, Ask to Buy, restore,
      delete and reinstall, Keep Forever.
    - On the 1.0 version page, attach **both** under *In-App Purchases and Subscriptions*

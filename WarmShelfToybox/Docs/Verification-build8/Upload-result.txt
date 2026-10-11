@@ -1,0 +1,12 @@
+Lull 1.0 (8), upload October 11, 2026 (America/Chicago). xcodebuild exit 0.
+Full log local: /private/tmp/lull-build8-upload.log
+
+2026-10-11 12:37:10.927 xcodebuild[14546:5442528] Starting upload
+2026-10-11 12:38:17.438 xcodebuild[14546:5442596] Progress 0%: Uploading “Lull.ipa” is complete.
+2026-10-11 12:38:17.439 xcodebuild[14546:5442596] Progress 0%: Uploading “Lull.ipa” is complete.
+2026-10-11 12:38:17.440 xcodebuild[14546:5442596] Progress 100%: Uploading “Lull.ipa” is complete.
+2026-10-11 12:38:17.441 xcodebuild[14546:5442596] Progress 100%: Uploading “Lull.ipa” is complete.
+2026-10-11 12:38:17.684 xcodebuild[14546:5442596] Progress 100%: Uploaded package is processing.
+2026-10-11 12:38:17.697 xcodebuild[14546:5442596] Progress 100%: Upload succeeded.
+Uploaded Lull
+** EXPORT SUCCEEDED **

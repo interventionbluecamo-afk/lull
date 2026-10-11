@@ -1,0 +1,21 @@
+Build 1.0 (8), app source 14a9c1f (launch change 1228523). Exit code 0.
+Full log (Mac only): /private/tmp/lull-build8-debug.log
+
+/Users/User2/Desktop/lull v.2/WarmShelfToybox/App/Toys/DropDots/DropDotsScene.swift:1325:26: warning: variable 'self' was written to, but never read
+     |                          `- warning: variable 'self' was written to, but never read
+/Users/User2/Desktop/lull v.2/WarmShelfToybox/App/Shared/ParentInfoViewController.swift:376:17: warning: 'contentEdgeInsets' was deprecated in iOS 15.0: This property is ignored when using UIButtonConfiguration [#DeprecatedDeclaration]
+     |                 `- warning: 'contentEdgeInsets' was deprecated in iOS 15.0: This property is ignored when using UIButtonConfiguration [#DeprecatedDeclaration]
+/Users/User2/Desktop/lull v.2/WarmShelfToybox/App/Shared/ParentInfoViewController.swift:578:18: warning: 'contentEdgeInsets' was deprecated in iOS 15.0: This property is ignored when using UIButtonConfiguration [#DeprecatedDeclaration]
+     |                  `- warning: 'contentEdgeInsets' was deprecated in iOS 15.0: This property is ignored when using UIButtonConfiguration [#DeprecatedDeclaration]
+/Users/User2/Desktop/lull v.2/WarmShelfToybox/App/Shared/ParentInfoViewController.swift:801:16: warning: 'contentEdgeInsets' was deprecated in iOS 15.0: This property is ignored when using UIButtonConfiguration [#DeprecatedDeclaration]
+     |                `- warning: 'contentEdgeInsets' was deprecated in iOS 15.0: This property is ignored when using UIButtonConfiguration [#DeprecatedDeclaration]
+/Users/User2/Desktop/lull v.2/WarmShelfToybox/App/Toys/DropDots/DropDotsScene.swift:1325:26: warning: variable 'self' was written to, but never read
+     |                          `- warning: variable 'self' was written to, but never read
+/Users/User2/Desktop/lull v.2/WarmShelfToybox/App/Shared/ParentInfoViewController.swift:376:17: warning: 'contentEdgeInsets' was deprecated in iOS 15.0: This property is ignored when using UIButtonConfiguration [#DeprecatedDeclaration]
+     |                 `- warning: 'contentEdgeInsets' was deprecated in iOS 15.0: This property is ignored when using UIButtonConfiguration [#DeprecatedDeclaration]
+/Users/User2/Desktop/lull v.2/WarmShelfToybox/App/Shared/ParentInfoViewController.swift:578:18: warning: 'contentEdgeInsets' was deprecated in iOS 15.0: This property is ignored when using UIButtonConfiguration [#DeprecatedDeclaration]
+     |                  `- warning: 'contentEdgeInsets' was deprecated in iOS 15.0: This property is ignored when using UIButtonConfiguration [#DeprecatedDeclaration]
+/Users/User2/Desktop/lull v.2/WarmShelfToybox/App/Shared/ParentInfoViewController.swift:801:16: warning: 'contentEdgeInsets' was deprecated in iOS 15.0: This property is ignored when using UIButtonConfiguration [#DeprecatedDeclaration]
+     |                `- warning: 'contentEdgeInsets' was deprecated in iOS 15.0: This property is ignored when using UIButtonConfiguration [#DeprecatedDeclaration]
+2026-10-11 12:35:23.580 appintentsmetadataprocessor[14414:5439425] warning: Metadata extraction skipped, no AppIntents.framework dependency found
+** BUILD SUCCEEDED **

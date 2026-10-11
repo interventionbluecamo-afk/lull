@@ -55,8 +55,7 @@ Page links are relative. Set `og:image` to the absolute hosted URL before launch
 - [ ] Check every page on a phone and a desktop after hosting: links, images, the email.
 - [ ] Launch day: swap "Coming soon" for the real App Store button (comment in `index.html`).
 - [ ] Later (§7): a small press-kit section on the same site.
-- [ ] **Paid Apps Agreement, tax and banking active.** The purchase can't load for App Review
-  or sandbox without it.
+- [ ] **Paid Apps Agreement, tax and banking active.** On October 11, ASC Business showed Free Apps Agreement Active and Paid Apps Agreement **New**, with “View and Agree to Terms.” Account Holder must complete this; tax/banking readiness has not been verified. No agreement was accepted by the agent.
 - [ ] **Copyright line**: your legal name or company.
 - [ ] **Make the GitHub repository private.** Revoke old tokens; give agents an App Manager role,
   not the Account Holder's.
@@ -64,9 +63,9 @@ Page links are relative. Set `og:image` to the absolute hosted URL before launch
 ## 3. The release candidate build (Mac + Claude)
 
 - [ ] Fix the reproducible bugs from testing (§4). Claude.
-- [ ] Build 1.0 (8)+ compiles Debug and Release, all verifiers pass, logs go in
-  `Docs/Verification-build8/`. Mac.
-- [ ] TestFlight to Founder Testing. Mac.
+- [x] Build 1.0 (8) compiles Debug and signed Release; all 13 verifiers pass. Logs and summaries in
+  `Docs/Verification-build8/`. Completed October 11; no compile fixes needed.
+- [x] TestFlight 1.0 (8) uploaded October 11, processed, assigned to Founder Testing (Internal, one tester); What to Test saved. See `Docs/TestFlight-Release-2026-10-11-build8.md`.
 - [ ] **Device pass**, Founder with the Mac's help. One small iPhone, one large iPhone and one
   iPad. Portrait and landscape for every toy. Check:
   - Silent Mode on, Sound Off, Haptics Off, Reduce Motion, VoiceOver on the shelf and in two toys.

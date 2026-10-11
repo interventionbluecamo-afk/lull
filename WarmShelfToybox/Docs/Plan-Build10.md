@@ -72,7 +72,7 @@ already have been uploaded by the Mac, and skipping a number is harmless.
   - Check the verifiers for the free set.
 - [x] **2. Play timer per sitting, survives relaunch.** Spec §4.1. Add `Tools/verify_play_timer.py`.
 - [x] **3. Welcome page 2: "Your family's rhythm".** Spec §4.2.
-- [ ] **4. Grown-up area: a clear play timer card.** Spec §4.3.
+- [x] **4. Grown-up area: a clear play timer card.** Spec §4.3.
 - [ ] **5. Drop Dots: more matches, more to discover.** Spec §4.4. Update `verify_dropdots.py`.
 - [ ] **6. Meadow little ones.** Spec §4.5. Add `Tools/verify_meadow_little_ones.py` for the
   pure model.
@@ -255,3 +255,9 @@ universal, like the other Meadow art). The code picks them up automatically.
     `LullDemoState.hasChosenPlayTimer`). `finish()` saves the timer.
   - The new page uses Dynamic Type; pills carry VoiceOver labels and the selected trait.
   - Needs a device check: the page fits on a small iPhone (it scrolls if not).
+- Oct 11, step 4 done:
+  - The grown-up area's first card is now the play timer (labels "15 min" etc.) with a live
+    line: "Lull rests after 30 minutes of play (12 played this sitting). Only a grown-up can
+    wake it…". The wind-down hour sits in the same card.
+  - Sound, haptics and calmer motion follow, then the shelf toys and plans.
+  - Pills were already accessible: label and selected trait.

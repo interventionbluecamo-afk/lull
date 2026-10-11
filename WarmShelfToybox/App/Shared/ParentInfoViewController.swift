@@ -118,6 +118,28 @@ final class ParentInfoViewController: UIViewController {
         }
 
         stack.addArrangedSubview(makeCaption("FAMILY CONTROLS"))
+        // The play timer comes first: few toy apps have one, and it's what grown-ups look for.
+        let timerMinutes = state.playTimerMinutes
+        let played = LullPlayTimer.shared.minutesPlayed
+        let timerDetail = timerMinutes == 0
+            ? "Off. Lull never rests on its own."
+            : "Lull rests after \(timerMinutes) minutes of play (\(played) played this sitting). Only a grown-up can wake it, even after closing and reopening."
+        stack.addArrangedSubview(makeGroupCard([
+            makeOptionGroupRow(
+                icon: "hourglass", tint: WarmShelfPalette.butter,
+                title: "Play timer", detail: timerDetail,
+                labels: ["Off", "15 min", "30 min", "45 min", "60 min"],
+                selectedIndex: [0, 15, 30, 45, 60].firstIndex(of: timerMinutes) ?? 0,
+                action: #selector(playTimerPicked(_:))
+            ),
+            makeOptionGroupRow(
+                icon: "moon.zzz.fill", tint: WarmShelfPalette.lavender,
+                title: "Wind-down hour", detail: "After this hour, Lull's rooms turn warmer and dimmer.",
+                labels: ["5 pm", "6 pm", "7 pm", "8 pm", "9 pm"],
+                selectedIndex: [17, 18, 19, 20, 21].firstIndex(of: state.windDownHour) ?? 2,
+                action: #selector(windDownPicked(_:))
+            )
+        ]))
         stack.addArrangedSubview(makeGroupCard([
             makeSwitchGroupRow(
                 icon: "speaker.wave.2.fill", tint: WarmShelfPalette.waterBlue,
@@ -136,22 +158,6 @@ final class ParentInfoViewController: UIViewController {
                 title: "Calmer motion", detail: "Less movement; also follows Reduce Motion",
                 isOn: state.isReducedMotion, tag: 0,
                 action: #selector(toggleReducedMotion)
-            )
-        ]))
-        stack.addArrangedSubview(makeGroupCard([
-            makeOptionGroupRow(
-                icon: "hourglass", tint: WarmShelfPalette.butter,
-                title: "Play timer", detail: "Lull rests when time is up. A grown-up can wake it.",
-                labels: ["Off", "15m", "30m", "45m", "60m"],
-                selectedIndex: [0, 15, 30, 45, 60].firstIndex(of: state.playTimerMinutes) ?? 0,
-                action: #selector(playTimerPicked(_:))
-            ),
-            makeOptionGroupRow(
-                icon: "moon.zzz.fill", tint: WarmShelfPalette.lavender,
-                title: "Wind-down hour", detail: "Play feels warmer and sleepier after this time.",
-                labels: ["5 pm", "6 pm", "7 pm", "8 pm", "9 pm"],
-                selectedIndex: [17, 18, 19, 20, 21].firstIndex(of: state.windDownHour) ?? 2,
-                action: #selector(windDownPicked(_:))
             )
         ]))
 

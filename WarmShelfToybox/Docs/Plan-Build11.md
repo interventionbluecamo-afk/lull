@@ -83,7 +83,7 @@ ChatGPT continues from the first unchecked step in §3, following §4.
   over device sizes.
 - [x] **3. Sleepy Box: holes on the front face.** Use measured shell fractions for the hole grid,
   hole size and face. Mock renders for phone and iPad, portrait and landscape. Verifier.
-- [ ] **4. Mix-Up room** (per the founder's answer, §5).
+- [x] **4. Mix-Up room** (per the founder's answer, §5).
 - [ ] **5. Drop Dots** (per the founder's answer, §5).
 - [ ] **6. Build 11.** Version bump, parse, verifiers, handoff.
 
@@ -138,3 +138,18 @@ ChatGPT continues from the first unchecked step in §3, following §4.
   - `Tools/verify_sleepy_box_layout.py`: 18 checks pass. The mock render looks right in both
     orientations.
   - Needs a device check: the pieces still feel chunky enough on a small iPhone.
+- Oct 11, step 4 done (`MixUpScene.swift`):
+  - **Floor:** a soft gradient sprite (`softFloor`, fading over its top 40%) replaces the hard
+    floor rectangle and seam line. There's no edge above the heart.
+  - **Stage:** the round felt `mixup-stage` (`stageArtFrame`: 1.12 × the old stand's width;
+    felt top centred 0.304 down at the feet) replaces the plain stand, with a warm light pool.
+    The old stand stays as a fallback.
+  - **Curtains** (`addTheatreCurtains`): the scalloped valance is tiled across the top (46 pt
+    phone, 58 pt iPad), and the tied-back curtains hang at the top corners (30% of the width in
+    portrait, 18% in landscape). They sit behind the cards (z 3) and controls (z 50).
+  - **Heart** (`keepsakePosition`): below the stage in portrait, kept clear of its front;
+    beside the stage in landscape.
+  - `verify_mixup_layout.py` now checks the stage and heart: 546 checks across 17 sizes pass.
+    `verify_mixup_stack` passes.
+  - Not in the cloud: the curtain colour is the art's red (the shelf card is a little rosier).
+    Judge on device and tint if wanted.

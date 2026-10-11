@@ -21,8 +21,8 @@ Rules:
 | 1 Purchases on their own page | ✅ `4972f6b` | New `LullPlansViewController.swift` (in the Xcode project). The grown-up area has a "Full Toybox" row with a live status line. The welcome's "Try all nine free" opens it. |
 | 2 Wash wheels on the floor | ✅ `a3f0887` | `WashBayFit` in `WashModel.swift`. Portrait sets the vehicle on the painted floor above the tools; landscape fits the bay to the wheels. |
 | 3 Sleepy Box holes on the front face | ✅ | `SleepyBoxShellLayout`: sockets on the measured front face, the face between them and the drawer, slightly smaller pieces on phones. `verify_sleepy_box_layout.py`. |
-| 4 Mix-Up felt theatre | ⏳ next | Bring back `mixup-stage`, the curtains and the valance; no hard floor line. |
-| 5 Drop Dots colour rounds | ⏳ | A new felt colour set after each pour; rings re-tint. |
+| 4 Mix-Up felt theatre | ✅ | A soft floor (no seam), the round felt `mixup-stage`, a tiled valance and corner curtains. The heart is below the stage in portrait and beside it in landscape. `verify_mixup_layout.py`: 546 checks. |
+| 5 Drop Dots colour rounds | ⏳ next | A new felt colour set after each pour; rings re-tint. |
 | 6 Build 11 | ⏳ | Version 11, parse, verifiers, final handoff. |
 
 ## Mac work once the steps are done
@@ -44,5 +44,11 @@ Rules:
      - Closing the sheet updates the row.
    - **Sleepy Box:** the sockets sit on the box's front face, below the lid, in both
      orientations. The pieces still feel chunky on a small iPhone.
-   - Steps 4–5, once done: see the plan.
+   - **Mix-Up:**
+     - The theatre frames the friend.
+     - The curtains never cover the cards or controls.
+     - The heart is clear of the stage in both orientations.
+     - No hard floor line.
+     - Is the curtain red right next to the shelf card?
+   - Step 5, once done: see the plan.
 4. **TestFlight 1.0 (11)** with a What to Test (written in the final step).

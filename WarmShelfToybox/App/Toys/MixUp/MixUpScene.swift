@@ -70,6 +70,29 @@ final class MixUpScene: BaseToyScene {
         min(safePlayRect().width * 0.72,
             max(150, characterEnvelope.width * mixScale * 1.3), 440 * roomDecorScale)
     }
+    /// The round felt stage (`mixup-stage`) is a little wider than the old stand it replaces.
+    private var stageArtWidth: CGFloat { pedestalWidth * 1.12 }
+
+    /// The felt stage's frame: `mixup-stage` is 1317 × 575 with its felt top centred 0.304 down,
+    /// where the feet stand.
+    private var stageArtFrame: CGRect {
+        let w = stageArtWidth, h = w * 575 / 1317
+        let centerY = floorY - 9 * roomDecorScale - h * (0.5 - 0.304)
+        return CGRect(x: size.width / 2 - w / 2, y: centerY - h / 2, width: w, height: h)
+    }
+
+    /// Portrait: on the floor below the stage. Landscape: the floor is shallow, so the heart sits
+    /// beside the stage instead of on its front.
+    private var keepsakePosition: CGPoint {
+        let r = keepsakeRadius
+        if isLandscapeLayout {
+            return CGPoint(x: size.width / 2 - stageArtWidth / 2 - r - 18,
+                           y: max(safeInsets.bottom + r + 12, floorY - r * 0.4))
+        }
+        return CGPoint(x: size.width / 2,
+                       y: max(safeInsets.bottom + r + 12, min(floorY * 0.46, stageArtFrame.minY - r - 4)))
+    }
+
     private var pedestalBounds: CGRect {
         let decor = roomDecorScale
         return CGRect(x: size.width / 2 - pedestalWidth / 2 - 0.5,
@@ -198,8 +221,7 @@ final class MixUpScene: BaseToyScene {
             art.zPosition = 2
             keepsakeButtonArt.addChild(art)
             stage.addChild(keepsakeButton)
-            keepsakeButton.position = CGPoint(x: size.width / 2,
-                y: max(safeInsets.bottom + r + 12, floorY * 0.46))
+            keepsakeButton.position = keepsakePosition
             if !AmbientAnimator.reduceMotion {
                 keepsakeButtonArt.run(.repeatForever(.sequence([
                     .wait(forDuration: 4.0),
@@ -229,8 +251,7 @@ final class MixUpScene: BaseToyScene {
 
         stage.addChild(keepsakeButton)
 
-        keepsakeButton.position = CGPoint(x: size.width / 2,
-            y: max(safeInsets.bottom + r + 12, floorY * 0.46))
+        keepsakeButton.position = keepsakePosition
 
         // A gentle, occasional breath so it's noticed but never nags.
         if !AmbientAnimator.reduceMotion {
@@ -581,6 +602,49 @@ final class MixUpScene: BaseToyScene {
         return texture
     }()
 
+    /// A felt theatre like the shelf card: a scalloped valance across the top and the two
+    /// tied-back curtains at the top corners, framing the room and never covering the stage.
+    /// They sit behind the keepsake cards and every control.
+    private func addTheatreCurtains() {
+        if let valance = ToyArt.texture("mixup-curtain-valance") {
+            let height: CGFloat = isTabletLayout ? 58 : 46
+            let scale = height / max(1, valance.size().height)
+            let tileWidth = valance.size().width * scale
+            var x: CGFloat = 0
+            while x < size.width + tileWidth / 2 {
+                let tile = SKSpriteNode(texture: valance)
+                tile.size = CGSize(width: tileWidth, height: height)
+                tile.anchorPoint = CGPoint(x: 0, y: 1)
+                tile.position = CGPoint(x: x - 2, y: size.height + 2)
+                tile.zPosition = 2.9
+                stage.addChild(tile)
+                x += tileWidth * 0.97
+            }
+        }
+        let curtainWidth = size.width * (isLandscapeLayout ? 0.18 : (isTabletLayout ? 0.24 : 0.30))
+        for (slot, side) in [("mixup-curtain-swag-left", CGFloat(-1)), ("mixup-curtain-swag-right", CGFloat(1))] {
+            guard let swag = ToyArt.sprite(slot, fit: CGSize(width: curtainWidth, height: size.height)) else { continue }
+            swag.anchorPoint = CGPoint(x: 0.5, y: 1)
+            swag.position = CGPoint(x: size.width / 2 + side * (size.width / 2 - swag.size.width / 2 + 2),
+                                    y: size.height + 2)
+            swag.zPosition = 2.8
+            stage.addChild(swag)
+        }
+    }
+
+    /// Warm cream at the bottom, fading to nothing over its top 40%, so the floor meets the wall softly.
+    private static let softFloor: SKTexture = {
+        let size = CGSize(width: 4, height: 128)
+        let image = UIGraphicsImageRenderer(size: size).image { context in
+            let cream = WarmShelfPalette.warmCream
+            let colors = [cream.withAlpha(0).cgColor, cream.withAlpha(0.65).cgColor, cream.withAlpha(0.65).cgColor] as CFArray
+            if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0, 0.4, 1]) {
+                context.cgContext.drawLinearGradient(gradient, start: .zero, end: CGPoint(x: 0, y: size.height), options: [])
+            }
+        }
+        return SKTexture(image: image)
+    }()
+
     private func addRoom() {
         let decor = roomDecorScale
         let wall = SKShapeNode(rect: CGRect(origin: .zero, size: size))
@@ -608,45 +672,61 @@ final class MixUpScene: BaseToyScene {
         light.zPosition = 1.1
         stage.addChild(light)
 
-        let floor = SKShapeNode(rect: CGRect(x: 0, y: 0, width: size.width, height: floorY))
-        floor.fillColor = WarmShelfPalette.warmCream.withAlpha(0.65)
-        floor.strokeColor = .clear
+        // A soft floor that fades into the wall: no seam, no hard edge above the heart
+        // (founder, October 11: the room cut off harshly above it).
+        let floor = SKSpriteNode(texture: Self.softFloor)
+        floor.size = CGSize(width: size.width + 4, height: floorY + 28 * decor)
+        floor.anchorPoint = CGPoint(x: 0.5, y: 0)
+        floor.position = CGPoint(x: size.width / 2, y: 0)
         floor.zPosition = 2
         stage.addChild(floor)
-        let seam = SKShapeNode(rect: CGRect(x: 0, y: floorY - 1, width: size.width, height: 2))
-        seam.fillColor = WarmShelfPalette.cocoa.withAlpha(0.06)
-        seam.strokeColor = .clear
-        seam.zPosition = 2.05
-        stage.addChild(seam)
 
         let width = pedestalWidth
-        let front = SKShapeNode(rectOf: CGSize(width: width, height: 24 * decor), cornerRadius: 10 * decor)
-        front.fillColor = WarmShelfPalette.sand.withAlpha(0.76)
-        front.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.14)
-        front.lineWidth = 1
-        front.position = CGPoint(x: size.width / 2, y: floorY - 20 * decor)
-        front.zPosition = 2.3
-        stage.addChild(front)
-        let top = SKShapeNode(ellipseOf: CGSize(width: width, height: 42 * decor))
-        top.fillColor = UIColor(hex: 0xDEC9AB)
-        top.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.12)
-        top.lineWidth = 1
-        top.position = CGPoint(x: size.width / 2, y: floorY - 9 * decor)
-        top.zPosition = 2.4
-        stage.addChild(top)
-        for index in -1...1 {
-            let path = CGMutablePath()
-            let y = CGFloat(index) * 7 * decor
-            path.move(to: CGPoint(x: -width * 0.3, y: y))
-            path.addQuadCurve(to: CGPoint(x: width * 0.3, y: y),
-                              control: CGPoint(x: 0, y: y + 3 * decor))
-            let grain = SKShapeNode(path: path)
-            grain.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.07)
-            grain.lineWidth = 1
-            grain.zPosition = 0.01
-            top.addChild(grain)
+        if let platform = ToyArt.sprite("mixup-stage", fit: CGSize(width: stageArtWidth, height: stageArtWidth)) {
+            // The round felt stage of the shelf card.
+            let frame = stageArtFrame
+            platform.size = frame.size
+            platform.position = CGPoint(x: frame.midX, y: frame.midY)
+            platform.zPosition = 2.3
+            stage.addChild(platform)
+            let pool = SKShapeNode(ellipseOf: CGSize(width: platform.size.width * 0.66, height: platform.size.height * 0.34))
+            pool.fillColor = WarmShelfPalette.butter.withAlpha(0.16)
+            pool.strokeColor = .clear
+            pool.blendMode = .add
+            pool.position = CGPoint(x: size.width / 2, y: floorY - 9 * decor)
+            pool.zPosition = 2.4
+            stage.addChild(pool)
+            stageLightPool = pool
+        } else {
+            let front = SKShapeNode(rectOf: CGSize(width: width, height: 24 * decor), cornerRadius: 10 * decor)
+            front.fillColor = WarmShelfPalette.sand.withAlpha(0.76)
+            front.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.14)
+            front.lineWidth = 1
+            front.position = CGPoint(x: size.width / 2, y: floorY - 20 * decor)
+            front.zPosition = 2.3
+            stage.addChild(front)
+            let top = SKShapeNode(ellipseOf: CGSize(width: width, height: 42 * decor))
+            top.fillColor = UIColor(hex: 0xDEC9AB)
+            top.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.12)
+            top.lineWidth = 1
+            top.position = CGPoint(x: size.width / 2, y: floorY - 9 * decor)
+            top.zPosition = 2.4
+            stage.addChild(top)
+            for index in -1...1 {
+                let path = CGMutablePath()
+                let y = CGFloat(index) * 7 * decor
+                path.move(to: CGPoint(x: -width * 0.3, y: y))
+                path.addQuadCurve(to: CGPoint(x: width * 0.3, y: y),
+                                  control: CGPoint(x: 0, y: y + 3 * decor))
+                let grain = SKShapeNode(path: path)
+                grain.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.07)
+                grain.lineWidth = 1
+                grain.zPosition = 0.01
+                top.addChild(grain)
+            }
+            stageLightPool = top
         }
-        stageLightPool = top
+        addTheatreCurtains()
 
         let shadowSize = CGSize(width: min(104 * mixScale, width * 0.7), height: 18 * decor)
         let shadow = SKSpriteNode(texture: ProceduralTexture.softClayShadow(size: shadowSize))

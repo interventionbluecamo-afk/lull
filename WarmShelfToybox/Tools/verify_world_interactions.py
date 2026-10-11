@@ -76,14 +76,14 @@ for cell: CGFloat in [24, 60, 88, 132] {
         check(abs(origin + source * width - CGFloat(column) * cell) < 0.001, "Painted mouth and channel sit on the live dot centre")
     }
 }
-// Four coloured rings share four dot colours. The complete visible hand includes one
-// of each plus two more of one colour, so a three-in-a-row pattern is always possible.
+// Four coloured rings share four dot colours. The complete visible hand is three of each
+// (October 11), so every colour can fill its own column and make three in a row.
 for _ in 0..<1000 {
     let hand = DropDotsHand.deal()
-    check(hand.count == BoardArt.sourceColumns.count + 2, "Six visible dots, no hidden reserve")
+    check(hand.count == BoardArt.sourceColumns.count * 3, "Twelve visible dots, no hidden reserve")
     check(Set(hand) == Set(0..<BoardArt.sourceColumns.count), "Every dot colour has a matching ring")
     let counts = Dictionary(grouping: hand, by: { $0 }).mapValues(\.count)
-    check(counts.values.sorted() == [1, 1, 1, 3], "Exactly one available colour can make three in a row")
+    check(counts.values.sorted() == [3, 3, 3, 3], "Every colour can make three in a row")
 }
 // Offering or restoring a puff never puts its body beyond the felt world's edge.
 for canvas in [CGSize(width: 375, height: 812), CGSize(width: 812, height: 375), CGSize(width: 820, height: 1180)] {

@@ -230,13 +230,19 @@ final class DropDotsScene: BaseToyScene {
     private var trayTokens: [DropDotToken?] = []
     private var glowingCells: Set<Cell> = []
     private var boardWasFull = false
+    // What the board has already noticed, so each discovery celebrates once when it forms.
+    private var homeColumns: Set<Int> = []
+    private var rainbowRows: Set<Int> = []
+    private var wasSorted = false
     // The finite set the child can SEE — no hidden reserve (founder, June 15: a hidden
-    // stack silently refilling the tray made the count feel endless). All six live in
-    // the visible tray; drop them, and tap a settled dot to send it back. The hand has one
-    // dot for every ring and a second and third of one colour, so matching a hole and
-    // making three in a row are always possible (founder, build 5); the triple's colour
-    // changes from visit to visit.
-    private let totalTokens = 6
+    // stack silently refilling the tray made the count feel endless). All twelve live in
+    // the visible two-row tray; drop them, and tap a settled dot to send it back. Three of
+    // every colour (founder, October 11: six dots gave too few chances to match and grew
+    // repetitive): every colour can fill its own column, make three in a row, join a
+    // rainbow row, and the whole hand can be sorted home.
+    private let totalTokens = 12
+    /// Slots per tray row; the tray holds the hand in two rows.
+    private let trayRowCount = 2
     private var reserveCount = 0
     private var hand = DropDotsHand.deal()
 
@@ -311,6 +317,7 @@ final class DropDotsScene: BaseToyScene {
         [boardLayer, tokenLayer, frontLayer, particleLayer].forEach { $0.removeAllChildren() }
         columnRims.removeAll(); mouthRings.removeAll(); traySlots.removeAll(); trayTokens.removeAll()
         glowingCells.removeAll(); boardWasFull = false
+        homeColumns.removeAll(); rainbowRows.removeAll(); wasSorted = false
         dragToken = nil; dragTouch = nil; hoverCol = nil; tabTouch = nil; stackXs = []
         grid = Array(repeating: Array(repeating: nil, count: rows), count: cols)
 
@@ -322,8 +329,10 @@ final class DropDotsScene: BaseToyScene {
         // stands a little taller than the procedural one — the cell budget makes room.
         let artTex = ToyArt.texture("dropdots-board")
         let artBoard = artTex != nil
-        let maxCellW = play.width / (CGFloat(cols) + (landscape ? 3.2 : 0.8))
-        let maxCellH = play.height / (CGFloat(rows) + (landscape ? (artBoard ? 3.4 : 2.6) : (artBoard ? 5.0 : 4.2)))
+        // The two-row tray needs a second rack beside the board (landscape) or a second
+        // trough under it (portrait).
+        let maxCellW = play.width / (CGFloat(cols) + (landscape ? 4.5 : 0.8))
+        let maxCellH = play.height / (CGFloat(rows) + (landscape ? (artBoard ? 3.4 : 2.6) : (artBoard ? 6.3 : 5.5)))
         cell = min(maxCellW, maxCellH, isTabletLayout ? 132 : 88)
         tokenR = cell * 0.32   // fit the channel INTERIOR (wood walls are thick) — founder: dots didn't fit
         frameT = cell * 0.26
@@ -332,6 +341,7 @@ final class DropDotsScene: BaseToyScene {
         let boardInnerW = cell * CGFloat(cols)
         let mouthH = cell * 0.92
         let trayH = cell * 1.35
+        let trayRowGap = cell * 1.3   // the back trough sits this far above the front one, its lip clear of it
         let boardW = boardInnerW + frameT * 2
         let gridH = cell * CGFloat(rows)
         var boardH = gridH + mouthH + frameT * 1.8
@@ -346,9 +356,10 @@ final class DropDotsScene: BaseToyScene {
             boardH = (BoardArt.channelTopFy + (1 - BoardArt.channelFloorFy)) * artNatH + channelLen
         }
 
-        let totalH = landscape ? boardH + cell * 0.6 : boardH + trayH + cell * 0.5
-        let boardCenterX = landscape ? play.midX + cell * 0.95 : play.midX
-        let boardTopY = play.minY + (play.height + totalH) / 2 - cell * 0.1   // toy centred in the play area
+        let totalH = landscape ? boardH + cell * 0.6 : boardH + trayH + trayRowGap + cell * 0.5
+        let boardCenterX = landscape ? play.midX + cell * 1.6 : play.midX   // the two racks sit to its left
+        // Toy centred in the play area (the second trough sits between the board and the front tray).
+        let boardTopY = play.minY + (play.height + totalH) / 2 - cell * 0.1
         let boardBottomY = boardTopY - boardH
 
         gridOriginX = boardCenterX - boardInnerW / 2
@@ -376,12 +387,21 @@ final class DropDotsScene: BaseToyScene {
         buildBoard(mouthH: mouthH)
         // buildBoard's art branch re-derives boardRect from the painted body, so the
         // tray and tab anchor to what is actually on screen, not the procedural guess.
+        let perRow = totalTokens / trayRowCount
         if landscape {
+            // Two standing racks beside the board; the nearer one is the "front" row.
+            let rackH = min(boardRect.height * (artBoard ? 0.85 : 0.96), play.height * 0.92)
             buildTray(centerX: boardRect.minX - cell * 0.95, y: boardRect.midY,
-                      width: cell * 1.4, height: min(boardRect.height * (artBoard ? 0.85 : 0.96), play.height * 0.92), vertical: true)
+                      width: cell * 1.4, height: rackH, vertical: true, slots: 0..<perRow)
+            buildTray(centerX: boardRect.minX - cell * 2.25, y: boardRect.midY,
+                      width: cell * 1.4, height: rackH, vertical: true, slots: perRow..<totalTokens)
         } else {
-            buildTray(centerX: boardCenterX, y: boardRect.minY - cell * 0.6 - trayH / 2,
-                      width: boardW * 1.04, height: trayH)
+            // Two troughs under the board: the back one first, so the front one draws over it.
+            let frontY = boardRect.minY - cell * 0.6 - trayRowGap - trayH / 2
+            buildTray(centerX: boardCenterX, y: frontY + trayRowGap,
+                      width: boardW * 1.04, height: trayH, slots: perRow..<totalTokens)
+            buildTray(centerX: boardCenterX, y: frontY,
+                      width: boardW * 1.04, height: trayH, slots: 0..<perRow)
         }
         buildResetTab(centerX: boardCenterX, boardBottomY: boardRect.minY)
         idleInviteTab()
@@ -427,6 +447,7 @@ final class DropDotsScene: BaseToyScene {
             grid[s.c][s.r] = t
         }
         detectPatterns(celebrate: false)   // recompute match state silently (no spurious bloom on rotate)
+        refreshDiscoveries(celebrate: false)
     }
 
     private func restoreTray(_ snap: [(felt: Int, golden: Bool)?]) {
@@ -708,9 +729,11 @@ final class DropDotsScene: BaseToyScene {
         }
     }
 
-    private func buildTray(centerX: CGFloat, y: CGFloat, width: CGFloat, height: CGFloat, vertical: Bool = false) {
+    private func buildTray(centerX: CGFloat, y: CGFloat, width: CGFloat, height: CGFloat, vertical: Bool = false,
+                           slots: Range<Int>) {
         // A chunky catch tray — a ledge under the board in portrait, a standing rack beside it in landscape.
         let minSide = min(width, height)
+        let zBias: CGFloat = (!vertical && slots.lowerBound > 0) ? -0.1 : 0   // the back trough sits behind
         if let art = ToyArt.sprite("dropdots-tray",
                                    fit: vertical ? CGSize(width: height, height: width)
                                                  : CGSize(width: width, height: height)) {
@@ -718,7 +741,7 @@ final class DropDotsScene: BaseToyScene {
             // (aspect-fit happens BEFORE rotation, hence the swapped fit.)
             if vertical { art.zRotation = .pi / 2 }
             art.position = CGPoint(x: centerX, y: y)
-            art.zPosition = 0
+            art.zPosition = zBias
             boardLayer.addChild(art)
             if !vertical, let tex = art.texture {
                 // The tray's front rim, re-drawn in front of the dots: each dot stands IN
@@ -738,7 +761,7 @@ final class DropDotsScene: BaseToyScene {
             let shadow = SKSpriteNode(texture: ProceduralTexture.softClayShadow(
                 size: CGSize(width: width * 1.05, height: minSide * 0.5)))
             shadow.position = CGPoint(x: centerX, y: y - height / 2 + minSide * 0.1)
-            shadow.zPosition = -0.2
+            shadow.zPosition = -0.2 + zBias
             boardLayer.addChild(shadow)
         } else {
         let trayRect = CGRect(x: -width / 2, y: -height / 2, width: width, height: height)
@@ -747,7 +770,7 @@ final class DropDotsScene: BaseToyScene {
         tray.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.2)
         tray.lineWidth = 2
         tray.position = CGPoint(x: centerX, y: y)
-        tray.zPosition = 0
+        tray.zPosition = zBias
         boardLayer.addChild(tray)
         ProceduralTexture.applyClayFill(to: tray, base: woodTop, size: trayRect.size)
         let hollowDX = vertical ? width * 0.22 : width * 0.03
@@ -760,21 +783,27 @@ final class DropDotsScene: BaseToyScene {
         tray.addChild(trayHi)
         }
 
-        // Token slots, evenly spread along the tray's long axis: the whole finite set.
-        let n = totalTokens
+        // Token slots, evenly spread along this row's long axis; the two rows together hold
+        // the whole finite set (let n = totalTokens across both).
+        let n = slots.count
         let spread = (vertical ? height : width) * 0.82
-        for i in 0..<n {
-            let offset = spread * CGFloat(i) / CGFloat(n - 1) - spread / 2
+        if traySlots.count < totalTokens {
+            traySlots += Array(repeating: .zero, count: totalTokens - traySlots.count)
+            trayTokens += Array(repeating: nil, count: totalTokens - trayTokens.count)
+        }
+        for (k, i) in slots.enumerated() {
+            let offset = spread * CGFloat(k) / CGFloat(max(1, n - 1)) - spread / 2
             let slot = vertical ? CGPoint(x: centerX, y: y - offset) : CGPoint(x: centerX + offset, y: y)
-            traySlots.append(slot)
+            traySlots[i] = slot
             spawnTrayToken(slot: i, at: slot)
         }
     }
 
     /// Place a fresh token in a tray slot (visual only — reserve accounting lives in replenishSlot).
     private func spawnTrayToken(slot: Int, at position: CGPoint? = nil) {
-        // Once in a blue moon the tray holds a golden dot (approved delight).
-        var golden = Int.random(in: 0..<40) == 0
+        // Once in a blue moon the tray holds a golden dot (approved delight). 1 in 80 per dot
+        // keeps about one golden visit in seven now that the hand has twelve dots.
+        var golden = Int.random(in: 0..<80) == 0
         #if DEBUG
         if ProcessInfo.processInfo.environment["LULL_DEBUG_DROPDOTS_GOLD"] == "1" { golden = true }
         #endif
@@ -1009,10 +1038,12 @@ final class DropDotsScene: BaseToyScene {
         jiggleColumn(col, except: row)
         spawnDust(at: dest, color: token.color)
         if token.isGolden { shimmerNeighbors(of: col) } else if token.feltIndex == col { welcomeHome(col, color: token.color) }
-        // The column wave — but a full board sings its own song; don't stack arps.
+        // One song per landing: a bigger discovery (all sorted, a home column, a rainbow row)
+        // sings instead of the column wave and the three-in-a-row chime, which still glow.
+        let sang = refreshDiscoveries(celebrate: true)
         let boardNowFull = grid.allSatisfy { $0.allSatisfy { $0 != nil } }
-        if fill == rows, !boardNowFull { columnWave(col) }
-        detectPatterns()
+        if fill == rows, !boardNowFull, !sang { columnWave(col) }
+        detectPatterns(withSound: !sang)
         checkBoardFull()
     }
 
@@ -1070,7 +1101,7 @@ final class DropDotsScene: BaseToyScene {
 
     // MARK: - Patterns
 
-    private func detectPatterns(celebrate: Bool = true) {
+    private func detectPatterns(celebrate: Bool = true, withSound: Bool = true) {
         var matched = Set<Cell>()
         let dirs = [(1, 0), (0, 1), (1, 1), (1, -1)]
         for c in 0..<cols {
@@ -1091,13 +1122,107 @@ final class DropDotsScene: BaseToyScene {
         guard celebrate, !newly.isEmpty else { return }
         // The board quietly notices: matched tokens bloom + sparkle, then fade back to normal —
         // a transient magic moment, never a permanent lit state.
-        tone("dots.pattern", minInterval: 0.25)
-        HapticsManager.shared.impact(style: .soft, intensity: 0.2)
+        if withSound {
+            tone("dots.pattern", minInterval: 0.25)
+            HapticsManager.shared.impact(style: .soft, intensity: 0.2)
+        }
         for cell in matched {
             grid[cell.c][cell.r]?.celebrate()
             spawnMotes(at: CGPoint(x: stackX(cell.c), y: cellY(cell.r)),
                        color: grid[cell.c][cell.r]?.color ?? WarmShelfPalette.butter, count: 2)
         }
+    }
+
+    // MARK: - Discoveries (home columns, rainbow rows, all sorted)
+
+    private var feltGrid: [[Int?]] { grid.map { $0.map { $0?.feltIndex } } }
+
+    /// Notice what the board now holds. With `celebrate`, the newest discovery gets one song and
+    /// its own little show; returns true when something sang. Without it (rotation, a dot sent
+    /// back, a pour) it only updates what has been noticed, so nothing re-celebrates.
+    @discardableResult
+    private func refreshDiscoveries(celebrate: Bool) -> Bool {
+        let felts = feltGrid
+        let homes = DropDotsDiscoveries.homeColumns(felts)
+        let rainbows = DropDotsDiscoveries.rainbowRows(felts)
+        let sorted = DropDotsDiscoveries.isSorted(felts, handSize: totalTokens)
+        let newHomes = homes.subtracting(homeColumns)
+        let newRainbows = rainbows.subtracting(rainbowRows)
+        let newlySorted = sorted && !wasSorted
+        homeColumns = homes
+        rainbowRows = rainbows
+        wasSorted = sorted
+        guard celebrate else { return false }
+        if newlySorted {
+            sortedFinale()
+        } else if let col = newHomes.min() {
+            homeColumnSong(col)
+        } else if let row = newRainbows.min() {
+            rainbowShimmer(row)
+        } else {
+            return false
+        }
+        return true
+    }
+
+    /// Three of a colour home in their own column: the ring glows long and the dots hop up it.
+    private func homeColumnSong(_ col: Int) {
+        tone("dots.pattern", minInterval: 0.25)
+        HapticsManager.shared.impact(style: .soft, intensity: 0.24)
+        let color = DropDotToken.felts[col % DropDotToken.felts.count]
+        welcomeHome(col, color: color)
+        spawnMotes(at: CGPoint(x: stackX(col), y: mouthY), color: color, count: 5)
+        guard !AmbientAnimator.reduceMotion else { return }
+        for r in stride(from: rows - 1, through: 0, by: -1) {
+            grid[col][r]?.run(.sequence([
+                .wait(forDuration: Double(rows - 1 - r) * 0.1),
+                .moveBy(x: 0, y: tokenR * 0.35, duration: 0.12),
+                .moveBy(x: 0, y: -tokenR * 0.35, duration: 0.16)
+            ]))
+        }
+    }
+
+    /// Four different colours across a row: a little rainbow runs along it, left to right.
+    private func rainbowShimmer(_ row: Int) {
+        tone("dots.wave", minInterval: 0.5)
+        HapticsManager.shared.impact(style: .soft, intensity: 0.2)
+        for c in 0..<cols {
+            guard let token = grid[c][row] else { continue }
+            let delay = Double(c) * 0.11
+            run(.sequence([.wait(forDuration: delay), .run { [weak self, weak token] in
+                guard let self, let token else { return }
+                self.spawnMotes(at: token.position, color: token.color, count: 3)
+            }]))
+            guard !AmbientAnimator.reduceMotion else { continue }
+            token.run(.sequence([
+                .wait(forDuration: delay),
+                .scale(to: 1.12, duration: 0.12),
+                .scale(to: 1.0, duration: 0.18)
+            ]))
+        }
+    }
+
+    /// Every dot home under its own colour: each ring glows in turn, every dot hops, one warm
+    /// song, then the pull-tab invites a pour. The toy's finale, never a score.
+    private func sortedFinale() {
+        tone("dots.full.board")
+        HapticsManager.shared.impact(style: .soft, intensity: 0.3)
+        for c in 0..<cols {
+            let delay = Double(c) * 0.22
+            run(.sequence([.wait(forDuration: delay), .run { [weak self] in
+                guard let self else { return }
+                self.welcomeHome(c, color: DropDotToken.felts[c % DropDotToken.felts.count])
+            }]))
+            guard !AmbientAnimator.reduceMotion else { continue }
+            for r in 0..<rows {
+                grid[c][r]?.run(.sequence([
+                    .wait(forDuration: delay + 0.05),
+                    .moveBy(x: 0, y: tokenR * 0.45, duration: 0.14),
+                    .moveBy(x: 0, y: -tokenR * 0.45, duration: 0.2)
+                ]))
+            }
+        }
+        run(.sequence([.wait(forDuration: 1.4), .run { [weak self] in self?.inviteTabNow() }]))
     }
 
     private func checkBoardFull() {
@@ -1131,6 +1256,7 @@ final class DropDotsScene: BaseToyScene {
 
         grid = Array(repeating: Array(repeating: nil, count: rows), count: cols)
         glowingCells.removeAll(); boardWasFull = false
+        homeColumns.removeAll(); rainbowRows.removeAll(); wasSorted = false
 
         // The pour, HONEST edition (founder: tokens were landing on top of tray tokens
         // and quietly swapping for fresh clones). Now each poured token claims a real
@@ -1315,6 +1441,9 @@ final class DropDotsScene: BaseToyScene {
               let slot = (0..<trayTokens.count).first(where: { trayTokens[$0] == nil }) else { return }
         grid[col][topRow] = nil
         trayTokens[slot] = token
+        // Taking a dot back un-notices quietly, so rebuilding a match celebrates again.
+        detectPatterns(celebrate: false)
+        refreshDiscoveries(celebrate: false)
         token.removeAllActions(); token.setLifted(false); token.zPosition = 20
         let target = traySlots[slot]
         let lift = SKAction.moveBy(x: 0, y: tokenR * 0.7, duration: 0.12); lift.timingMode = .easeOut
@@ -1396,7 +1525,8 @@ final class DropDotsScene: BaseToyScene {
                 size: CGSize(width: tokenR * 3, height: tokenR * 3), traits: .button
             ) { [weak self] in
                 guard let self, self.dragToken == nil, let token = self.trayTokens[i] else { return }
-                if let col = (0..<self.cols).first(where: { self.hasSpace($0) }) {
+                let home = token.feltIndex < self.cols && self.hasSpace(token.feltIndex) ? token.feltIndex : nil
+                if let col = home ?? (0..<self.cols).first(where: { self.hasSpace($0) }) {
                     self.dropIntoColumn(token, col: col, fromSlot: i)
                 }
             })
@@ -1411,12 +1541,45 @@ final class DropDotsScene: BaseToyScene {
     }
 }
 
-/// The finite hand of dots: one for every ring colour plus two more of one colour, so a
-/// child can always match a dot to its hole and make three in a row. Shuffled into the tray.
+/// The finite hand of dots: three of every ring colour, so every colour can fill its own
+/// hole, make three in a row and join a rainbow row, and the whole hand can be sorted home.
+/// Shuffled into the two-row tray.
 enum DropDotsHand {
-    static func deal(colours: Int = DropDotsScene.DropDotToken.felts.count,
-                     triple: Int = Int.random(in: 0..<DropDotsScene.DropDotToken.felts.count)) -> [Int] {
-        (Array(0..<colours) + [triple, triple]).shuffled()
+    static let perColour = 3
+
+    static func deal(colours: Int = DropDotsScene.DropDotToken.felts.count) -> [Int] {
+        (0..<colours).flatMap { Array(repeating: $0, count: perColour) }.shuffled()
+    }
+}
+
+/// What a child can discover on the board, kept free of SpriteKit so it can be checked
+/// off-device. `grid[c][r]` is a dot's colour (its ring's column) or nil; row `rows - 1`
+/// is the bottom. None of these is a goal or a score: the board simply notices.
+enum DropDotsDiscoveries {
+    /// Columns holding three or more dots of their own colour: "all the blues went home".
+    static func homeColumns(_ grid: [[Int?]]) -> Set<Int> {
+        Set(grid.indices.filter { c in grid[c].filter { $0 == c }.count >= DropDotsHand.perColour })
+    }
+
+    /// Full rows whose dots are all different colours.
+    static func rainbowRows(_ grid: [[Int?]]) -> Set<Int> {
+        guard let rows = grid.first?.count else { return [] }
+        return Set((0..<rows).filter { r in
+            let row = grid.compactMap { $0[r] }
+            return row.count == grid.count && Set(row).count == grid.count
+        })
+    }
+
+    /// The whole hand is on the board, every dot under its own colour.
+    static func isSorted(_ grid: [[Int?]], handSize: Int) -> Bool {
+        var count = 0
+        for (c, column) in grid.enumerated() {
+            for felt in column.compactMap({ $0 }) {
+                guard felt == c else { return false }
+                count += 1
+            }
+        }
+        return count == handSize
     }
 }
 

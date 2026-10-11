@@ -73,7 +73,7 @@ already have been uploaded by the Mac, and skipping a number is harmless.
 - [x] **2. Play timer per sitting, survives relaunch.** Spec §4.1. Add `Tools/verify_play_timer.py`.
 - [x] **3. Welcome page 2: "Your family's rhythm".** Spec §4.2.
 - [x] **4. Grown-up area: a clear play timer card.** Spec §4.3.
-- [ ] **5. Drop Dots: more matches, more to discover.** Spec §4.4. Update `verify_dropdots.py`.
+- [x] **5. Drop Dots: more matches, more to discover.** Spec §4.4. Update `verify_dropdots.py`.
 - [ ] **6. Meadow little ones.** Spec §4.5. Add `Tools/verify_meadow_little_ones.py` for the
   pure model.
 - [ ] **7. Build 10.**
@@ -261,3 +261,24 @@ universal, like the other Meadow art). The code picks them up automatically.
     wake it…". The wind-down hour sits in the same card.
   - Sound, haptics and calmer motion follow, then the shelf toys and plans.
   - Pills were already accessible: label and selected trait.
+- Oct 11, step 5 done (`DropDotsScene.swift`):
+  - **Hand:** 12 dots, 3 of each colour (`DropDotsHand.perColour`).
+  - **Tray, portrait:** two troughs. The back one is 1.3 cells up and drawn behind.
+  - **Tray, landscape:** two racks; the board shifts right to keep the group centred.
+  - **Cell budget:** +1.3 cells (portrait) and +1.3 (landscape width).
+  - **Discoveries:** the new pure `DropDotsDiscoveries` has home columns, rainbow rows and
+    sorted. In the scene, `refreshDiscoveries` gives one song per landing:
+    - all sorted → `sortedFinale` (rings glow in turn, dots hop, "dots.full.board", then the
+      tab invites a pour);
+    - else a home column → `homeColumnSong` ("dots.pattern");
+    - else a rainbow row → `rainbowShimmer` ("dots.wave").
+
+    The three-in-a-row chime and the column wave stay silent when a bigger discovery sings.
+    Rotation, sending a dot back and pouring re-notice silently.
+  - **Golden dots:** 1 in 80 per dot (about the same per visit).
+  - **VoiceOver:** "drop" picks the dot's own colour column first.
+  - **Verifiers:** `verify_dropdots.py` passes 13 checks. `verify_world_interactions.py`
+    is updated for the 12-dot hand (macOS only; run it on the Mac).
+  - **Needs a device check:** the two-row tray in portrait and landscape on a small iPhone, an
+    iPhone Pro Max and an iPad. Dots must not overlap the trough lips, and the board shouldn't
+    feel cramped. If the back trough's art looks odd, a single taller tray is the fallback.

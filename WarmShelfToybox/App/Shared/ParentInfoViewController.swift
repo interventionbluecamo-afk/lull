@@ -18,12 +18,27 @@ final class ParentInfoViewController: UIViewController {
     private var isLoadingProducts = true
     private var isPurchaseInProgress = false
     private var expandedSections: Set<Int> = []
+    /// Set by the welcome's "Try all nine" so the grown-up lands on the plans, not settings.
+    var opensAtPlans = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = WarmShelfPalette.linen
         buildView()
         loadPurchaseOptions()
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        guard opensAtPlans,
+              let scroll = view.viewWithTag(777) as? UIScrollView,
+              let plans = descendant(in: stack, identifier: "plans-card"),
+              plans.bounds.height > 0 else { return }
+        opensAtPlans = false
+        let frame = plans.convert(plans.bounds, to: scroll)
+        let minY = -scroll.adjustedContentInset.top
+        let maxY = max(minY, scroll.contentSize.height - scroll.bounds.height + scroll.adjustedContentInset.bottom)
+        scroll.setContentOffset(CGPoint(x: 0, y: min(maxY, max(minY, frame.minY - 16))), animated: false)
     }
 
     #if DEBUG
@@ -93,10 +108,10 @@ final class ParentInfoViewController: UIViewController {
         stack.addArrangedSubview(makeHeaderBar())
         stack.setCustomSpacing(20, after: stack.arrangedSubviews.last!)
 
-        // A grown-up has now seen the post-trial state; the shelf chip's quiet dot can rest.
+        // A grown-up has now seen that the plan ended; the shelf chip's quiet dot can rest.
         let state = LullDemoState.shared
-        if !state.hasPurchasedFullToybox, state.hasTrialStarted, !state.isTrialActive {
-            state.hasAcknowledgedTrialEnd = true
+        if !state.hasPurchasedFullToybox, state.hasUnseenPlanEnd {
+            state.acknowledgePlanState()
         }
         if let statusMessage {
             stack.addArrangedSubview(makeNoticeCard(text: statusMessage))
@@ -302,6 +317,7 @@ final class ParentInfoViewController: UIViewController {
 
     private func makeStatusHero() -> UIView {
         let card = UIView()
+        card.accessibilityIdentifier = "plans-card"
         card.backgroundColor = WarmShelfPalette.clayInk
         card.layer.cornerRadius = 26
         card.layer.shadowColor = WarmShelfPalette.contactShadow.cgColor
@@ -310,30 +326,45 @@ final class ParentInfoViewController: UIViewController {
         card.layer.shadowOffset = CGSize(width: 0, height: 12)
 
         let state = LullDemoState.shared
+        let store = LullPurchaseManager.shared
         let purchased = state.hasPurchasedFullToybox
-        let product = LullPurchaseManager.shared.product(for: LullStoreProduct.lifetime)
-        // Never advertise the fallback price or one-payment terms for an unknown product.
-        let price = product?.type == .nonConsumable ? product?.displayPrice : nil
+        // Never advertise a fallback price or terms for a product the App Store didn't return.
+        let family = store.product(for: LullStoreProduct.familyYearly)
+        let familyPrice = family?.type == .autoRenewable ? family?.displayPrice : nil
+        let keepForever = store.product(for: LullStoreProduct.lifetime)
+        let keepForeverPrice = keepForever?.type == .nonConsumable ? keepForever?.displayPrice : nil
+        let period = store.renewalPeriod(for: LullStoreProduct.familyYearly) ?? "year"
+        let freeLength = store.isEligibleForFreeWeek == true
+            ? store.freeWeekLength(for: LullStoreProduct.familyYearly) : nil
         // Screen Time can switch purchases off; say so instead of offering a dead button.
         let purchasesAllowed = AppStore.canMakePayments
+        let canBuy = purchasesAllowed && !isLoadingProducts && !isPurchaseInProgress
 
         let eyebrow = UILabel()
         let title = UILabel()
         let body = UILabel()
         title.text = "Full Toybox"
-        if purchased {
+        if state.hasKeepForever {
+            eyebrow.text = "KEEP FOREVER"
+            body.text = "All nine toys, and every new one, are yours for good. Thank you for supporting Lull."
+        } else if purchased && state.isInFreeWeek {
+            let d = state.freeWeekDaysRemaining
+            eyebrow.text = "FREE WEEK · \(d) DAY\(d == 1 ? "" : "S") LEFT"
+            let end = DateFormatter.localizedString(from: state.freeWeekEndDate ?? Date(), dateStyle: .long, timeStyle: .none)
+            body.text = state.planWillRenew == false
+                ? "All nine toys are open until \(end). Lull Family won't renew, so the shelf then goes back to the three free toys."
+                : "All nine toys are open. Lull Family begins on \(end) at \(store.displayPrice(for: LullStoreProduct.familyYearly)) a \(period) unless you cancel at least a day before."
+        } else if purchased && state.hasSubscription {
+            eyebrow.text = "LULL FAMILY"
+            body.text = state.planWillRenew == false
+                ? "All nine toys stay open until this plan ends. It won't renew; Bubbles, Little Wash, and Drop Dots stay free afterward."
+                : "All nine toys, and new ones as they arrive each season. Renews automatically each \(period)."
+        } else if purchased {
             eyebrow.text = "UNLOCKED"
             body.text = "All nine toys are unlocked. Thank you for supporting Lull."
-        } else if state.isTrialActive {
-            let d = state.trialDaysRemaining
-            eyebrow.text = "FREE WEEK · \(d) DAY\(d == 1 ? "" : "S") LEFT"
-            body.text = "Keep all nine toys for familiar friends, music, and quiet discovery. Bubbles, Little Wash, and Drop Dots stay free after your week."
-        } else if state.hasTrialStarted {
-            eyebrow.text = "YOUR FREE WEEK HAS ENDED"
-            body.text = "Bubbles, Little Wash, and Drop Dots stay free. Open six more toys for familiar friends, music, and quiet discovery."
         } else {
-            eyebrow.text = "TRY ALL NINE TOYS"
-            body.text = "Finish the welcome to try all nine toys free for seven days. Bubbles, Little Wash, and Drop Dots stay free afterward."
+            eyebrow.text = state.hasUnseenPlanEnd ? "LULL FAMILY HAS ENDED" : "THREE FREE TOYS · NINE TO PLAY"
+            body.text = "Bubbles, Little Wash, and Drop Dots stay free. Open all nine toys for familiar friends, music, and quiet discovery, plus new toys each season."
         }
         eyebrow.font = scaledFont(.systemFont(ofSize: 12, weight: .bold), style: .caption1)
         eyebrow.adjustsFontForContentSizeCategory = true
@@ -353,74 +384,100 @@ final class ParentInfoViewController: UIViewController {
         content.axis = .vertical
         content.spacing = 8
         content.setCustomSpacing(5, after: eyebrow)
+        content.setCustomSpacing(14, after: body)
 
         if !purchased {
             content.addArrangedSubview(makeLivingPreview())
-        }
 
-        if !purchased {
-            let cta = UIButton(type: .system)
-            let ctaTitle: String
-            if isPurchaseInProgress {
-                ctaTitle = "Waiting for the App Store…"
-            } else if isLoadingProducts {
-                ctaTitle = "Loading App Store price…"
-            } else if let price {
-                ctaTitle = "Unlock Full Toybox · \(price)"
-            } else {
-                ctaTitle = "Purchase unavailable"
+            if let familyPrice {
+                let buttonTitle: String
+                if isPurchaseInProgress {
+                    buttonTitle = "Waiting for the App Store…"
+                } else if freeLength != nil {
+                    buttonTitle = "Start the free week"
+                } else {
+                    buttonTitle = "Subscribe · \(familyPrice) a \(period)"
+                }
+                content.addArrangedSubview(makePlanTile(
+                    eyebrow: "LULL FAMILY",
+                    price: "\(familyPrice) a \(period)",
+                    detail: freeLength.map { "First \($0) free, then \(familyPrice) a \(period). New toys each season. Cancel anytime." }
+                        ?? "All nine toys and new ones each season. Cancel anytime.",
+                    buttonTitle: buttonTitle, filled: true, identifier: "plan-family-purchase",
+                    enabled: canBuy, action: #selector(purchaseFamily)
+                ))
             }
-            cta.setTitle(ctaTitle, for: .normal)
-            cta.titleLabel?.font = scaledFont(.systemFont(ofSize: 17, weight: .bold), style: .headline)
-            cta.titleLabel?.adjustsFontForContentSizeCategory = true
-            cta.contentEdgeInsets = UIEdgeInsets(top: 14, left: 12, bottom: 14, right: 12)
-            cta.accessibilityIdentifier = "full-toybox-purchase"
-            cta.titleLabel?.numberOfLines = 0
-            cta.titleLabel?.textAlignment = .center
-            cta.backgroundColor = WarmShelfPalette.butter
-            cta.setTitleColor(WarmShelfPalette.clayInk, for: .normal)
-            cta.layer.cornerRadius = 18
-            cta.translatesAutoresizingMaskIntoConstraints = false
-            cta.heightAnchor.constraint(greaterThanOrEqualToConstant: 56).isActive = true
-            cta.addTarget(self, action: #selector(purchaseLifetime), for: .touchUpInside)
-            cta.isEnabled = price != nil && purchasesAllowed && !isLoadingProducts && !isPurchaseInProgress
-            cta.alpha = cta.isEnabled ? 1 : 0.65
-            content.addArrangedSubview(cta)
+            if let keepForeverPrice {
+                content.addArrangedSubview(makePlanTile(
+                    eyebrow: "KEEP FOREVER",
+                    price: "\(keepForeverPrice) once",
+                    detail: "One payment. All nine toys and every new one, for good.",
+                    buttonTitle: isPurchaseInProgress ? "Waiting for the App Store…" : "Buy once · \(keepForeverPrice)",
+                    filled: familyPrice == nil, identifier: "full-toybox-purchase",
+                    enabled: canBuy, action: #selector(purchaseKeepForever)
+                ))
+            }
 
-            let reassurance = UILabel()
-            reassurance.text = price != nil && !purchasesAllowed
-                ? "In-App Purchases are turned off in Screen Time on this device. The free toys stay open."
-                : price != nil
-                ? "One payment. No subscription. The free week never charges you."
-                : (isLoadingProducts
-                    ? "The free week never turns into a charge. You can keep playing the free toys."
-                    : "The full toybox purchase is unavailable right now. You can keep playing the free toys.")
-            reassurance.font = scaledFont(.systemFont(ofSize: 13, weight: .medium), style: .footnote)
-            reassurance.adjustsFontForContentSizeCategory = true
-            reassurance.textColor = WarmShelfPalette.paperHighlight.withAlphaComponent(0.86)
-            reassurance.textAlignment = .center
-            reassurance.numberOfLines = 0
-            content.addArrangedSubview(reassurance)
-            content.setCustomSpacing(8, after: cta)
-
-            if !isLoadingProducts, price == nil {
-                let retry = makeActionButton(title: "Reload App Store price", style: .text)
+            let note: String?
+            if familyPrice == nil && keepForeverPrice == nil {
+                note = isLoadingProducts
+                    ? "Loading App Store prices… You can keep playing the free toys."
+                    : "The full toybox is unavailable from the App Store right now. You can keep playing the free toys."
+            } else if !purchasesAllowed {
+                note = "In-App Purchases are turned off in Screen Time on this device. The free toys stay open."
+            } else {
+                note = nil
+            }
+            if let note {
+                content.addArrangedSubview(makeHeroNote(note, size: 13))
+            }
+            if !isLoadingProducts, familyPrice == nil || keepForeverPrice == nil {
+                let retry = makeActionButton(title: "Reload App Store prices", style: .text)
                 retry.setTitleColor(WarmShelfPalette.paperHighlight, for: .normal)
                 retry.isEnabled = !isPurchaseInProgress
                 retry.addTarget(self, action: #selector(reloadProducts), for: .touchUpInside)
                 content.addArrangedSubview(retry)
             }
+            if let familyPrice {
+                // Apple's subscription terms, in full, beside the button (Guideline 3.1.2).
+                let start = freeLength.map { "after the free \($0)" } ?? "from today"
+                content.addArrangedSubview(makeHeroNote(
+                    "Lull Family is an auto-renewing subscription: \(familyPrice) a \(period) \(start). Payment is charged to your Apple Account when you confirm\(freeLength == nil ? "" : ", but nothing is charged until the free week ends"). It renews automatically unless cancelled at least 24 hours before the end of the current period, and renewal is charged within the 24 hours before the period ends. Manage or cancel anytime in your Apple Account settings. Keep Forever is a one-time purchase.",
+                    size: 12
+                ))
+            }
+        } else if state.hasSubscription {
+            let manage = makeActionButton(title: "Manage subscription", style: .secondary)
+            manage.accessibilityIdentifier = "manage-subscription"
+            manage.backgroundColor = WarmShelfPalette.paperHighlight.withAlphaComponent(0.12)
+            manage.layer.borderColor = WarmShelfPalette.paperHighlight.withAlphaComponent(0.3).cgColor
+            manage.setTitleColor(WarmShelfPalette.paperHighlight, for: .normal)
+            manage.isEnabled = !isPurchaseInProgress
+            manage.addTarget(self, action: #selector(manageSubscription), for: .touchUpInside)
+            content.addArrangedSubview(manage)
         }
 
-        let restore = makeActionButton(title: "Restore purchase", style: .text)
+        let terms = makeActionButton(title: "Terms of Use", style: .text)
+        terms.setTitleColor(WarmShelfPalette.paperHighlight.withAlphaComponent(0.95), for: .normal)
+        terms.accessibilityIdentifier = "terms-of-use"
+        terms.addTarget(self, action: #selector(openTerms), for: .touchUpInside)
+        let privacy = makeActionButton(title: "Privacy Policy", style: .text)
+        privacy.setTitleColor(WarmShelfPalette.paperHighlight.withAlphaComponent(0.95), for: .normal)
+        privacy.accessibilityIdentifier = "plans-privacy-policy"
+        privacy.addTarget(self, action: #selector(showPrivacy), for: .touchUpInside)
+        let links = UIStackView(arrangedSubviews: [terms, privacy])
+        links.axis = traitCollection.preferredContentSizeCategory.isAccessibilityCategory ? .vertical : .horizontal
+        links.distribution = .fillEqually
+        content.addArrangedSubview(links)
+
+        let restore = makeActionButton(title: "Restore purchases", style: .text)
         restore.setTitleColor(WarmShelfPalette.paperHighlight.withAlphaComponent(0.95), for: .normal)
         restore.accessibilityIdentifier = "restore-purchase"
-        restore.accessibilityHint = "Checks for an existing Full Toybox purchase with your Apple Account."
+        restore.accessibilityHint = "Checks your Apple Account for Lull Family or Keep Forever."
         restore.isEnabled = !isPurchaseInProgress
         restore.addTarget(self, action: #selector(restorePurchases), for: .touchUpInside)
         content.addArrangedSubview(restore)
 
-        content.setCustomSpacing(14, after: body)
         content.translatesAutoresizingMaskIntoConstraints = false
         card.addSubview(content)
         NSLayoutConstraint.activate([
@@ -430,6 +487,86 @@ final class ParentInfoViewController: UIViewController {
             content.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -20)
         ])
         return card
+    }
+
+    /// One plan on the dark card. The billed price is the largest text in the tile, ahead of
+    /// any free period (Guideline 3.1.2).
+    private func makePlanTile(eyebrow: String, price: String, detail: String, buttonTitle: String,
+                              filled: Bool, identifier: String, enabled: Bool, action: Selector) -> UIView {
+        let tile = UIView()
+        tile.backgroundColor = WarmShelfPalette.paperHighlight.withAlphaComponent(filled ? 0.10 : 0.05)
+        tile.layer.cornerRadius = 20
+        tile.layer.borderWidth = filled ? 1.5 : 1
+        tile.layer.borderColor = (filled ? WarmShelfPalette.butter : WarmShelfPalette.paperHighlight.withAlphaComponent(0.25)).cgColor
+
+        let name = UILabel()
+        name.text = eyebrow
+        name.font = scaledFont(.systemFont(ofSize: 12, weight: .bold), style: .caption1)
+        name.adjustsFontForContentSizeCategory = true
+        name.textColor = WarmShelfPalette.butter
+        name.numberOfLines = 0
+
+        let amount = UILabel()
+        amount.text = price
+        amount.font = scaledFont(UIFont(name: "Georgia-Bold", size: 24) ?? .systemFont(ofSize: 24, weight: .bold), style: .title2)
+        amount.adjustsFontForContentSizeCategory = true
+        amount.textColor = WarmShelfPalette.paperHighlight
+        amount.numberOfLines = 0
+
+        let words = UILabel()
+        words.text = detail
+        words.font = scaledFont(.systemFont(ofSize: 14), style: .subheadline)
+        words.adjustsFontForContentSizeCategory = true
+        words.textColor = WarmShelfPalette.paperHighlight.withAlphaComponent(0.88)
+        words.numberOfLines = 0
+
+        let button = UIButton(type: .system)
+        button.setTitle(buttonTitle, for: .normal)
+        button.accessibilityIdentifier = identifier
+        button.titleLabel?.font = scaledFont(.systemFont(ofSize: 17, weight: .bold), style: .headline)
+        button.titleLabel?.adjustsFontForContentSizeCategory = true
+        button.titleLabel?.numberOfLines = 0
+        button.titleLabel?.textAlignment = .center
+        button.contentEdgeInsets = UIEdgeInsets(top: 13, left: 12, bottom: 13, right: 12)
+        button.layer.cornerRadius = 16
+        if filled {
+            button.backgroundColor = WarmShelfPalette.butter
+            button.setTitleColor(WarmShelfPalette.clayInk, for: .normal)
+        } else {
+            button.backgroundColor = .clear
+            button.layer.borderWidth = 1.5
+            button.layer.borderColor = WarmShelfPalette.butter.withAlphaComponent(0.8).cgColor
+            button.setTitleColor(WarmShelfPalette.butter, for: .normal)
+        }
+        button.heightAnchor.constraint(greaterThanOrEqualToConstant: 52).isActive = true
+        button.addTarget(self, action: action, for: .touchUpInside)
+        button.isEnabled = enabled
+        button.alpha = enabled ? 1 : 0.65
+
+        let column = UIStackView(arrangedSubviews: [name, amount, words, button])
+        column.axis = .vertical
+        column.spacing = 4
+        column.setCustomSpacing(12, after: words)
+        column.translatesAutoresizingMaskIntoConstraints = false
+        tile.addSubview(column)
+        NSLayoutConstraint.activate([
+            column.topAnchor.constraint(equalTo: tile.topAnchor, constant: 16),
+            column.leadingAnchor.constraint(equalTo: tile.leadingAnchor, constant: 16),
+            column.trailingAnchor.constraint(equalTo: tile.trailingAnchor, constant: -16),
+            column.bottomAnchor.constraint(equalTo: tile.bottomAnchor, constant: -16)
+        ])
+        return tile
+    }
+
+    private func makeHeroNote(_ text: String, size: CGFloat) -> UILabel {
+        let note = UILabel()
+        note.text = text
+        note.font = scaledFont(.systemFont(ofSize: size, weight: .medium), style: .footnote)
+        note.adjustsFontForContentSizeCategory = true
+        note.textColor = WarmShelfPalette.paperHighlight.withAlphaComponent(0.8)
+        note.textAlignment = .center
+        note.numberOfLines = 0
+        return note
     }
 
     // MARK: - Group cards (the settings anatomy)
@@ -860,12 +997,44 @@ final class ParentInfoViewController: UIViewController {
         render()
     }
 
-    @objc private func purchaseLifetime() {
+    @objc private func purchaseFamily() {
+        startPurchase(LullStoreProduct.familyYearly, type: .autoRenewable)
+    }
+
+    @objc private func purchaseKeepForever() {
+        startPurchase(LullStoreProduct.lifetime, type: .nonConsumable)
+    }
+
+    private func startPurchase(_ productID: String, type: Product.ProductType) {
         guard !isPurchaseInProgress,
-              LullPurchaseManager.shared.product(for: LullStoreProduct.lifetime)?.type == .nonConsumable else { return }
+              LullPurchaseManager.shared.product(for: productID)?.type == type else { return }
         AdultGate.present(from: self) { [weak self] in
-            self?.purchase(productID: LullStoreProduct.lifetime)
+            self?.purchase(productID: productID)
         }
+    }
+
+    @objc private func manageSubscription() {
+        guard !isPurchaseInProgress else { return }
+        AdultGate.present(from: self) { [weak self] in
+            guard let self else { return }
+            Task { @MainActor in
+                if let scene = self.view.window?.windowScene {
+                    do {
+                        try await AppStore.showManageSubscriptions(in: scene)
+                    } catch {
+                        _ = await UIApplication.shared.open(LullStoreProduct.manageSubscriptionsURL)
+                    }
+                } else {
+                    _ = await UIApplication.shared.open(LullStoreProduct.manageSubscriptionsURL)
+                }
+                await LullPurchaseManager.shared.refreshEntitlements()
+                self.render()
+            }
+        }
+    }
+
+    @objc private func openTerms() {
+        UIApplication.shared.open(LullStoreProduct.termsOfUseURL)
     }
 
     @objc private func restorePurchases() {
@@ -879,8 +1048,8 @@ final class ParentInfoViewController: UIViewController {
                 let restored = await LullPurchaseManager.shared.restorePurchases()
                 self.isPurchaseInProgress = false
                 self.statusMessage = restored
-                    ? "Purchases restored. Full toybox is active."
-                    : (LullPurchaseManager.shared.lastErrorMessage ?? "No full toybox purchase was found.")
+                    ? "Purchases restored. The full toybox is open."
+                    : (LullPurchaseManager.shared.lastErrorMessage ?? "No Lull Family plan or Keep Forever purchase was found for this Apple Account.")
                 self.render()
             }
         }
@@ -985,7 +1154,7 @@ final class ParentInfoViewController: UIViewController {
 
     private func purchase(productID: String) {
         guard !isPurchaseInProgress,
-              LullPurchaseManager.shared.product(for: productID)?.type == .nonConsumable else { return }
+              LullPurchaseManager.shared.product(for: productID) != nil else { return }
         isPurchaseInProgress = true
         statusMessage = nil
         render()
@@ -993,7 +1162,12 @@ final class ParentInfoViewController: UIViewController {
             let purchased = await LullPurchaseManager.shared.purchase(productID)
             isPurchaseInProgress = false
             if purchased {
-                statusMessage = "Full toybox is active. The child shelf stays free of locks and prices."
+                let state = LullDemoState.shared
+                statusMessage = state.hasKeepForever
+                    ? "Keep Forever is active. All nine toys are yours, and the child's shelf stays free of locks and prices."
+                    : state.isInFreeWeek
+                    ? "Your free week has begun. All nine toys are open, and the child's shelf stays free of locks and prices."
+                    : "Lull Family is active. All nine toys are open, and the child's shelf stays free of locks and prices."
             } else if let message = LullPurchaseManager.shared.lastErrorMessage {
                 statusMessage = message
             }
@@ -1029,16 +1203,16 @@ final class ParentInfoViewController: UIViewController {
 /// The privacy policy, readable offline inside the gated grown-up room (Guideline 5.1.1(i)).
 /// Keep `sections` word-for-word with `LandingPageDeploy/privacy.html`.
 final class LullPrivacyViewController: UIViewController {
-    static let effectiveDate = "October 7, 2026"
+    static let effectiveDate = "October 11, 2026"
 
     static var sections: [(String, String)] {
         [
             ("The short version",
              "Lull does not collect, store on a server, share, or sell any information about you or your child. There are no accounts, ads, analytics, or tracking, and no third-party code that could do these things."),
             ("What stays on this device",
-             "Your family settings (sound, haptics, calmer motion, play timer, wind-down hour, which toys are on the shelf), the date the free week began, which hints were shown, and Mix-Up creations are saved only in Lull's storage on this device. They are not sent anywhere, apart from your own iCloud or computer backups of this device. Deleting Lull deletes them."),
+             "Your family settings (sound, haptics, calmer motion, play timer, wind-down hour, which toys are on the shelf), which hints were shown, a note of your current plan as Apple reports it, and Mix-Up creations are saved only in Lull's storage on this device. They are not sent anywhere, apart from your own iCloud or computer backups of this device. Deleting Lull deletes them."),
             ("Purchases",
-             "The full toybox is a one-time In-App Purchase handled entirely by Apple. Lull never sees your name, Apple Account, or payment details; Apple tells the app only whether the full toybox is unlocked. Apple's privacy policy covers the purchase itself."),
+             "The full toybox is an In-App Purchase handled entirely by Apple: the Lull Family subscription or the one-time Keep Forever purchase. Lull never sees your name, Apple Account, or payment details; Apple tells the app only whether the full toybox is open, and when a plan's free week or renewal is due. Apple's privacy policy covers the purchase itself."),
             ("Device features",
              "Lull does not use the camera, microphone, location, contacts, photos, or notifications. The shelf may read the device's tilt to move its picture gently; that motion is used in the moment and never saved."),
             ("Children",

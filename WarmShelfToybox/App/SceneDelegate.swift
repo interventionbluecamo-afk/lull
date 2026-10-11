@@ -19,6 +19,11 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         refreshPurchaseEntitlements()
     }
 
+    /// A plan can renew, lapse or be refunded while Lull is closed; recheck on every return.
+    func sceneWillEnterForeground(_ scene: UIScene) {
+        refreshPurchaseEntitlements()
+    }
+
     private func makeInitialRootViewController() -> UIViewController {
         #if DEBUG
         // Jump straight into one toy for screenshot/visual review: LULL_DEBUG_TOY=glowboard|host|…

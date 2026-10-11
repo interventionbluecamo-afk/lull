@@ -12,16 +12,28 @@ extension Notification.Name {
 }
 
 enum LullStoreProduct {
+    /// Lull Family: an auto-renewable yearly plan whose introductory offer is the free week.
+    static let familyYearly = "com.lull.family.yearly"
+    /// Never sold; kept so any sandbox or legacy entitlement still unlocks.
     static let legacyAnnual = "com.lull.full.annual"
+    /// Keep Forever: the one-time, non-consumable unlock.
     static let lifetime = "com.lull.full.lifetime"
 
-    static let available = [lifetime]
-    static let entitlementProductIDs = [legacyAnnual, lifetime]
+    static let available = [familyYearly, lifetime]
+    static let entitlementProductIDs = [familyYearly, legacyAnnual, lifetime]
+    static let subscriptionProductIDs = [familyYearly, legacyAnnual]
+
+    /// Apple's standard licence agreement, linked beside the plans (Guideline 3.1.2).
+    static let termsOfUseURL = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!
+    /// Fallback when Apple's in-app manage sheet can't be shown.
+    static let manageSubscriptionsURL = URL(string: "https://apps.apple.com/account/subscriptions")!
 
     static func fallbackPrice(for productID: String) -> String {
         switch productID {
+        case familyYearly:
+            return "$29.99"
         case lifetime:
-            return "$9.99"
+            return "$59.99"
         default:
             return ""
         }
@@ -29,8 +41,10 @@ enum LullStoreProduct {
 
     static func label(for productID: String) -> String {
         switch productID {
+        case familyYearly, legacyAnnual:
+            return "Lull Family"
         case lifetime:
-            return "lifetime"
+            return "Keep Forever"
         default:
             return "unlock"
         }
@@ -46,8 +60,12 @@ final class LullDemoState {
         static let legacyChildAge = "lull.childAge"
         static let windDownHour = "lull.windDownHour"
         static let accessTier = "lull.accessTier"
-        static let trialStartDate = "lull.trialStartDate"
-        static let trialEndAcknowledged = "lull.trialEndAcknowledged"
+        static let legacyTrialStartDate = "lull.trialStartDate"
+        static let legacyTrialEndAcknowledged = "lull.trialEndAcknowledged"
+        static let planProductID = "lull.plan.productID"
+        static let planFreeWeekEnd = "lull.plan.freeWeekEnd"
+        static let planWillRenew = "lull.plan.willRenew"
+        static let planLapsed = "lull.plan.lapsed"
         static let soundEnabled = "lull.soundEnabled"
         static let hapticsEnabled = "lull.hapticsEnabled"
         static let reducedMotion = "lull.reducedMotion"
@@ -64,6 +82,9 @@ final class LullDemoState {
         self.defaults = defaults
         defaults.removeObject(forKey: Key.legacyChildName)
         defaults.removeObject(forKey: Key.legacyChildAge)
+        // The on-device free week was replaced by the App Store's free week (Lull Family).
+        defaults.removeObject(forKey: Key.legacyTrialStartDate)
+        defaults.removeObject(forKey: Key.legacyTrialEndAcknowledged)
         migrateLegacyDemoState()
         migrateRetiredToyPreferences()
     }
@@ -183,78 +204,109 @@ final class LullDemoState {
         }
     }
 
-    /// What the grown-up actually paid for (the StoreKit entitlement). Stays distinct from
-    /// `hasFullToybox`, which also counts the free trial.
+    /// What the grown-up has from the App Store: Keep Forever, or Lull Family (including its
+    /// free week, which Apple runs as the plan's introductory offer).
     var hasPurchasedFullToybox: Bool {
         accessTier == .fullToybox
     }
 
-    /// Effective access to the full toybox: a real purchase, or an active free trial.
+    /// Effective access to the full toybox. There is no local trial: every free week is the
+    /// App Store's, so access is exactly the StoreKit entitlement.
     var hasFullToybox: Bool {
-        hasPurchasedFullToybox || isTrialActive
+        hasPurchasedFullToybox
     }
 
-    // MARK: - Free trial (7 days of the full toybox, then it settles back to the free shelf)
+    // MARK: - The plan behind the access (cached from StoreKit for the grown-up area)
 
-    /// Full access is free for the first 7 days so a family can fall in love with the whole
-    /// shelf before deciding. After it ends, Bubbles, Little Wash and Drop Dots stay free forever and the rest
-    /// quietly returns to the grown-up area — never a child-facing lock or price.
-    let trialDuration: TimeInterval = 7 * 24 * 60 * 60
+    /// What StoreKit reported at the last entitlement check. Plain values so this state stays
+    /// testable without StoreKit.
+    struct PlanSnapshot: Equatable {
+        var productID: String
+        /// When the App Store's free week ends, if this access is still inside it.
+        var freeWeekEnds: Date?
+        /// nil when unknown (offline, or a one-time purchase).
+        var willRenew: Bool?
+    }
 
-    var trialStartDate: Date? {
-        get {
-            let stored = defaults.double(forKey: Key.trialStartDate)
-            guard stored > 0 else { return nil }
-            // A start in the future means the clock was turned back after the week began:
-            // count from now instead, so moving the clock can't stretch the free week.
-            let now = Date().timeIntervalSinceReferenceDate
-            if stored > now + 60 {
-                defaults.set(now, forKey: Key.trialStartDate)
-                return Date(timeIntervalSinceReferenceDate: now)
-            }
-            return Date(timeIntervalSinceReferenceDate: stored)
-        }
-        set {
-            if let date = newValue {
-                defaults.set(date.timeIntervalSinceReferenceDate, forKey: Key.trialStartDate)
+    var planProductID: String? {
+        guard hasPurchasedFullToybox else { return nil }
+        return defaults.string(forKey: Key.planProductID)
+    }
+
+    var hasKeepForever: Bool { planProductID == LullStoreProduct.lifetime }
+
+    var hasSubscription: Bool {
+        guard let id = planProductID else { return false }
+        return LullStoreProduct.subscriptionProductIDs.contains(id)
+    }
+
+    var freeWeekEndDate: Date? {
+        guard hasSubscription else { return nil }
+        let stored = defaults.double(forKey: Key.planFreeWeekEnd)
+        return stored > 0 ? Date(timeIntervalSinceReferenceDate: stored) : nil
+    }
+
+    var isInFreeWeek: Bool {
+        guard let end = freeWeekEndDate else { return false }
+        return Date() < end
+    }
+
+    /// Whole days left in the App Store's free week (rounds up, so day one reads "7 days").
+    var freeWeekDaysRemaining: Int {
+        guard isInFreeWeek, let end = freeWeekEndDate else { return 0 }
+        return min(7, max(1, Int(ceil(end.timeIntervalSinceNow / 86_400))))
+    }
+
+    var planWillRenew: Bool? {
+        guard hasSubscription, defaults.object(forKey: Key.planWillRenew) != nil else { return nil }
+        return defaults.bool(forKey: Key.planWillRenew)
+    }
+
+    /// A Lull Family plan ended and the shelf went back to the free toys; true until a
+    /// grown-up has seen the parent area.
+    var hasUnseenPlanEnd: Bool {
+        defaults.bool(forKey: Key.planLapsed)
+    }
+
+    func applyPlan(_ plan: PlanSnapshot?) {
+        let hadSubscription = hasSubscription
+        if let plan {
+            defaults.set(plan.productID, forKey: Key.planProductID)
+            if let end = plan.freeWeekEnds {
+                defaults.set(end.timeIntervalSinceReferenceDate, forKey: Key.planFreeWeekEnd)
             } else {
-                defaults.removeObject(forKey: Key.trialStartDate)
+                defaults.removeObject(forKey: Key.planFreeWeekEnd)
             }
+            if let renew = plan.willRenew {
+                defaults.set(renew, forKey: Key.planWillRenew)
+            } else {
+                defaults.removeObject(forKey: Key.planWillRenew)
+            }
+            defaults.set(false, forKey: Key.planLapsed)
+            // Post even when the tier is unchanged: the parent area shows the plan's details.
+            if accessTier == .fullToybox {
+                NotificationCenter.default.post(name: .lullAccessDidChange, object: nil)
+            }
+            accessTier = .fullToybox
+        } else {
+            if hadSubscription { defaults.set(true, forKey: Key.planLapsed) }
+            defaults.removeObject(forKey: Key.planProductID)
+            defaults.removeObject(forKey: Key.planFreeWeekEnd)
+            defaults.removeObject(forKey: Key.planWillRenew)
+            accessTier = .free
         }
     }
 
-    var hasTrialStarted: Bool { trialStartDate != nil }
-
-    var isTrialActive: Bool {
-        guard let start = trialStartDate else { return false }
-        return Date() < start.addingTimeInterval(trialDuration)
+    func acknowledgePlanState() {
+        defaults.set(false, forKey: Key.planLapsed)
     }
 
-    /// Whole days left in the trial (rounds up, so day one reads "7 days"). 0 once it ends.
-    var trialDaysRemaining: Int {
-        guard let start = trialStartDate else { return 0 }
-        let remaining = start.addingTimeInterval(trialDuration).timeIntervalSinceNow
-        return min(7, max(0, Int(ceil(remaining / 86_400))))
-    }
-
-    /// True once a grown-up has opened the parent area after the trial lapsed — clears the
-    /// quiet dot on the shelf's parent chip so it never nags forever.
-    var hasAcknowledgedTrialEnd: Bool {
-        get { defaults.bool(forKey: Key.trialEndAcknowledged) }
-        set { defaults.set(newValue, forKey: Key.trialEndAcknowledged) }
-    }
-
-    /// The parent chip shows its quiet dot on the trial's last day and right after it ends —
-    /// the one gentle, adult-facing signal that the shelf is about to change / just changed.
+    /// The parent chip shows its quiet dot on the free week's last day and right after a
+    /// plan ends: the one gentle, adult-facing signal that the shelf is about to change or
+    /// just did. It rests once the grown-up room has been visited.
     var parentAttentionWanted: Bool {
-        guard !hasPurchasedFullToybox, hasTrialStarted else { return false }
-        if isTrialActive { return trialDaysRemaining <= 1 }
-        return !hasAcknowledgedTrialEnd
-    }
-
-    func startTrialIfNeeded() {
-        if trialStartDate == nil { trialStartDate = Date() }
-        NotificationCenter.default.post(name: .lullAccessDidChange, object: nil)
+        if isInFreeWeek { return freeWeekDaysRemaining <= 1 }
+        return !hasPurchasedFullToybox && hasUnseenPlanEnd
     }
 
     var isSoundEnabled: Bool {
@@ -297,8 +349,7 @@ final class LullDemoState {
     }
 
     func completeOnboarding() {
-        // Replaying the welcome never changes a purchase or renews an existing trial.
-        startTrialIfNeeded()
+        // Replaying the welcome never changes a purchase or a plan; the App Store owns both.
         hasCompletedOnboarding = true
     }
 
@@ -322,6 +373,8 @@ final class LullPurchaseManager {
     private(set) var products: [Product] = []
     private var transactionUpdates: Task<Void, Never>?
     private(set) var lastErrorMessage: String?
+    /// Whether this Apple Account can still start Lull Family's free week. nil until known.
+    private(set) var isEligibleForFreeWeek: Bool?
 
     private init() {
         transactionUpdates = Task { [weak self] in
@@ -343,6 +396,12 @@ final class LullPurchaseManager {
                     let rhsIndex = LullStoreProduct.available.firstIndex(of: rhs.id) ?? 99
                     return lhsIndex < rhsIndex
                 }
+            if let subscription = product(for: LullStoreProduct.familyYearly)?.subscription,
+               subscription.introductoryOffer?.paymentMode == .freeTrial {
+                isEligibleForFreeWeek = await subscription.isEligibleForIntroOffer
+            } else {
+                isEligibleForFreeWeek = false
+            }
             await refreshEntitlements()
             lastErrorMessage = nil
         } catch {
@@ -356,6 +415,34 @@ final class LullPurchaseManager {
 
     func product(for productID: String) -> Product? {
         products.first { $0.id == productID }
+    }
+
+    /// The App Store's own words for a plan's free period, e.g. "7 days" or "1 week".
+    /// nil when the plan has no free introductory offer.
+    func freeWeekLength(for productID: String) -> String? {
+        guard let offer = product(for: productID)?.subscription?.introductoryOffer,
+              offer.paymentMode == .freeTrial else { return nil }
+        return Self.describe(offer.period)
+    }
+
+    /// "year", "month", "6 months": the renewal period, for "$29.99 a year".
+    func renewalPeriod(for productID: String) -> String? {
+        guard let period = product(for: productID)?.subscription?.subscriptionPeriod else { return nil }
+        return period.value == 1 ? Self.unitName(period.unit) : Self.describe(period)
+    }
+
+    private static func unitName(_ unit: Product.SubscriptionPeriod.Unit) -> String {
+        switch unit {
+        case .day: return "day"
+        case .week: return "week"
+        case .month: return "month"
+        case .year: return "year"
+        @unknown default: return "period"
+        }
+    }
+
+    private static func describe(_ period: Product.SubscriptionPeriod) -> String {
+        "\(period.value) \(unitName(period.unit))\(period.value == 1 ? "" : "s")"
     }
 
     func purchase(_ productID: String) async -> Bool {
@@ -378,7 +465,10 @@ final class LullPurchaseManager {
                 }
 
                 if isFullToyboxTransaction(transaction) {
-                    LullDemoState.shared.accessTier = .fullToybox
+                    // A brand-new plan renews unless the grown-up turns it off later.
+                    let willRenew: Bool? = product.subscription == nil ? nil : true
+                    LullDemoState.shared.applyPlan(snapshot(for: transaction, willRenew: willRenew))
+                    if transaction.offerType == .introductory { isEligibleForFreeWeek = false }
                 }
                 await transaction.finish()
                 lastErrorMessage = nil
@@ -419,25 +509,58 @@ final class LullPurchaseManager {
         }
         #endif
 
-        var hasValidFullToyboxEntitlement = false
-
+        var best: Transaction?
         for await result in Transaction.currentEntitlements {
-            guard let transaction = verifiedTransaction(from: result) else { continue }
-            if isFullToyboxTransaction(transaction) {
-                hasValidFullToyboxEntitlement = true
+            guard let transaction = verifiedTransaction(from: result),
+                  isFullToyboxTransaction(transaction) else { continue }
+            // Keep Forever outranks a plan: it never ends.
+            if transaction.productID == LullStoreProduct.lifetime {
+                best = transaction
                 break
             }
+            if best == nil { best = transaction }
         }
 
-        LullDemoState.shared.accessTier = hasValidFullToyboxEntitlement ? .fullToybox : .free
+        guard let best else {
+            LullDemoState.shared.applyPlan(nil)
+            return
+        }
+        var willRenew: Bool?
+        if best.productType == .autoRenewable {
+            willRenew = await willAutoRenew(best)
+        }
+        LullDemoState.shared.applyPlan(snapshot(for: best, willRenew: willRenew))
+    }
+
+    private func snapshot(for transaction: Transaction, willRenew: Bool?) -> LullDemoState.PlanSnapshot {
+        let inFreeWeek = transaction.productType == .autoRenewable && transaction.offerType == .introductory
+        return LullDemoState.PlanSnapshot(
+            productID: transaction.productID,
+            freeWeekEnds: inFreeWeek ? transaction.expirationDate : nil,
+            willRenew: willRenew
+        )
+    }
+
+    private func willAutoRenew(_ transaction: Transaction) async -> Bool? {
+        var plan = self.product(for: transaction.productID)
+        if plan == nil {
+            plan = try? await Product.products(for: [transaction.productID]).first
+        }
+        guard let statuses = try? await plan?.subscription?.status else { return nil }
+        for status in statuses {
+            guard case .verified(let renewal) = status.renewalInfo,
+                  case .verified(let current) = status.transaction,
+                  current.originalID == transaction.originalID else { continue }
+            return renewal.willAutoRenew
+        }
+        return nil
     }
 
     private func applyVerifiedTransaction(_ result: VerificationResult<Transaction>) async {
         guard let transaction = verifiedTransaction(from: result) else { return }
-        if isFullToyboxTransaction(transaction) {
-            LullDemoState.shared.accessTier = .fullToybox
-        } else if LullStoreProduct.entitlementProductIDs.contains(transaction.productID) {
-            // A refund or revocation arrives as an update too: recheck instead of keeping access.
+        if LullStoreProduct.entitlementProductIDs.contains(transaction.productID) {
+            // Purchases, renewals, Ask to Buy approvals, refunds and revocations all arrive
+            // here: recheck everything rather than trusting one transaction.
             await refreshEntitlements()
         }
         await transaction.finish()

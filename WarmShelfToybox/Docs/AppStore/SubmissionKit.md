@@ -28,29 +28,28 @@ outstanding work in `Docs/Launch/Launch-Checklist.md`.
    contact link before submission.
 3. **Paid Apps Agreement, tax and banking** (Account Holder, App Store Connect → Business). The
    purchase cannot load for App Review, or in sandbox, until the agreement is Active.
-4. **Finish the lifetime purchase** (`com.lull.full.lifetime`, Apple ID 6820224689, $9.99 US):
-   - Review screenshot: on a device running the TestFlight build with a sandbox account, open the
-     grown-up area so the purchase card shows the real price; take a screenshot; upload it.
-   - Decide **Family Sharing** (it cannot be turned off once on). Recommended: on — families with
-     several devices expect it, and it is a quiet premium signal.
-   - Test in sandbox: buy, cancel, Ask to Buy (pending), relaunch, delete and reinstall, restore.
-   - On the 1.0 version page, attach the purchase under *In-App Purchases and Subscriptions*
-     before you submit (the first purchase must ride along with an app version).
-5. **Trial model — unresolved before public submission.** Build 8's free week uses a local
-   timer, with no trial IAP. Apple's [Guideline 3.1.1](https://developer.apple.com/app-store/review/guidelines/)
-   describes a $0 non-consumable named “XX-day Trial” for a non-subscription time-based trial,
-   plus disclosure of duration, content lost and the price of full access before it starts.
-   The welcome shows the App Store price when the product loads; otherwise it says the price
-   is in the grown-up area, and completing the welcome can still start the week. That fallback
-   does not establish that the price was disclosed before the trial.
-   Resolve before submission: implement Apple's documented trial model and disclosures,
-   remove the timed trial while keeping the free toys and optional full unlock, or obtain
-   written clarification from Apple about the current model. No implementation or founder
-   decision is recorded here. Update the app, website, product copy and review notes together
-   after that decision; do not treat review rejection as the plan for resolving it.
+4. **Set up the two products** (founder decision, October 11: Lull Family + Keep Forever).
+   Full steps and exact wording: `Docs/Handoff-Claude-to-ChatGPT-2026-10-11-plans.md` §2.
+   - **Lull Family**, auto-renewable subscription, product ID `com.lull.family.yearly`, in a new
+     subscription group "Lull Family", 1 year, $29.99 US, with an **introductory offer: Free,
+     1 week**, for new subscribers.
+   - **Keep Forever**: the existing non-consumable `com.lull.full.lifetime` (Apple ID
+     6820224689), renamed and repriced from $9.99 to **$59.99** US.
+   - A review screenshot for each, from a TestFlight build with a sandbox account (the
+     grown-up area's plans card with real prices).
+   - **Family Sharing** on both (it cannot be turned off once on). Recommended: on.
+   - Test in sandbox: free week, renewal, cancel during the week, Ask to Buy, restore,
+     delete and reinstall, Keep Forever.
+   - On the 1.0 version page, attach **both** under *In-App Purchases and Subscriptions*
+     before you submit (first purchases must ride along with an app version).
+5. **Free week: resolved.** The on-device timer is gone (build 9). The free week is now Lull
+   Family's introductory offer, run by Apple. Apple's checkout states the trial and renewal
+   price; the app's plans card shows the billed price most prominently, the free week, the
+   renewal terms, and links to the Terms of Use (Apple's standard EULA) and Privacy Policy
+   (Guideline 3.1.2). The welcome never opens toys by itself.
 6. **Kids Category age band** (permanent once approved): choose **Made for Kids → 5 and under**.
    Lull's core is 2–5; "6–8" would put it beside reading and maths apps for older children.
-7. **Where to sell.** The purchase draft is US-only. Pick the same territories for the app.
+7. **Where to sell.** Set both products' availability to the same territories as the app.
    A proposed English-language launch outside the EU is the US, UK, Canada, Australia and
    New Zealand. Ireland is in the EU; include it only as part of an explicit EU launch
    decision. Complete App Store Connect’s trader-status assessment; EU distribution by a
@@ -118,16 +117,24 @@ need no attribution).
 > Settings live behind an adult check: choose which toys are on the shelf, turn sound and
 > haptics on or off, choose calmer motion, and set a play timer and a wind-down hour.
 >
-> FREE TO TRY
-> Bubbles, Little Wash and Drop Dots are free. Every new family gets a free week with all nine toys,
-> then one optional purchase keeps them. No subscription.
+> THREE TOYS FREE, ALL NINE TO PLAY
+> Bubbles, Little Wash and Drop Dots are free, with no ads and no account. Lull Family opens
+> all nine toys, and the new ones that arrive each season, with a free week for new
+> subscribers. Or choose Keep Forever: one payment for every toy, for good. Purchases are made
+> by a grown-up, behind the adult check.
+>
+> Lull Family is an auto-renewable subscription: 1 year, $29.99 (US) after the free week.
+> Payment is charged to your Apple Account at confirmation of purchase, after any free trial.
+> It renews automatically unless cancelled at least 24 hours before the end of the current
+> period. Manage or cancel in your Apple Account settings.
+> Terms of Use: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+> Privacy Policy: https://YOURPROJECT.pages.dev/privacy.html
 
 Before pasting, check each toy line against the approved shipping build. Little Wash replaces
-Stack from build 7 onward and needs the founder's device review. The free-week paragraph
-reflects the current build, not an approved launch model; revise it after §1.5 is resolved.
-Keep learning claims at this level; do not claim outcomes.
+Stack from build 7 onward and needs the founder's device review. Replace the privacy URL with
+the hosted one. Keep learning claims at this level; do not claim outcomes.
 
-**App Review notes (current-build draft; revise after the trial and support decisions):**
+**App Review notes (build 9 onward; revise after the support decision):**
 
 > Lull is a Kids Category toybox for ages 2–6. No account or login. The toys work offline;
 > Apple’s product loading, purchase and restore functions need App Store connectivity. No
@@ -137,14 +144,14 @@ Keep learning claims at this level; do not claim outcomes.
 > fingers on the shelf). The adult check shows three numbers written as words, for example
 > "four · seven · two"; type them as digits (472). Three misses rest the check for 30 seconds.
 >
-> Current free week: finishing the welcome starts a local 7-day timer and opens all nine
-> toys at no charge. The last welcome page states the duration and that Bubbles, Little Wash
-> and Drop Dots stay free. When StoreKit loads the product, it also shows the one-time price;
-> otherwise it directs the grown-up to the price in Family settings and still allows the week
-> to start. After 7 days the other six toys leave the child’s shelf; nothing is charged.
->
-> Purchase: one non-consumable, com.lull.full.lifetime ("Lull Full Toybox"), in the grown-up
-> area below Family controls and Choose shelf toys, with Restore in the Full Toybox card.
+> Purchases (grown-up area only, behind the adult check): an auto-renewable subscription,
+> com.lull.family.yearly ("Lull Family", 1 year, with a 1-week free introductory offer), and
+> a non-consumable, com.lull.full.lifetime ("Keep Forever"). Both are in the Full Toybox card
+> below Family controls and Choose shelf toys, with the subscription terms, Terms of Use,
+> Privacy Policy, Manage subscription and Restore purchases. The last welcome page explains
+> both plans; its "Try all nine free" button opens the same card through the adult check. The
+> app has no local or timed trial; without a purchase, Bubbles, Little Wash and Drop Dots
+> stay open.
 > The child's shelf never shows prices, locks or upgrade prompts. Support email is inside the
 > grown-up area; the optional web privacy link is currently unset. The device's tilt moves
 > the shelf picture slightly and is never stored.
@@ -158,10 +165,9 @@ with rounded corners; no device frames, no fake UI).
 1. Build **Release for every capture**, using the approved shipping candidate, for the
    simulators **iPhone 17 Pro Max** (6.9", 1320 × 2868) and **iPad Pro 13"** (2064 × 2752).
    Lull hides the status bar, so no status-bar override is needed.
-2. Complete the welcome normally on a fresh test installation to open the current build's
-   free week, or use a verified full-toybox entitlement. Capture while all nine toys are
-   legitimately open; no Debug unlock or UI hooks. If the trial model changes, use the
-   approved shipping flow instead.
+2. Open all nine toys legitimately: start Lull Family's free week (or buy Keep Forever) with a
+   sandbox account, or use a local StoreKit test configuration in Xcode. No Debug unlock or
+   UI hooks.
 3. Play into each moment in the spec, then
    `xcrun simctl io booted screenshot ~/Desktop/lull-captures/iphone/03-feed.png` (use the shot
    ids as file names; `ipad/` for iPad; landscape iPad captures are fine).

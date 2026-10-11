@@ -7,7 +7,7 @@ import UIKit
 // A warm, paged parent setup — handed over to the child at the end. Three calm moments:
 //   1. Welcome: Wren says hello; the quiet promise (no ads, no scores, no pressure).
 //   2. Wind-down: the grown-up picks bedtime; Lull's rooms warm and dim toward it.
-//   3. Hand-off: the 7-day free toybox, what stays free, and the grown-up gate.
+//   3. Hand-off: what stays free, Lull Family (free week) and Keep Forever, and the grown-up gate.
 // Built from warm handmade cards on warm paper, to match the toys themselves.
 
 final class LullOnboardingViewController: UIViewController {
@@ -37,8 +37,8 @@ final class LullOnboardingViewController: UIViewController {
         ) { [weak self] _ in
             Task { @MainActor [weak self] in self?.refreshHandoffPage() }
         }
-        // The last page names the real App Store price before the free week starts
-        // (Guideline 3.1.1). Offline, it falls back to pointing at the grown-up area.
+        // The last page names the real App Store prices and free week (Guideline 3.1.2).
+        // Offline, it falls back to pointing at the grown-up area.
         if LullPurchaseManager.shared.products.isEmpty {
             Task { @MainActor [weak self] in
                 await LullPurchaseManager.shared.loadProducts()
@@ -232,13 +232,28 @@ final class LullOnboardingViewController: UIViewController {
     private func handoffPage() -> UIView {
         let eyebrow = makeEyebrow("YOUR FAMILY'S TOYBOX")
         let state = LullDemoState.shared
-        let product = LullPurchaseManager.shared.product(for: LullStoreProduct.lifetime)
-        let keepAll = product?.type == .nonConsumable
-            ? "Keep all nine with one purchase of \(product!.displayPrice). No subscription."
-            : "Keep all nine with one optional purchase. No subscription. The price is in the grown-up area."
+        let store = LullPurchaseManager.shared
+        let family = store.product(for: LullStoreProduct.familyYearly)
+        let familyPrice = family?.type == .autoRenewable ? family?.displayPrice : nil
+        let period = store.renewalPeriod(for: LullStoreProduct.familyYearly) ?? "year"
+        let keepForever = store.product(for: LullStoreProduct.lifetime)
+        let keepForeverPrice = keepForever?.type == .nonConsumable ? keepForever?.displayPrice : nil
         let titleText: String
         let timelineRows: [UIView]
-        if state.hasPurchasedFullToybox {
+        if state.hasPurchasedFullToybox && state.isInFreeWeek {
+            titleText = "Your free week,\nstill open."
+            let days = state.freeWeekDaysRemaining
+            let afterWeek = state.planWillRenew == false
+                ? "The shelf goes back to Bubbles, Little Wash, and Drop Dots. These three stay free."
+                : "Lull Family continues at \(store.displayPrice(for: LullStoreProduct.familyYearly)) a \(period) unless you cancel in your Apple Account settings at least a day before."
+            timelineRows = [
+                makeTimelineRow(dot: WarmShelfPalette.butter, label: "Today",
+                                text: "All nine toys are open for \(days) more day\(days == 1 ? "" : "s")."),
+                makeTimelineRow(dot: WarmShelfPalette.waterBlue, label: "When the week ends", text: afterWeek),
+                makeTimelineRow(dot: WarmShelfPalette.terracotta, label: "Whenever you like",
+                                text: "See or cancel your plan in the grown-up area.", isLast: true)
+            ]
+        } else if state.hasPurchasedFullToybox {
             titleText = "Your toybox,\nready for play."
             timelineRows = [
                 makeTimelineRow(dot: WarmShelfPalette.butter, label: "Open",
@@ -246,44 +261,32 @@ final class LullOnboardingViewController: UIViewController {
                 makeTimelineRow(dot: WarmShelfPalette.sage, label: "Your shelf",
                                 text: "Keep favorite toys in reach and tuck others away in the grown-up area."),
                 makeTimelineRow(dot: WarmShelfPalette.waterBlue, label: "Whenever you like",
-                                text: "Return to familiar toys. Your purchase stays active when you replay this welcome.", isLast: true)
-            ]
-        } else if state.isTrialActive {
-            titleText = "Your free week,\nstill open."
-            let days = state.trialDaysRemaining
-            timelineRows = [
-                makeTimelineRow(dot: WarmShelfPalette.butter, label: "Today",
-                                text: "The full toybox is open for \(days) more day\(days == 1 ? "" : "s")."),
-                makeTimelineRow(dot: WarmShelfPalette.waterBlue, label: "When the week ends",
-                                text: "The shelf will show Bubbles, Little Wash, and Drop Dots. These three stay free."),
-                makeTimelineRow(dot: WarmShelfPalette.terracotta, label: "Whenever you like",
-                                text: keepAll, isLast: true)
-            ]
-        } else if state.hasTrialStarted {
-            titleText = "Three toys,\nyours to revisit."
-            timelineRows = [
-                makeTimelineRow(dot: WarmShelfPalette.waterBlue, label: "Your free shelf",
-                                text: "Bubbles, Little Wash, and Drop Dots are ready to play. They stay free."),
-                makeTimelineRow(dot: WarmShelfPalette.sage, label: "At your own pace",
-                                text: "Choose a familiar toy, explore, and come back whenever you like."),
-                makeTimelineRow(dot: WarmShelfPalette.terracotta, label: "The full toybox",
-                                text: keepAll, isLast: true)
+                                text: "Return to familiar toys. Replaying this welcome never changes your purchase.", isLast: true)
             ]
         } else {
-            titleText = "One week,\nthe whole toybox."
+            titleText = "Three toys to keep,\nnine to play."
+            let familyText: String
+            if let familyPrice, let free = store.isEligibleForFreeWeek == true
+                ? store.freeWeekLength(for: LullStoreProduct.familyYearly) : nil {
+                familyText = "All nine toys, and new ones each season. First \(free) free, then \(familyPrice) a \(period). Cancel anytime."
+            } else if let familyPrice {
+                familyText = "All nine toys, and new ones each season, for \(familyPrice) a \(period). Cancel anytime."
+            } else {
+                familyText = "All nine toys, and new ones each season, starting with a free week. Prices are in the grown-up area."
+            }
             timelineRows = [
-                makeTimelineRow(dot: WarmShelfPalette.butter, label: "Today",
-                                text: "All nine toys, free for seven days. No payment details needed."),
-                makeTimelineRow(dot: WarmShelfPalette.waterBlue, label: "After seven days",
-                                text: "Bubbles, Little Wash, and Drop Dots stay free. Nothing is charged."),
-                makeTimelineRow(dot: WarmShelfPalette.terracotta, label: "Whenever you like",
-                                text: keepAll, isLast: true)
+                makeTimelineRow(dot: WarmShelfPalette.waterBlue, label: "Free, always",
+                                text: "Bubbles, Little Wash, and Drop Dots. No ads, no accounts, nothing to pay."),
+                makeTimelineRow(dot: WarmShelfPalette.butter, label: "Lull Family", text: familyText),
+                makeTimelineRow(dot: WarmShelfPalette.terracotta, label: "Keep Forever",
+                                text: keepForeverPrice.map { "Or pay \($0) once and keep every toy for good." }
+                                    ?? "Or pay once and keep every toy for good.", isLast: true)
             ]
         }
         let title = makeTitle(titleText)
 
         let parentOptions = UIButton(type: .system)
-        parentOptions.setTitle(state.hasPurchasedFullToybox ? "Set up our shelf" : "See full toybox & price", for: .normal)
+        parentOptions.setTitle(state.hasPurchasedFullToybox ? "Set up our shelf" : "Start with the free toys", for: .normal)
         parentOptions.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
         parentOptions.titleLabel?.numberOfLines = 0
         parentOptions.titleLabel?.textAlignment = .center
@@ -293,7 +296,8 @@ final class LullOnboardingViewController: UIViewController {
         parentOptions.layer.borderWidth = 1
         parentOptions.layer.borderColor = WarmShelfPalette.softLine.cgColor
         parentOptions.heightAnchor.constraint(greaterThanOrEqualToConstant: 48).isActive = true
-        parentOptions.addTarget(self, action: #selector(showParentOptions), for: .touchUpInside)
+        parentOptions.accessibilityIdentifier = state.hasPurchasedFullToybox ? "welcome-set-up-shelf" : "welcome-free-toys"
+        parentOptions.addTarget(self, action: #selector(secondaryTapped), for: .touchUpInside)
 
         let timeline = makeWarmCard()
         let rows = UIStackView(arrangedSubviews: timelineRows)
@@ -350,10 +354,21 @@ final class LullOnboardingViewController: UIViewController {
         updateForPage(currentPage, animated: false)
     }
 
-    @objc private func showParentOptions() {
+    @objc private func secondaryTapped() {
+        if LullDemoState.shared.hasPurchasedFullToybox {
+            showParentOptions(atPlans: false)
+        } else {
+            HapticsManager.shared.softTap()
+            AudioManager.shared.playSoftTap()
+            finish()
+        }
+    }
+
+    private func showParentOptions(atPlans: Bool) {
         AdultGate.present(from: self) { [weak self] in
             guard let self else { return }
             let parent = ParentInfoViewController()
+            parent.opensAtPlans = atPlans
             parent.modalPresentationStyle = .fullScreen
             self.present(parent, animated: true)
         }
@@ -421,8 +436,11 @@ final class LullOnboardingViewController: UIViewController {
             let next = currentPage + 1
             scrollView.setContentOffset(CGPoint(x: CGFloat(next) * scrollView.bounds.width, y: 0), animated: true)
             updateForPage(next, animated: true)
-        } else {
+        } else if LullDemoState.shared.hasPurchasedFullToybox {
             finish()
+        } else {
+            // The free week is the App Store's: a grown-up starts it from the plans.
+            showParentOptions(atPlans: true)
         }
     }
 
@@ -435,12 +453,10 @@ final class LullOnboardingViewController: UIViewController {
             title = "Continue"
         } else if state.hasPurchasedFullToybox {
             title = "Open toybox"
-        } else if state.isTrialActive {
-            title = "Continue free week"
-        } else if state.hasTrialStarted {
-            title = "Open free toys"
+        } else if LullPurchaseManager.shared.isEligibleForFreeWeek == true {
+            title = "Try all nine free"
         } else {
-            title = "Start seven free days"
+            title = "See all nine toys"
         }
         UIView.transition(with: primaryButton, duration: animated ? 0.2 : 0, options: .transitionCrossDissolve) {
             self.primaryButton.setTitle(title, for: .normal)

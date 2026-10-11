@@ -34,8 +34,8 @@ final class ToyShelfViewController: UIViewController {
     }
 
     /// A quiet 8pt dot on the parent chip — meaningless to a child, unmissable to the adult
-    /// who already knows the chip. Appears on the trial's last day and just after it ends;
-    /// rests once the grown-up room has been visited.
+    /// who already knows the chip. Appears on the App Store free week's last day and just
+    /// after a Lull Family plan ends; rests once the grown-up room has been visited.
     private let parentAttentionDot = UIView()
 
     private func refreshParentAttentionDot() {

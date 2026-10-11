@@ -81,7 +81,7 @@ already have been uploaded by the Mac, and skipping a number is harmless.
     (2 places).
   - Syntax-check every changed Swift file.
   - Run every verifier that runs on Linux.
-- [ ] **8. Handoff for ChatGPT.**
+- [x] **8. Handoff for ChatGPT.**
   - Art prompts (§5).
   - Build 10 compile and TestFlight; What to Test.
   - What needs eyes on a device: Drop Dots tray layout, Meadow parade, welcome page 2.
@@ -316,3 +316,9 @@ universal, like the other Meadow art). The code picks them up automatically.
     need macOS.
   - The Drop Dots and Meadow lines are updated in SubmissionKit and on the website (site
     rebuilt).
+- Oct 11, step 8 done:
+  - `Docs/Handoff-Claude-to-ChatGPT-2026-10-11-build10.md`: Mac work order, compile-risk
+    spots, verifiers, Meadow art prompts, device checks, What to Test.
+  - Launch checklist §1 and §3–§4 updated; the plans handoff points to it.
+  - **The pass is complete in the cloud. Next is the Mac: compile, art, device checks,
+    TestFlight 10.**

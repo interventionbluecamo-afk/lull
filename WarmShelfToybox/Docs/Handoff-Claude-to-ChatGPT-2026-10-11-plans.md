@@ -1,5 +1,8 @@
 # Lull — Claude → ChatGPT handoff: build 9, the two plans, App Store Connect setup
 
+> **Superseded for builds by `Handoff-Claude-to-ChatGPT-2026-10-11-build10.md`.** This file still
+> holds the App Store Connect product setup (§2) and the sandbox purchase script (§4).
+
 October 11, 2026. Branch `claude/modest-bell-cjarqm` in `interventionbluecamo-afk/lull`; pull first.
 Mac checkout `~/Desktop/lull v.2`, project `WarmShelfToybox/Lull.xcodeproj`, scheme `Lull`.
 

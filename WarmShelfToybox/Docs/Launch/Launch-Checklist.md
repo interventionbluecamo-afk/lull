@@ -23,6 +23,7 @@ as they close. Nothing here has been submitted to Apple.
 | [ ] | **Kids age band** (permanent once approved) | Made for Kids → 5 and under. |
 | [ ] | **Territories** | English-speaking first: US, UK, Canada, Australia and New Zealand if excluding the EU for 1.0. Ireland is in the EU; include it only with the applicable EU trader requirements resolved. |
 | [x] | **Price** | Changed October 11 (founder): **Lull Family** $29.99 a year with a free week, or **Keep Forever** $59.99 once. Three toys free forever. Replaces $9.99 one-time. |
+| [x] | **Free toys** | Bubbles, Drop Dots, Hum (founder, October 11). Little Wash is paid. |
 | [ ] | **"New toys each season"** | The app, site and store page now promise it, and Lull Family's value depends on it. Confirm the first seasonal toy and its month (§8). Keep Forever includes every future toy. |
 | [ ] | **Release style and target date** | Manual release. Avoid Apple's late-December slowdown. |
 | [ ] | **Store name and subtitle** | "Lull Quiet Toybox" / "Calm toys for ages 2–6". |
@@ -57,9 +58,16 @@ host and launch it: `Docs/Launch/Website.md`.
 ## 3. The release candidate build (Mac + Claude)
 
 - [ ] Fix the reproducible bugs from testing (§4). Claude.
-- [ ] **Build 1.0 (9)**, Mac: jury fixes (`21eb8d2`) and the two plans (`d1a86bd`). Compile Debug
-  and Release (the StoreKit code was only syntax-checked in the cloud), run every verifier,
-  upload to TestFlight. Needs the two products in App Store Connect to test purchases.
+- [ ] **Build 1.0 (10)**, Mac: the jury fixes, the two plans and the October 11 pass:
+  - free toys Bubbles, Drop Dots and Hum;
+  - the play timer per sitting;
+  - the welcome rhythm page;
+  - Drop Dots with 12 dots;
+  - the Meadow little ones.
+
+  Compile Debug and Release (the code was only syntax-checked in the cloud), run every
+  verifier, add the Meadow art, and upload to TestFlight. See
+  `Docs/Handoff-Claude-to-ChatGPT-2026-10-11-build10.md`.
 - [x] Build 1.0 (8) compiles Debug and signed Release; all 13 verifiers pass. Logs and summaries in
   `Docs/Verification-build8/`. Completed October 11; no compile fixes needed.
 - [x] TestFlight 1.0 (8) uploaded October 11, processed, assigned to Founder Testing (Internal, one tester); What to Test saved. See `Docs/TestFlight-Release-2026-10-11-build8.md`.
@@ -85,7 +93,7 @@ host and launch it: `Docs/Launch/Website.md`.
 The code audit was stopped (token budget). Bugs come from hands-on TestFlight testing of build 8.
 Report each one with the toy, the orientation and the steps. Only reproducible bugs are fixed.
 
-- [ ] Founder plays every toy on build 9, portrait and landscape, and lists anything broken.
+- [ ] Founder plays every toy on build 10, portrait and landscape, and lists anything broken.
 
 ## 5. Jury items worth doing before launch
 

@@ -78,7 +78,7 @@ ChatGPT continues from the first unchecked step in §3, following §4.
   - The grown-up area keeps a single compact "Full Toybox" status row with a chevron that
     opens it.
   - The welcome's "Try all nine free" opens the plans page directly (behind the adult check).
-- [ ] **2. Wash: wheels on the floor.** Measure the bay's floor contact line. Fit the bay so that
+- [x] **2. Wash: wheels on the floor.** Measure the bay's floor contact line. Fit the bay so that
   line sits under the wheels (still covering the screen) in portrait and landscape. Verifier
   over device sizes.
 - [ ] **3. Sleepy Box: holes on the front face.** Use measured shell fractions for the hole grid,
@@ -116,3 +116,12 @@ ChatGPT continues from the first unchecked step in §3, following §4.
   - **Welcome:** "Try all nine free" opens the plans page directly (behind the adult check).
   - Support page and SubmissionKit review notes now say "Full Toybox".
   - Needs the Mac compile, and a look at the sheet on iPhone and iPad.
+- Oct 11, step 2 done:
+  - `WashBayFit` (pure, in `WashModel.swift`): floor contact at fy 0.79 of `wash-bay` (the
+    wall seam is at 0.61), wheel ground at 0.88 of every rig.
+  - `WashScene.buildLayout`:
+    - **portrait** sets the vehicle down on the painted floor, just above the tool tray;
+    - **landscape** keeps the vehicle centred and fits the bay so its floor meets the wheels;
+    - the bay always covers the screen and zooms only as needed.
+  - `verify_wash.py` passes 13,336 checks, now including the bay fit across 9 screen sizes.
+  - Mock before/after renders confirmed both orientations (scratchpad, not committed).

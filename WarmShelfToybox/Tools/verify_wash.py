@@ -260,6 +260,25 @@ for kind in WashVehicleKind.allCases {
         }
     }
 }
+// The bay's floor meets the wheels and the bay still covers the screen (founder, October 11).
+let bayArt = CGSize(width: 1448, height: 1086)
+for screen in [CGSize(width: 375, height: 667), CGSize(width: 390, height: 844), CGSize(width: 440, height: 956),
+               CGSize(width: 667, height: 375), CGSize(width: 844, height: 390), CGSize(width: 956, height: 440),
+               CGSize(width: 820, height: 1180), CGSize(width: 1180, height: 820), CGSize(width: 1032, height: 1376)] {
+    let resting = WashBayFit.restingGround(screen: screen, art: bayArt)
+    for ground in [resting, screen.height * 0.15, screen.height * 0.3, screen.height * 0.5, screen.height * 0.7] {
+        let f = WashBayFit.frame(screen: screen, art: bayArt, ground: ground)
+        check(f.minX <= 0.5 && f.maxX >= screen.width - 0.5 && f.minY <= 0.5 && f.maxY >= screen.height - 0.5, "the bay covers the screen")
+        let contact = f.maxY - WashBayFit.floorContactFy * f.height
+        check(abs(contact - ground) < 0.5, "the bay's floor meets the wheels")
+        check(abs(f.width / f.height - bayArt.width / bayArt.height) < 0.001, "the bay keeps its proportions")
+    }
+    let natural = WashBayFit.frame(screen: screen, art: bayArt, ground: resting)
+    let fill = max(screen.height, screen.width / (bayArt.width / bayArt.height))
+    check(abs(natural.height - fill) < 0.5, "at its resting line the bay isn't zoomed at all")
+}
+check(WashBayFit.floorContactFy > 0.645 && WashBayFit.floorContactFy < 0.95, "contact sits on the painted floor, below the 0.61 wall seam")
+
 print("Little Wash: \(checks) production-model checks passed; sponge-only completion in \(passes) full-vehicle passes. Device play and listening review remain with the founder.")
 '''
 

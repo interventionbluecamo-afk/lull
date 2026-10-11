@@ -60,6 +60,7 @@
 		A55C4A63C37B7BBE80B5AD3B /* CurrentScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED656E1B4869965DBCEAD72D /* CurrentScene.swift */; };
 		B968696957133B35C32F6ADB /* ToyViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46D3F3EF044ABAE3426CF608 /* ToyViewController.swift */; };
 		BA5CBD09B44FCB5020242C90 /* ParentInfoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8D37056C1EF3D8C559538D6 /* ParentInfoViewController.swift */; };
+		6FE0CFC7E3D3C6130DF506F9 /* LullPlansViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7CE6E2357F9C1708DB0AE5B /* LullPlansViewController.swift */; };
 		BAA958B1BF33421EC14F2CE4 /* LullDemoState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 812D3226B3D2D6353C5A7850 /* LullDemoState.swift */; };
 		BB70819889D2EE3E9FEC21AE /* WarmShelfPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5BD00B8E6CF6ED8DAAABE44 /* WarmShelfPalette.swift */; };
 		BC224731F5BBCF8A27D96111 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 140B2A30EC27BA16FCFA5DBE /* Assets.xcassets */; };
@@ -151,6 +152,7 @@
 		B5BD00B8E6CF6ED8DAAABE44 /* WarmShelfPalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarmShelfPalette.swift; sourceTree = "<group>"; };
 		B84313450038A044EE4AC947 /* GlowWindowScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlowWindowScene.swift; sourceTree = "<group>"; };
 		B8D37056C1EF3D8C559538D6 /* ParentInfoViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentInfoViewController.swift; sourceTree = "<group>"; };
+		A7CE6E2357F9C1708DB0AE5B /* LullPlansViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LullPlansViewController.swift; sourceTree = "<group>"; };
 		BAA290C18E2AB579F8B323DA /* HapticScore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticScore.swift; sourceTree = "<group>"; };
 		BAEE22F981E4ABA34E22581B /* GlowboardControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlowboardControls.swift; sourceTree = "<group>"; };
 		C24A6A4428FC60119104FBA6 /* FoodNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodNode.swift; sourceTree = "<group>"; };
@@ -287,6 +289,7 @@
 				2469EFC1D2D724DFC01408AB /* LullHostNode.swift */,
 				14EB7FCCA1777AA59B3D68FE /* LullOnboardingViewController.swift */,
 				617829023D34A290A22A62B7 /* LullToneEngine.swift */,
+				A7CE6E2357F9C1708DB0AE5B /* LullPlansViewController.swift */,
 				B8D37056C1EF3D8C559538D6 /* ParentInfoViewController.swift */,
 				AE66EEDCB1991BC20642D778 /* ParticleManager.swift */,
 				C70EECF5B1FC4E4A65A4BCBF /* PaywallPreviewStrip.swift */,
@@ -621,6 +624,7 @@
 				D61B2174011152786A8516B6 /* MeadowScene.swift in Sources */,
 				49C4352487D4B266BEA5B9C4 /* MixUpPart.swift in Sources */,
 				5D7D861C26925AF67F4CEC37 /* MixUpScene.swift in Sources */,
+				6FE0CFC7E3D3C6130DF506F9 /* LullPlansViewController.swift in Sources */,
 				BA5CBD09B44FCB5020242C90 /* ParentInfoViewController.swift in Sources */,
 				EAD07BAFB5085D7C9EE6D69F /* ParticleManager.swift in Sources */,
 				91D4D2FFFA0740738EE6BDA7 /* PaywallPreviewStrip.swift in Sources */,
@@ -655,7 +659,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 11;
 				DEVELOPMENT_TEAM = A5CT5FK3SY;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Info.plist;
@@ -801,7 +805,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 11;
 				DEVELOPMENT_TEAM = A5CT5FK3SY;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Info.plist;

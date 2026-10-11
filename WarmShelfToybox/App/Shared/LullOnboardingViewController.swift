@@ -458,13 +458,13 @@ final class LullOnboardingViewController: UIViewController {
         }
     }
 
+    /// The plans have their own page; "Set up our shelf" opens the grown-up area.
     private func showParentOptions(atPlans: Bool) {
         AdultGate.present(from: self) { [weak self] in
             guard let self else { return }
-            let parent = ParentInfoViewController()
-            parent.opensAtPlans = atPlans
-            parent.modalPresentationStyle = .fullScreen
-            self.present(parent, animated: true)
+            let next: UIViewController = atPlans ? LullPlansViewController() : ParentInfoViewController()
+            next.modalPresentationStyle = atPlans ? .pageSheet : .fullScreen
+            self.present(next, animated: true)
         }
     }
 

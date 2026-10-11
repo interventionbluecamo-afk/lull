@@ -219,13 +219,15 @@ final class SleepyDropBoxScene: BaseToyScene {
         // rather than the requested bounding box to size every physical part.
         boxW = shell.size.width
         boxH = shell.size.height
-        pieceRadius = min(pieceRadius, boxW * 0.105)
+        // Holes sized so two rows fit on the front face, below the lid (founder, October 11:
+        // the top holes ran up onto the lid and looked pasted on).
+        pieceRadius = min(pieceRadius, boxW * 0.105, boxH * SleepyBoxShellLayout.maxPieceRadius)
         faceScale = 0.78
-        panelCenter = CGPoint(x: boxCenter.x, y: boxCenter.y + boxH * 0.16)
+        panelCenter = CGPoint(x: boxCenter.x, y: boxCenter.y + boxH * (0.5 - SleepyBoxShellLayout.holeBandCenter))
         buildOpenings()
 
         let faceAnchor = SKNode()
-        faceAnchor.position = CGPoint(x: boxCenter.x, y: boxCenter.y - boxH * 0.21)
+        faceAnchor.position = CGPoint(x: boxCenter.x, y: boxCenter.y + boxH * (0.5 - SleepyBoxShellLayout.faceFy))
         faceAnchor.zPosition = 0.5
         frontLayer.addChild(faceAnchor)
         buildFace(on: faceAnchor, faceH: boxH * 0.20)
@@ -439,8 +441,12 @@ final class SleepyDropBoxScene: BaseToyScene {
             (CGPoint(x: c.x - dx, y: c.y - dy), CGSize(width: r * 2.12, height: r * 2.12), WarmShelfPalette.sage,      .square,   .cube),
             (CGPoint(x: c.x + dx, y: c.y - dy), CGSize(width: r * 2.30, height: r * 2.30), WarmShelfPalette.waterBlue, .star,     .star)
         ]
+        // On the shell plate the sockets sit on its measured front face (SleepyBoxShellLayout).
+        let shellCenters = SleepyBoxShellLayout.holeCenters.map {
+            CGPoint(x: boxCenter.x + ($0.fx - 0.5) * boxW, y: boxCenter.y + (0.5 - $0.fy) * boxH)
+        }
         for (index, spec) in specs.enumerated() {
-            let center = specs[socketSlotOrder[index]].pos
+            let center = usesPlainShell ? shellCenters[socketSlotOrder[index]] : specs[socketSlotOrder[index]].pos
             // The shell's posting face is frontal. Measure each treasure's visible
             // silhouette and keep one clearance in both axes, rather than flattening
             // a hand-sized rectangle differently for the triangle and star.
@@ -1477,4 +1483,35 @@ private extension Comparable {
     func clamped(to limits: ClosedRange<Self>) -> Self {
         min(max(self, limits.lowerBound), limits.upperBound)
     }
+}
+
+/// Where the sockets and the face sit on `sleepybox-v2-shell` (its cropped 1065 × 946 plate),
+/// measured from the art (fractions of the plate, y from its top edge): the lid's top surface
+/// 0.01–0.07, its front lip 0.074–0.09, the **front face 0.095–0.745**, the drawer recess
+/// 0.75–0.95, the bottom rail 0.95–0.99; the face runs edge to edge (0.02–0.98).
+/// Two rows of sockets fill the front face's upper band; the sleepy face sits between them and
+/// the drawer. Kept free of SpriteKit so it can be checked off-device.
+enum SleepyBoxShellLayout {
+    static let frontFaceTop: CGFloat = 0.095
+    static let drawerRecessTop: CGFloat = 0.75
+    /// The band the two socket rows share, and the face's own band below it.
+    static let holeBandTop: CGFloat = 0.125
+    static let holeBandBottom: CGFloat = 0.565
+    static var holeBandCenter: CGFloat { (holeBandTop + holeBandBottom) / 2 }
+    static let faceFy: CGFloat = 0.655
+    static let columnFx: [CGFloat] = [0.30, 0.70]
+    /// Row centres, a quarter and three quarters of the way down the hole band.
+    static var rowFy: [CGFloat] {
+        let pitch = (holeBandBottom - holeBandTop) / 2
+        return [holeBandTop + pitch / 2, holeBandTop + pitch * 1.5]
+    }
+    /// Round, triangle, square, star: the same order as the scene's socket specs.
+    static var holeCenters: [(fx: CGFloat, fy: CGFloat)] {
+        [(columnFx[0], rowFy[0]), (columnFx[1], rowFy[0]), (columnFx[0], rowFy[1]), (columnFx[1], rowFy[1])]
+    }
+    /// A treasure's radius as a fraction of the plate's height, so a socket with its bevel
+    /// (about 2.65 radii across) stays inside its row.
+    static let maxPieceRadius: CGFloat = 0.076
+    /// A socket's widest extent, bevel included, in piece radii (round: 2r × 1.14 × 1.16).
+    static let socketSpanInRadii: CGFloat = 2.65
 }

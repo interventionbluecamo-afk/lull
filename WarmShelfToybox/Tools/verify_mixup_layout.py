@@ -14,7 +14,7 @@ def block(text,start):
  while d:
   d+=(text[i]=='{')-(text[i]=='}');i+=1
  return text[a:i]
-need=['private var controlRadius:','private var controlTouchRadius:','private var floorY:','private var mixScale:','private var characterRootY:','private var roomDecorScale:','private var pedestalWidth:','private var pedestalBounds:','private func controlPosition','private var miniFrameBaseWidth:','private var creationDisplayCapacity:','private func shelfSlotPositions']
+need=['private var controlRadius:','private var controlTouchRadius:','private var floorY:','private var mixScale:','private var characterRootY:','private var roomDecorScale:','private var pedestalWidth:','private var pedestalBounds:','private func controlPosition','private var miniFrameBaseWidth:','private var creationDisplayCapacity:','private func shelfSlotPositions','private var keepsakeRadius:','private var stageArtWidth:','private var stageArtFrame:','private var keepsakePosition:']
 methods='\n'.join(block(s,x).replace('private ','') for x in need)
 helpers='\n'.join(block(base,x) for x in ['var isLandscapeLayout:','var isTabletLayout:','func safePlayRect'])
 code='''import Foundation
@@ -78,6 +78,19 @@ for (size, safe) in fixtures {
   check(play.contains(CGPoint(x:center.x+layout.controlRadius,y:center.y+layout.controlRadius)), "control top outside safe play \\(size)")
  }
  check(centers[0].y-centers[1].y >= layout.controlTouchRadius*2-0.001, "head/body touch controls overlap")
+ // The felt stage (mixup-stage, 1317 x 575, felt top centred 0.304 down) and the save heart
+ // (founder, October 11): the heart stays on screen, off the stage and clear of every control.
+ let stageFrame = layout.stageArtFrame
+ check(abs(stageFrame.maxY - stageFrame.height * 0.304 - (layout.floorY - 9 * layout.roomDecorScale)) < 0.01, "feet stand on the stage's felt top")
+ check(stageFrame.minX >= 0 && stageFrame.maxX <= size.width, "stage on screen \(size)")
+ let stageRect = stageFrame.insetBy(dx: stageFrame.width * 0.04, dy: stageFrame.height * 0.06)
+ let heart = layout.keepsakePosition, r = layout.keepsakeRadius
+ let heartRect = CGRect(x: heart.x - r, y: heart.y - r, width: r * 2, height: r * 2)
+ check(heartRect.minX >= 0 && heartRect.maxX <= size.width && heartRect.minY >= safe.bottom, "save heart on screen \(size)")
+ check(!heartRect.intersects(stageRect), "save heart sits on the stage \(size)")
+ for center in centers {
+  check(hypot(center.x - heart.x, center.y - heart.y) >= r + layout.controlRadius + 6, "save heart touches a control \(size)")
+ }
  check(centers[1].y-centers[2].y >= layout.controlTouchRadius*2-0.001, "body/legs touch controls overlap")
  let capacity=layout.creationDisplayCapacity
  let positions=layout.shelfSlotPositions(count:capacity)

@@ -282,3 +282,35 @@ struct WashVehicleRig {
         }
     }
 }
+
+/// Where the painted bay stands so a vehicle's wheels rest on its floor (founder, October 11:
+/// vehicles floated above the ground, a lot in portrait and a little in landscape). Measured on
+/// wash-bay.png: the wall meets the floor at 0.61 of the picture's height, and a vehicle standing
+/// mid-bay touches the floor at 0.79. Scene coordinates, y up.
+enum WashBayFit {
+    static let floorContactFy: CGFloat = 0.79
+    /// Every measured rig's wheels touch the ground at 0.88 of the vehicle canvas (verify_wash).
+    static let wheelGroundFy: CGFloat = 0.88
+
+    /// The floor contact line when the bay simply fills the screen, centred.
+    static func restingGround(screen: CGSize, art: CGSize) -> CGFloat {
+        screen.height / 2 + fillHeight(screen: screen, art: art) * (0.5 - floorContactFy)
+    }
+
+    /// The bay's frame that still covers the whole screen and puts its floor contact line at
+    /// `ground`, zooming in only as much as that needs.
+    static func frame(screen: CGSize, art: CGSize, ground: CGFloat) -> CGRect {
+        let aspect = art.width / max(1, art.height)
+        let c = floorContactFy
+        let g = min(max(ground, 0), screen.height)
+        let height = max(fillHeight(screen: screen, art: art), g / (1 - c), (screen.height - g) / c)
+        let width = height * aspect
+        let centerY = g + height * (c - 0.5)
+        return CGRect(x: screen.width / 2 - width / 2, y: centerY - height / 2, width: width, height: height)
+    }
+
+    private static func fillHeight(screen: CGSize, art: CGSize) -> CGFloat {
+        let aspect = art.width / max(1, art.height)
+        return max(screen.height, screen.width / max(0.01, aspect))
+    }
+}

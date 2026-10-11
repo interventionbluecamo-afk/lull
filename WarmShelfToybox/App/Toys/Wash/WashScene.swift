@@ -100,10 +100,21 @@ final class WashScene: BaseToyScene {
             vehicleHome.y = min(play.maxY - bodyCanvas.height / 2, max(trayY + trayHeight / 2 + 12 + bodyCanvas.height / 2, vehicleHome.y))
         }
 
-        if let art = ToyArt.sprite("wash-bay", fit: size) {
-            let multiplier = max(size.width / art.size.width, size.height / art.size.height)
-            art.size = CGSize(width: art.size.width * multiplier, height: art.size.height * multiplier)
-            art.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        if let art = ToyArt.sprite("wash-bay", fit: size), let artSize = art.texture?.size() {
+            // Wheels on the painted floor (founder, October 11). Portrait sets the vehicle down
+            // where the floor is, just above the tools; landscape keeps the vehicle centred and
+            // moves the bay so its floor meets the wheels. The bay always covers the screen.
+            let wheelDrop = bodyCanvas.height * (WashBayFit.wheelGroundFy - 0.5)
+            var ground = vehicleHome.y - wheelDrop
+            if !landscape {
+                let lowest = trayY + trayHeight / 2 + 10
+                let highest = max(lowest, play.maxY - bodyCanvas.height * WashBayFit.wheelGroundFy)
+                ground = min(max(WashBayFit.restingGround(screen: size, art: artSize), lowest), highest)
+                vehicleHome.y = ground + wheelDrop
+            }
+            let frame = WashBayFit.frame(screen: size, art: artSize, ground: ground)
+            art.size = frame.size
+            art.position = CGPoint(x: frame.midX, y: frame.midY)
             bay.addChild(art)
         } else {
             let wall = SKSpriteNode(color: WarmShelfPalette.sage.withAlpha(0.14), size: size)

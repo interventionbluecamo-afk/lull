@@ -58,7 +58,7 @@ host and launch it: `Docs/Launch/Website.md`.
 ## 3. The release candidate build (Mac + Claude)
 
 - [ ] Fix the reproducible bugs from testing (§4). Claude.
-- [ ] **Build 1.0 (10)**, Mac: the jury fixes, the two plans and the October 11 pass:
+- [ ] **Build 1.0 (11)** (supersedes 10; see `Docs/Handoff-Claude-to-ChatGPT-2026-10-11-build11.md`), Mac: the jury fixes, the two plans and the October 11 pass:
   - free toys Bubbles, Drop Dots and Hum;
   - the play timer per sitting;
   - the welcome rhythm page;

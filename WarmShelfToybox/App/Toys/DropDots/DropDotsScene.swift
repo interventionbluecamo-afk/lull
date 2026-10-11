@@ -39,7 +39,11 @@ final class DropDotsScene: BaseToyScene {
 
         static let gold = UIColor(hex: 0xF6CF6E)
 
-        var color: UIColor { DropDotToken.felts[feltIndex % DropDotToken.felts.count] }
+        var color: UIColor { DropDotToken.roundFelts[feltIndex % DropDotToken.roundFelts.count] }
+        /// This round's four felts and their spoken names (round 0 is `felts`, the board's own
+        /// painted rings). Set by the scene when a new colour set arrives.
+        static var roundFelts: [UIColor] = felts
+        static var roundNames: [String] = feltNames
 
         init(feltIndex: Int, radius: CGFloat, isGolden: Bool = false) {
             let count = DropDotToken.felts.count
@@ -234,6 +238,11 @@ final class DropDotsScene: BaseToyScene {
     private var homeColumns: Set<Int> = []
     private var rainbowRows: Set<Int> = []
     private var wasSorted = false
+    // Colour rounds (founder, October 11: "maybe a new set of colours slides out"). Every pour
+    // brings a fresh felt set; the rings re-tint to match. Survives rotation, not the visit.
+    private var colourRound = 0
+    private var ringTints: [(upper: SKShapeNode, lower: SKShapeNode)] = []
+    private var paintedRimColors: [UIColor] = []
     // The finite set the child can SEE — no hidden reserve (founder, June 15: a hidden
     // stack silently refilling the tray made the count feel endless). All twelve live in
     // the visible two-row tray; drop them, and tap a settled dot to send it back. Three of
@@ -288,6 +297,8 @@ final class DropDotsScene: BaseToyScene {
     override func didMove(to view: SKView) {
         super.didMove(to: view)
         AudioManager.shared.prewarm(prefixes: ["dots."])
+        DropDotToken.roundFelts = DropDotToken.felts
+        DropDotToken.roundNames = DropDotToken.feltNames
         ambientMoteInterval = 9999
         boardLayer.zPosition = 1; addChild(boardLayer)
         tokenLayer.zPosition = 2; addChild(tokenLayer)
@@ -318,6 +329,7 @@ final class DropDotsScene: BaseToyScene {
         columnRims.removeAll(); mouthRings.removeAll(); traySlots.removeAll(); trayTokens.removeAll()
         glowingCells.removeAll(); boardWasFull = false
         homeColumns.removeAll(); rainbowRows.removeAll(); wasSorted = false
+        ringTints.removeAll()
         dragToken = nil; dragTouch = nil; hoverCol = nil; tabTouch = nil; stackXs = []
         grid = Array(repeating: Array(repeating: nil, count: rows), count: cols)
 
@@ -380,9 +392,10 @@ final class DropDotsScene: BaseToyScene {
         // Each mouth wears its felt colour, the same four colours as the dots, so a child can
         // match a dot to its hole (any dot still drops into any column; colour isn't a rule).
         // In art mode each painted felt ring keeps its own sampled colour (used by the front lips).
-        columnRimColors = artBoard
+        paintedRimColors = artBoard
             ? [0xC55B2F, 0xF2A935, 0x707868, 0x835D59].map { UIColor(hex: $0) }
             : DropDotToken.felts
+        columnRimColors = colourRound == 0 ? paintedRimColors : DropDotToken.roundFelts
 
         buildBoard(mouthH: mouthH)
         // buildBoard's art branch re-derives boardRect from the painted body, so the
@@ -407,6 +420,7 @@ final class DropDotsScene: BaseToyScene {
         idleInviteTab()
         restoreTray(traySnap)
         restoreGrid(gridSnap)
+        applyRingTints(animated: false)
 
         // Finite-set accounting: board + tray + reserve always total `totalTokens`.
         let onBoard = grid.flatMap { $0 }.compactMap { $0 }.count
@@ -726,6 +740,89 @@ final class DropDotsScene: BaseToyScene {
             lip.position = CGPoint(x: cellX(c) + (unit.midX - fx) * artW,
                                    y: spriteTopY - (lipTopFy + lipHFrac / 2) * natH)
             frontLayer.addChild(lip)
+            // A felt ring laid over the painted one for colour rounds: measured on the board art,
+            // the dark mouth ends 0.045 of its width from the centre and the ring at 0.079. The
+            // upper half sits behind a falling dot and the lower half in front, like the lip.
+            let inner = 0.044 * artW, outer = 0.080 * artW
+            let upper = makeRingTint(inner: inner, outer: outer, upperHalf: true)
+            upper.position = CGPoint(x: x, y: mouthY)
+            upper.zPosition = 0.3
+            boardLayer.addChild(upper)
+            let lower = makeRingTint(inner: inner, outer: outer, upperHalf: false)
+            lower.position = CGPoint(x: x, y: mouthY)
+            lower.zPosition = 0.6
+            frontLayer.addChild(lower)
+            ringTints.append((upper, lower))
+        }
+    }
+
+    /// Half a felt ring (an annulus cut along its horizontal diameter).
+    private func makeRingTint(inner: CGFloat, outer: CGFloat, upperHalf: Bool) -> SKShapeNode {
+        let path = CGMutablePath()
+        let (from, to): (CGFloat, CGFloat) = upperHalf ? (0, .pi) : (.pi, 2 * .pi)
+        path.addArc(center: .zero, radius: outer, startAngle: from, endAngle: to, clockwise: false)
+        path.addArc(center: .zero, radius: inner, startAngle: to, endAngle: from, clockwise: true)
+        path.closeSubpath()
+        let ring = SKShapeNode(path: path)
+        ring.strokeColor = .clear
+        ring.lineWidth = 0
+        ring.alpha = 0
+        return ring
+    }
+
+    /// Colour the felt rings for this round (round 0 shows the board's own painted rings).
+    private func applyRingTints(animated: Bool) {
+        for (c, tint) in ringTints.enumerated() {
+            let showing = colourRound != 0
+            let color = DropDotToken.roundFelts[c % DropDotToken.roundFelts.count]
+            for half in [tint.upper, tint.lower] {
+                half.removeAction(forKey: "tint")
+                guard animated else {
+                    half.fillColor = color
+                    ProceduralTexture.applyClayFill(to: half, base: color, size: half.frame.size)
+                    half.alpha = showing ? 1 : 0
+                    continue
+                }
+                half.run(.sequence([
+                    .fadeOut(withDuration: 0.22),
+                    .run { [weak half] in
+                        guard let half else { return }
+                        half.fillColor = color
+                        ProceduralTexture.applyClayFill(to: half, base: color, size: half.frame.size)
+                    },
+                    .fadeAlpha(to: showing ? 1 : 0, duration: 0.32)
+                ]), withKey: "tint")
+            }
+        }
+    }
+
+    /// After a pour, a fresh felt set arrives: the poured dots slip away under the tray, the
+    /// new colours pop into the same slots, and the rings take the new colours. Nothing to do,
+    /// nothing to win; the board simply looks and feels new each round.
+    private func nextColourRound() {
+        guard dragToken == nil, grid.allSatisfy({ $0.allSatisfy { $0 == nil } }) else { return }
+        colourRound = (colourRound + 1) % DropDotsColourSets.sets.count
+        let set = DropDotsColourSets.sets[colourRound]
+        DropDotToken.roundFelts = set.map { $0.color }
+        DropDotToken.roundNames = set.map { $0.name }
+        columnRimColors = colourRound == 0 ? paintedRimColors : DropDotToken.roundFelts
+        applyRingTints(animated: true)
+        hand = DropDotsHand.deal()
+        let reduce = AmbientAnimator.reduceMotion
+        for slot in trayTokens.indices {
+            if let old = trayTokens[slot] {
+                old.removeAllActions()
+                old.run(.sequence([
+                    .wait(forDuration: reduce ? 0 : Double(slot) * 0.03),
+                    .group([.moveBy(x: 0, y: reduce ? 0 : -tokenR * 1.2, duration: 0.22), .fadeOut(withDuration: 0.22)]),
+                    .removeFromParent()
+                ]))
+            }
+            trayTokens[slot] = nil
+            run(.sequence([.wait(forDuration: 0.26 + (reduce ? 0 : Double(slot) * 0.04)), .run { [weak self] in
+                guard let self, slot < self.trayTokens.count, self.trayTokens[slot] == nil else { return }
+                self.spawnTrayToken(slot: slot)
+            }]))
         }
     }
 
@@ -1169,7 +1266,7 @@ final class DropDotsScene: BaseToyScene {
     private func homeColumnSong(_ col: Int) {
         tone("dots.pattern", minInterval: 0.25)
         HapticsManager.shared.impact(style: .soft, intensity: 0.24)
-        let color = DropDotToken.felts[col % DropDotToken.felts.count]
+        let color = DropDotToken.roundFelts[col % DropDotToken.roundFelts.count]
         welcomeHome(col, color: color)
         spawnMotes(at: CGPoint(x: stackX(col), y: mouthY), color: color, count: 5)
         guard !AmbientAnimator.reduceMotion else { return }
@@ -1211,7 +1308,7 @@ final class DropDotsScene: BaseToyScene {
             let delay = Double(c) * 0.22
             run(.sequence([.wait(forDuration: delay), .run { [weak self] in
                 guard let self else { return }
-                self.welcomeHome(c, color: DropDotToken.felts[c % DropDotToken.felts.count])
+                self.welcomeHome(c, color: DropDotToken.roundFelts[c % DropDotToken.roundFelts.count])
             }]))
             guard !AmbientAnimator.reduceMotion else { continue }
             for r in 0..<rows {
@@ -1253,6 +1350,10 @@ final class DropDotsScene: BaseToyScene {
         HapticsManager.shared.impact(style: .rigid, intensity: 0.26)   // felt; the pour below is the sound
         guard !tokens.isEmpty else { return }
         AudioManager.shared.play(cue: "dots.pour", delay: 0.05)
+        removeAction(forKey: "dots.nextRound")
+        run(.sequence([.wait(forDuration: 1.3 + Double(tokens.count) * 0.07), .run { [weak self] in
+            self?.nextColourRound()
+        }]), withKey: "dots.nextRound")
 
         grid = Array(repeating: Array(repeating: nil, count: rows), count: cols)
         glowingCells.removeAll(); boardWasFull = false
@@ -1519,7 +1620,7 @@ final class DropDotsScene: BaseToyScene {
         var elements = super.accessibilityElements(in: view)
         guard cell > 1 else { return elements }
         for (i, slot) in traySlots.enumerated() where trayTokens[i] != nil {
-            let name = trayTokens[i].map { DropDotToken.feltNames[$0.feltIndex] } ?? ""
+            let name = trayTokens[i].map { DropDotToken.roundNames[$0.feltIndex % DropDotToken.roundNames.count] } ?? ""
             elements.append(makeActivatableAccessibilityElement(
                 in: view, label: "\(name.isEmpty ? "Dot" : name.capitalized + " dot") — drop it into the board", scenePosition: slot,
                 size: CGSize(width: tokenR * 3, height: tokenR * 3), traits: .button
@@ -1539,6 +1640,23 @@ final class DropDotsScene: BaseToyScene {
         })
         return elements
     }
+}
+
+/// The felt sets that take turns, one per round (founder, October 11). Set 0 is the board's own
+/// painted felts. Each set keeps four clearly different colours a 2-year-old can tell apart,
+/// also in brightness, so the rings stay matchable.
+enum DropDotsColourSets {
+    static let sets: [[(color: UIColor, name: String)]] = [
+        zip(DropDotsScene.DropDotToken.felts, DropDotsScene.DropDotToken.feltNames).map { (color: $0.0, name: $0.1) },
+        [(UIColor(hex: 0xD9483B), "cherry"), (UIColor(hex: 0xF2CF45), "lemon"),
+         (UIColor(hex: 0x7FBF5A), "apple"), (UIColor(hex: 0x8E5A9B), "plum")],
+        [(UIColor(hex: 0xF0A0B4), "pink"), (UIColor(hex: 0x8CC4EA), "sky"),
+         (UIColor(hex: 0x9ED8C2), "mint"), (UIColor(hex: 0xB8A2E2), "lilac")],
+        [(UIColor(hex: 0xF09A3A), "marigold"), (UIColor(hex: 0x5E9E5A), "leaf"),
+         (UIColor(hex: 0xB8487A), "berry"), (UIColor(hex: 0x6C8ED8), "cornflower")],
+        [(UIColor(hex: 0x4F63B5), "indigo"), (UIColor(hex: 0xE9C866), "moon"),
+         (UIColor(hex: 0x3FA3A3), "teal"), (UIColor(hex: 0xD5779A), "rose")]
+    ]
 }
 
 /// The finite hand of dots: three of every ring colour, so every colour can fill its own

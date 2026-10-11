@@ -417,12 +417,12 @@ final class LullPurchaseManager {
         products.first { $0.id == productID }
     }
 
-    /// The App Store's own words for a plan's free period, e.g. "7 days" or "1 week".
-    /// nil when the plan has no free introductory offer.
+    /// The plan's free period as App Store Connect set it: "week" (reads "First week free")
+    /// or "7 days". nil when the plan has no free introductory offer.
     func freeWeekLength(for productID: String) -> String? {
         guard let offer = product(for: productID)?.subscription?.introductoryOffer,
               offer.paymentMode == .freeTrial else { return nil }
-        return Self.describe(offer.period)
+        return offer.period.value == 1 ? Self.unitName(offer.period.unit) : Self.describe(offer.period)
     }
 
     /// "year", "month", "6 months": the renewal period, for "$29.99 a year".

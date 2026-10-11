@@ -108,5 +108,6 @@ The prompts are written and the code adopts the files automatically if added:
 
 ## 6. Jury review
 
-_Pending: Claude appends the results here when the review finishes, and moves any small
-"before launch" items into the checklist. The audit was stopped; there are no audit fixes._
+Superseded: the results (2 of 8 jurors, then stopped) are in
+`Docs/Handoff-Claude-to-ChatGPT-2026-10-11-plans.md` §6 and checklist §5 and §8. That handoff
+also covers build 9 and the new plans.

@@ -16,7 +16,8 @@ no timers, no winning. A digital version of a well-loved wooden toybox.
 
 ## What Lull is not
 Not a learning app with quizzes. Not a reward loop. Not loud, flashing, or busy. Not ad-supported.
-Not a subscription. Children never see a price, a lock, or a streak.
+Not a subscription trap: three toys stay free forever, Lull Family is easy to cancel, and Keep
+Forever is one payment. Children never see a price, a lock, or a streak.
 
 ## Voice
 - **To the child:** silent. No text, no narration, no instructions. The toys speak in motion and sound.

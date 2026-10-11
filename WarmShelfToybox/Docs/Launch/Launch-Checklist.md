@@ -18,11 +18,12 @@ as they close. Nothing here has been submitted to Apple.
 
 | | Decision | Recommendation |
 |---|---|---|
-| [ ] | **Free week model** (Guideline 3.1.1) | Resolve before public submission: Apple’s documented non-subscription trial uses a $0 non-consumable named "7-day Trial". Choose that flow, remove the timed trial, or obtain written clarification from App Review. The current local timer is not cleared by this checklist. See [Guideline 3.1.1](https://developer.apple.com/app-store/review/guidelines/#in-app-purchase). |
-| [ ] | **Family Sharing** for the lifetime purchase (cannot be turned off later) | On. |
+| [x] | **Free week model** | Resolved October 11 (build 9): the local timer is gone. The free week is Lull Family's introductory offer, run by Apple (Guideline 3.1.2 disclosures in the plans card). |
+| [ ] | **Family Sharing** for both products (cannot be turned off later) | On. |
 | [ ] | **Kids age band** (permanent once approved) | Made for Kids → 5 and under. |
 | [ ] | **Territories** | English-speaking first: US, UK, Canada, Australia and New Zealand if excluding the EU for 1.0. Ireland is in the EU; include it only with the applicable EU trader requirements resolved. |
-| [x] | **Price** | $9.99 one-time (founder approved). |
+| [x] | **Price** | Changed October 11 (founder): **Lull Family** $29.99 a year with a free week, or **Keep Forever** $59.99 once. Three toys free forever. Replaces $9.99 one-time. |
+| [ ] | **"New toys each season"** | The app, site and store page now promise it, and Lull Family's value depends on it. Confirm the first seasonal toy and its month (§8). Keep Forever includes every future toy. |
 | [ ] | **Release style and target date** | Manual release. Avoid Apple's late-December slowdown. |
 | [ ] | **Store name and subtitle** | "Lull Quiet Toybox" / "Calm toys for ages 2–6". |
 
@@ -55,7 +56,7 @@ Page links are relative. Set `og:image` to the absolute hosted URL before launch
 - [ ] Check every page on a phone and a desktop after hosting: links, images, the email.
 - [ ] Launch day: swap "Coming soon" for the real App Store button (comment in `index.html`).
 - [ ] Later (§7): a small press-kit section on the same site.
-- [ ] **Paid Apps Agreement, tax and banking active.** On October 11, ASC Business showed Free Apps Agreement Active and Paid Apps Agreement **New**, with “View and Agree to Terms.” Account Holder must complete this; tax/banking readiness has not been verified. No agreement was accepted by the agent.
+- [ ] **Paid Apps Agreement, tax and banking active.** Blocks both products, sandbox included. On October 11, ASC Business showed Free Apps Agreement Active and Paid Apps Agreement **New**, with “View and Agree to Terms.” Account Holder must complete this; tax/banking readiness has not been verified. No agreement was accepted by the agent.
 - [ ] **Copyright line**: your legal name or company.
 - [ ] **Make the GitHub repository private.** Revoke old tokens; give agents an App Manager role,
   not the Account Holder's.
@@ -63,6 +64,9 @@ Page links are relative. Set `og:image` to the absolute hosted URL before launch
 ## 3. The release candidate build (Mac + Claude)
 
 - [ ] Fix the reproducible bugs from testing (§4). Claude.
+- [ ] **Build 1.0 (9)**, Mac: jury fixes (`21eb8d2`) and the two plans (`d1a86bd`). Compile Debug
+  and Release (the StoreKit code was only syntax-checked in the cloud), run every verifier,
+  upload to TestFlight. Needs the two products in App Store Connect to test purchases.
 - [x] Build 1.0 (8) compiles Debug and signed Release; all 13 verifiers pass. Logs and summaries in
   `Docs/Verification-build8/`. Completed October 11; no compile fixes needed.
 - [x] TestFlight 1.0 (8) uploaded October 11, processed, assigned to Founder Testing (Internal, one tester); What to Test saved. See `Docs/TestFlight-Release-2026-10-11-build8.md`.
@@ -72,8 +76,13 @@ Page links are relative. Set `og:image` to the absolute hosted URL before launch
   - A phone call mid-play, headphones in and out, leaving and returning.
   - The play timer rest.
   - A 30-minute session without a stutter or crash.
-- [ ] **Purchase pass in sandbox**, Founder: buy, cancel, Ask to Buy (pending then approved),
-  restore, delete and reinstall then restore, free week running out.
+- [ ] **Purchase pass in sandbox**, Founder (script in the plans handoff §4):
+  - Lull Family: start the free week, see the end date, cancel during the week, let it lapse
+    (the quiet dot), renew.
+  - Keep Forever: buy.
+  - Ask to Buy, pending then approved.
+  - Restore; delete and reinstall then restore.
+  - Screen Time purchases off.
 - [ ] Zero crashes in TestFlight (App Store Connect → TestFlight → Crashes). Mac.
 - [ ] Launch to shelf feels instant. Toys open quickly. Nothing plays sound on its own or on a
   bare tap.
@@ -83,12 +92,23 @@ Page links are relative. Set `og:image` to the absolute hosted URL before launch
 The code audit was stopped (token budget). Bugs come from hands-on TestFlight testing of build 8.
 Report each one with the toy, the orientation and the steps. Only reproducible bugs are fixed.
 
-- [ ] Founder plays every toy on build 8, portrait and landscape, and lists anything broken.
+- [ ] Founder plays every toy on build 9, portrait and landscape, and lists anything broken.
 
 ## 5. Jury items worth doing before launch
 
-_To be filled from the Apple jury review now running. Only small, decisive items qualify; the
-rest go to §8._
+The jury review stopped at 2 of 8 jurors (token budget). Both scored 6/10, "could reach 8".
+
+Fixed in build 9 (`21eb8d2`):
+- [x] Little Wash always finishes; foam alone never blocks the finale.
+- [x] Shelf toys open on lift, not touch-down. A second finger or a drag cancels.
+- [x] Phone landscape fits all nine toys (5 + 4).
+- [x] Sleepy Box drawer opens with a tap as well as a pull.
+- [x] Bubbles pop under a sliding finger, not only taps.
+
+Still worth doing before launch, if founder testing agrees (small, Claude):
+- [ ] Little Wash tools show their action: a visible hose stream and a towel sheen.
+- [ ] Shelf cards react when touched. Their old reactions look for parts the v2 art no longer
+  has, so they do nothing. Medium size; do it only if the shelf feels dead on device.
 
 ## 6. App Store page (Founder + Mac)
 
@@ -103,9 +123,12 @@ rest go to §8._
 - [ ] App Privacy: Data Not Collected. Age rating questionnaire answered (expect 4+).
   Category: Kids › 5 and under (primary Education, secondary Games › Family).
 - [ ] Support, Marketing and Privacy URLs from the landing page (§2).
-- [ ] In-app purchase: review screenshot uploaded, **attached to the 1.0 version**, availability
-  matches the app's territories.
-- [ ] Review notes (SubmissionKit §3): grown-up area and check, free week, purchase, no accounts.
+- [ ] **Both products** (Lull Family subscription and Keep Forever): review screenshots uploaded,
+  **attached to the 1.0 version**, availability matches the app's territories.
+- [ ] Subscription group "Lull Family" has its display name and an App Store localization.
+- [ ] Description ends with the subscription terms, the Terms of Use (Apple EULA) and Privacy
+  Policy links (SubmissionKit §3).
+- [ ] Review notes (SubmissionKit §3): grown-up area and check, the two plans, no accounts.
 
 ## 7. Discovery and awards (Founder + Claude)
 
@@ -120,12 +143,24 @@ rest go to §8._
 
 ## 8. First update after launch (not 1.0)
 
-_To be filled with the jury's "next update" items and any parked ideas (Meadow "find the little
-ones", Little Wash rare guests, bird wing frames, localisation of the grown-up area)._
+- **The first seasonal toy** (Lull Family's promise; pick the season and toy).
+- Jury, next update:
+  - Shelf toys open out of their shelf object (a zoom from the card into the toy).
+  - Wren visits inside the toys, not only the shelf.
+  - Felt confetti and hearts in place of the generic vector ones.
+  - Core Haptics textures (scrub, pop, drawer).
+  - Feed: the mouth opens as food comes near.
+  - Sleepy Box: the lullaby is visible (notes or a glow).
+  - Hum: a soft echo.
+  - Mix-Up: swipe to change parts; felt chevrons.
+  - Home button robustness; a written touch vocabulary across the nine toys.
+- Parked ideas: Meadow "find the little ones", Little Wash rare guests, bird wing frames,
+  localisation of the grown-up area.
+- Optional: a win-back or monthly plan only if data shows yearly is a barrier.
 
 ## 9. Submission day
 
-1. Final build selected on the 1.0 version page; the purchase attached.
+1. Final build selected on the 1.0 version page; both products attached.
 2. Everything in §6 complete; App Review contact details filled in.
 3. Submit for Review with **manual release**.
 4. When approved: release on the chosen day. Switch the website button to the App Store link

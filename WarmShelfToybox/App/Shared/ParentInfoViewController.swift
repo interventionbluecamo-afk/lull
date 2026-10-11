@@ -27,6 +27,15 @@ final class ParentInfoViewController: UIViewController {
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        #if DEBUG
+        // LULL_DEBUG_PARENT_SCROLL=<points> — headless screenshots of any section.
+        if let raw = ProcessInfo.processInfo.environment["LULL_DEBUG_PARENT_SCROLL"],
+           let y = Double(raw), let scroll = view.viewWithTag(777) as? UIScrollView {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                scroll.setContentOffset(CGPoint(x: 0, y: y), animated: false)
+            }
+        }
+        #endif
         // A purchase, restore or renewal on the plans page updates the Full Toybox row here.
         guard accessObserver == nil else { return }
         accessObserver = NotificationCenter.default.addObserver(
@@ -38,18 +47,6 @@ final class ParentInfoViewController: UIViewController {
         if let accessObserver { NotificationCenter.default.removeObserver(accessObserver) }
     }
 
-    #if DEBUG
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        // LULL_DEBUG_PARENT_SCROLL=<points> — headless screenshots of any section.
-        if let raw = ProcessInfo.processInfo.environment["LULL_DEBUG_PARENT_SCROLL"],
-           let y = Double(raw), let scroll = view.viewWithTag(777) as? UIScrollView {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                scroll.setContentOffset(CGPoint(x: 0, y: y), animated: false)
-            }
-        }
-    }
-    #endif
 
     private func buildView() {
         let scrollView = UIScrollView()

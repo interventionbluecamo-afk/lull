@@ -72,7 +72,7 @@ ChatGPT continues from the first unchecked step in §3, following §4.
 
 ## 3. Steps (check off as done; each ends with a commit and push)
 
-- [ ] **0.** This plan, plus the founder's answers on Drop Dots and the Mix-Up room (§5).
+- [x] **0.** This plan, plus the founder's answers on Drop Dots and the Mix-Up room (§5).
 - [ ] **1. Purchases on their own page.** `LullPlansViewController` holds the plans card and all
   purchase actions.
   - The grown-up area keeps a single compact "Full Toybox" status row with a chevron that
@@ -93,7 +93,15 @@ ChatGPT continues from the first unchecked step in §3, following §4.
 
 ## 5. Founder answers
 
-(Pending.)
+- **Drop Dots: new colours each round.**
+  - After a pour, a fresh felt set slides in with four new colours (fruit, sky, garden,
+    night…).
+  - The rings re-tint to match. Same calm play, no rules.
+- **Mix-Up: felt theatre, like the shelf card.**
+  - Bring back the authored art: the round wooden stage `mixup-stage`, the red felt curtains
+    `mixup-curtain-swag-left/right` and `mixup-curtain-valance`, on a soft floor.
+  - No hard floor line. Keep the October 7 layout gains (control lane, character fit,
+    keepsake cards).
 
 ## 6. Status log
 

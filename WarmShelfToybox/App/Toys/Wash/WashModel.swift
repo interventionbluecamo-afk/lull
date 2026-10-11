@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 
 /// Coordinates are fractions of the vehicle canvas, with y measured from its top.

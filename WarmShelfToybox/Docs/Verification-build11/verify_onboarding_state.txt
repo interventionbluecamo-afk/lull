@@ -1,0 +1,8 @@
+PASS: the welcome never opens toys by itself; the free week is the App Store's
+PASS: the old on-device trial is cleared and grants nothing
+PASS: Lull Family's free week opens all toys; the last day shows the quiet dot
+PASS: a paid renewal keeps the toybox open without a dot
+PASS: replay preserves the plan and family preferences
+PASS: a plan that ends returns the free shelf with one quiet dot until seen
+PASS: Keep Forever has no free week or renewal, and a refund leaves no plan dot
+PASS: a restore that finds nothing changes nothing

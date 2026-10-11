@@ -1,0 +1,50 @@
+{
+  "tool": "built-in image_gen",
+  "method": "Only proportional full-canvas resizing; no recoloring, alpha removal or repainting. House and glow share identical canvas framing.",
+  "assets": [
+    {
+      "asset": "meadow-baby-ladybug",
+      "source": "Source/meadow-baby-ladybug.png",
+      "generated_file": "exec-5a8e2e08-44fd-4501-b99e-8cdfb5d15603.png",
+      "runtime_size": [
+        512,
+        512
+      ],
+      "alpha": "native RGBA preserved",
+      "source_sha256": "fd8f14f2a604cb7becf9a135d7437922bb6fd4981200fd4d141d3659256d2d65"
+    },
+    {
+      "asset": "meadow-leaf-house",
+      "source": "Source/meadow-leaf-house.png",
+      "generated_file": "exec-3985260d-d41e-43d0-af60-1ca994407225.png",
+      "runtime_size": [
+        768,
+        768
+      ],
+      "alpha": "native RGBA preserved",
+      "source_sha256": "c341162da4fe0b92681e7f7a770e5293519543b06ee261e9b456a1280fc4b459"
+    },
+    {
+      "asset": "meadow-leaf-house-glow",
+      "source": "Source/meadow-leaf-house-glow.png",
+      "generated_file": "exec-2b98cfb4-e8ad-4156-9a91-4758dec21a90.png",
+      "runtime_size": [
+        768,
+        768
+      ],
+      "alpha": "native RGBA preserved",
+      "source_sha256": "1c9843317d475404c65957c83e1f0a712112cb03279cf1f58e32139d5908a399"
+    },
+    {
+      "asset": "meadow-hide-leaf",
+      "source": "Source/meadow-hide-leaf.png",
+      "generated_file": "exec-fdad65c8-7026-4b22-b6cc-3e88b2cf7556.png",
+      "runtime_size": [
+        256,
+        256
+      ],
+      "alpha": "native RGBA preserved",
+      "source_sha256": "4580ecf4ce7c593a9c19b034b05aae120550fe963942488da178d5aac990ea27"
+    }
+  ]
+}

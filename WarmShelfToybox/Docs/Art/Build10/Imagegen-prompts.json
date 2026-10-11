@@ -1,0 +1,25 @@
+{
+  "tool": "built-in image_gen",
+  "transparent_background": true,
+  "prompts": [
+    {
+      "asset": "meadow-baby-ladybug",
+      "reference": "meadow-ladybug-top",
+      "prompt": "Use case: stylized-concept. Asset: meadow-baby-ladybug, transparent square game sprite. Create a tiny tactile needle-felt ladybug baby matching the red wool fibers and dark soft spots of the existing Meadow mother reference. Directly overhead, head at 12 o'clock, centered complete silhouette with clear transparent padding. Rounder and shorter than mother; red felt shell with exactly three big black felt spots, small black felt head and two tiny wool antennae with butter-yellow pom tips. Gentle soft studio light, subtle contact shadow. No eyes, mouth or face; those are drawn by game code. No text, no background, no checkerboard. Requested canvas 512x512."
+    },
+    {
+      "asset": "meadow-leaf-house",
+      "prompt": "Use case: stylized-concept. Asset: meadow-leaf-house, transparent square game sprite, requested 768x768. A cosy little house made from one big curled sage-green felt leaf, on a small wooden base with moss. Round dark felt doorway facing viewer, tiny wooden step and two small felt flowers beside door. Warm soft studio light, tactile wool fibers and quiet hand-crafted wooden materials, calm children's felt toybox palette. Slightly elevated front three-quarter view so doorway and domed curled leaf top read clearly. Complete centered silhouette fills middle 80% with transparent padding. No characters, faces, text, scenery or background. This exact composition will also need a glowing variant."
+    },
+    {
+      "asset": "meadow-hide-leaf",
+      "initial_prompt": "Use case: stylized-concept. Asset: meadow-hide-leaf, transparent square game sprite, requested256x256. One broad sage-green felt leaf with a delicate stitched central vein, lying flat, one edge slightly lifted to let a tiny ladybug peek from underneath. Tactile needle-felt wool, soft studio light, calm handmade preschool toy aesthetic. Directly overhead slight dimensional lift, centered complete leaf silhouette with clear transparent padding. No baby or other object, no face, eyes, text, scene or background.",
+      "correction": "Edit target: attached leaf. Remove ONLY the little red ladybug under the curled edge. Replace its visible red/black pixels with the dark sage felt underside of the leaf and transparent empty space as appropriate. The output must contain ONE leaf and absolutely no insects or characters. Keep canvas, leaf silhouette, leaf position, stitched veins, colors, lighting, wool texture and transparency unchanged. No other changes."
+    },
+    {
+      "asset": "meadow-leaf-house-glow",
+      "reference": "meadow-leaf-house",
+      "prompt": "Edit target: attached felt leaf house. Create meadow-leaf-house-glow for game cross-fade. Keep EXACT original canvas, silhouette, placement, camera, framing, shape, leaf veins, base, flowers and all outlines unchanged. Change ONLY lighting: warm golden light from within the doorway with subtle warmth softly filtering through felt. Cozy dusk interior glow; exterior stays sage, not dark or blue. No new objects, no text or face. Preserve transparent background and original alpha footprint. Do not move or resize any object."
+    }
+  ]
+}

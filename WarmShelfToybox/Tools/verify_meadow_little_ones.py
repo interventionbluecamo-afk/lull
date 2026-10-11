@@ -18,7 +18,9 @@ source = (root / "App/Toys/Meadow/MeadowLittleOnes.swift").read_text()
 scene = (root / "App/Toys/Meadow/MeadowScene.swift").read_text()
 # CGVector is CoreGraphics-only; on Linux, a minimal stand-in with the members the model uses.
 VECTOR = """
-#if !canImport(CoreGraphics)
+#if canImport(CoreGraphics)
+import CoreGraphics
+#else
 struct CGVector: Equatable { var dx: CGFloat; var dy: CGFloat; static let zero = CGVector(dx: 0, dy: 0) }
 #endif
 """
@@ -46,6 +48,9 @@ check(re.search(r"AmbientAnimator\.reduceMotion", node) is not None, "Reduce Mot
 
 checks = r'''
 import Foundation
+#if canImport(CoreGraphics)
+import CoreGraphics
+#endif
 var passed = 0
 func check(_ ok: Bool, _ what: String) {
     if !ok { print("FAIL: " + what); exit(1) }

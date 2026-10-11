@@ -322,3 +322,14 @@ universal, like the other Meadow art). The code picks them up automatically.
   - Launch checklist §1 and §3–§4 updated; the plans handoff points to it.
   - **The pass is complete in the cloud. Next is the Mac: compile, art, device checks,
     TestFlight 10.**
+
+## 7. Mac continuation — October 11
+
+- [x] Pulled through `9213cb9`. Build 9 was superseded and was not uploaded.
+- [x] Initial Debug compile with iOS SDK succeeded without code fixes.
+- [x] Four Meadow assets generated with built-in imagegen and shown in chat before commit. Native alpha retained; originals, prompts and manifest in `Docs/Art/Build10/`. Runtime image sets use requested sizes.
+- [ ] Final Debug and signed Release with art, required verification logs, TestFlight upload.
+- [ ] App Store Connect product setup from plans handoff. Family Sharing on both explicitly approved by founder.
+- [ ] Founder device/play/purchase testing. Founder explicitly asked ChatGPT to stop additional reviews and play-testing to save tokens; no agent device pass is claimed.
+
+Known purchase follow-ups carried forward, not resolved by this art/build pass: subscription billing grace-period access; parent plans card updating while open after a transaction change; onboarding fallback should not promise trial eligibility before it is known. Keep these in the next code handoff, not a new broad review.

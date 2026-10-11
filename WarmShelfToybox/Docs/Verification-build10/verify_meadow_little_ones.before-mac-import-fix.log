@@ -1,0 +1,98 @@
+/var/folders/cc/yvglw42j0gs48_wtzv6t5gdw0000gp/T/lull-meadow-little-hmxwjfl6/Model.swift:47:12: error: type 'MeadowLittleOnesModel.Snapshot' does not conform to protocol 'Equatable'
+ 45 |     private static let trailStep: CGFloat = 4
+ 46 | 
+ 47 |     struct Snapshot: Equatable {
+    |            |- error: type 'MeadowLittleOnesModel.Snapshot' does not conform to protocol 'Equatable'
+    |            `- note: add stubs for conformance
+ 48 |         var spots: [CGPoint]
+    |             `- note: stored property type '[CGPoint]' does not conform to protocol 'Equatable', preventing synthesized conformance of 'MeadowLittleOnesModel.Snapshot' to 'Equatable'
+ 49 |         var places: [Place]
+ 50 |         var parade: [Int]
+ 51 |         var house: CGPoint
+    |             `- note: stored property type 'CGPoint' does not conform to protocol 'Equatable', preventing synthesized conformance of 'MeadowLittleOnesModel.Snapshot' to 'Equatable'
+ 52 |     }
+ 53 | 
+
+Swift.==:1:24: note: candidate would match if 'MeadowLittleOnesModel.Snapshot' conformed to 'RawRepresentable'
+1 | @inlinable public func == <T>(lhs: T, rhs: T) -> Bool where T : RawRepresentable, T.RawValue : Equatable
+  |                        `- note: candidate would match if 'MeadowLittleOnesModel.Snapshot' conformed to 'RawRepresentable'
+
+Swift.FloatingPoint.==:2:20: note: candidate would match if 'MeadowLittleOnesModel.Snapshot' conformed to 'FloatingPoint'
+1 | protocol FloatingPoint {
+2 | public static func == (lhs: Self, rhs: Self) -> Bool}
+  |                    `- note: candidate would match if 'MeadowLittleOnesModel.Snapshot' conformed to 'FloatingPoint'
+3 | 
+
+Swift.BinaryInteger.==:2:20: note: candidate would match if 'MeadowLittleOnesModel.Snapshot' conformed to 'BinaryInteger'
+1 | protocol BinaryInteger {
+2 | public static func == <Other>(lhs: Self, rhs: Other) -> Bool where Other : BinaryInteger}
+  |                    `- note: candidate would match if 'MeadowLittleOnesModel.Snapshot' conformed to 'BinaryInteger'
+3 | 
+
+Swift._Pointer.==:2:20: note: candidate would match if 'MeadowLittleOnesModel.Snapshot' conformed to '_Pointer'
+1 | protocol _Pointer {
+2 | public static func == (lhs: Self, rhs: Self) -> Bool}
+  |                    `- note: candidate would match if 'MeadowLittleOnesModel.Snapshot' conformed to '_Pointer'
+3 | 
+
+Swift._Pointer.==:2:31: note: candidate would match if 'MeadowLittleOnesModel.Snapshot' conformed to '_Pointer'
+1 | protocol _Pointer {
+2 | @inlinable public static func == <Other>(lhs: Self, rhs: Other) -> Bool where Other : _Pointer}
+  |                               `- note: candidate would match if 'MeadowLittleOnesModel.Snapshot' conformed to '_Pointer'
+3 | 
+
+Swift.Strideable.==:2:31: note: candidate would match if 'MeadowLittleOnesModel.Snapshot' conformed to 'Strideable'
+1 | protocol Strideable {
+2 | @inlinable public static func == (x: Self, y: Self) -> Bool}
+  |                               `- note: candidate would match if 'MeadowLittleOnesModel.Snapshot' conformed to 'Strideable'
+3 | 
+
+Swift.StringProtocol.==:2:31: note: candidate would match if 'MeadowLittleOnesModel.Snapshot' conformed to 'StringProtocol'
+1 | protocol StringProtocol {
+2 | @inlinable public static func == <RHS>(lhs: Self, rhs: RHS) -> Bool where RHS : StringProtocol}
+  |                               `- note: candidate would match if 'MeadowLittleOnesModel.Snapshot' conformed to 'StringProtocol'
+3 | 
+
+Swift.SIMD.==:2:20: note: candidate would match if 'MeadowLittleOnesModel.Snapshot' conformed to 'SIMD'
+1 | protocol SIMD {
+2 | public static func == (a: Self, b: Self) -> Bool}
+  |                    `- note: candidate would match if 'MeadowLittleOnesModel.Snapshot' conformed to 'SIMD'
+3 | 
+
+Foundation.AttributedStringProtocol.==:2:20: note: candidate would match if 'MeadowLittleOnesModel.Snapshot' conformed to 'AttributedStringProtocol'
+1 | protocol AttributedStringProtocol {
+2 | public static func == <RHS>(lhs: Self, rhs: RHS) -> Bool where RHS : AttributedStringProtocol}
+  |                    `- note: candidate would match if 'MeadowLittleOnesModel.Snapshot' conformed to 'AttributedStringProtocol'
+3 | 
+
+Foundation._BridgedStoredNSError.==:2:20: note: candidate would match if 'MeadowLittleOnesModel.Snapshot' conformed to '_BridgedStoredNSError'
+1 | protocol _BridgedStoredNSError {
+2 | public static func == (lhs: Self, rhs: Self) -> Bool}
+  |                    `- note: candidate would match if 'MeadowLittleOnesModel.Snapshot' conformed to '_BridgedStoredNSError'
+3 | 
+
+CoreFoundation._CFObject.==:2:20: note: candidate would match if 'MeadowLittleOnesModel.Snapshot' conformed to '_CFObject'
+1 | protocol _CFObject {
+2 | public static func == (left: Self, right: Self) -> Bool}
+  |                    `- note: candidate would match if 'MeadowLittleOnesModel.Snapshot' conformed to '_CFObject'
+3 | 
+
+Swift.Equatable.==:2:13: note: protocol requires function '==' with type '(borrowing MeadowLittleOnesModel.Snapshot, borrowing MeadowLittleOnesModel.Snapshot) -> Bool'
+1 | protocol Equatable {
+2 | static func == (lhs: borrowing Self, rhs: borrowing Self) -> Bool}
+  |             `- note: protocol requires function '==' with type '(borrowing MeadowLittleOnesModel.Snapshot, borrowing MeadowLittleOnesModel.Snapshot) -> Bool'
+3 | 
+
+/var/folders/cc/yvglw42j0gs48_wtzv6t5gdw0000gp/T/lull-meadow-little-hmxwjfl6/Model.swift:137:55: error: type 'CGVector' has no member 'zero'
+135 |             if d < best { best = d; nearest = flower }
+136 |         }
+137 |         guard let flower = nearest else { return (0, .zero) }
+    |                                                       `- error: type 'CGVector' has no member 'zero'
+138 |         let lift = 1 - best / flowerClearance
+139 |         let away = best > 0.001 ? CGVector(dx: (p.x - flower.x) / best, dy: (p.y - flower.y) / best)
+Traceback (most recent call last):
+  File "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Tools/verify_meadow_little_ones.py", line 143, in <module>
+    subprocess.run(command, check=True)
+  File "/Users/User2/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['xcrun', 'swiftc', '-module-cache-path', '/var/folders/cc/yvglw42j0gs48_wtzv6t5gdw0000gp/T/lull-meadow-little-hmxwjfl6/cache', '/var/folders/cc/yvglw42j0gs48_wtzv6t5gdw0000gp/T/lull-meadow-little-hmxwjfl6/Model.swift', '/var/folders/cc/yvglw42j0gs48_wtzv6t5gdw0000gp/T/lull-meadow-little-hmxwjfl6/main.swift', '-o', '/var/folders/cc/yvglw42j0gs48_wtzv6t5gdw0000gp/T/lull-meadow-little-hmxwjfl6/check']' returned non-zero exit status 1.

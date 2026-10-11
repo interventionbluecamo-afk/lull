@@ -1,0 +1,77 @@
+[
+  {
+    "script": "verify_adult_gate.py",
+    "exit_code": 0,
+    "seconds": 2.36
+  },
+  {
+    "script": "verify_audio_lifecycle.py",
+    "exit_code": 0,
+    "seconds": 24.66
+  },
+  {
+    "script": "verify_dropdots.py",
+    "exit_code": 0,
+    "seconds": 0.42
+  },
+  {
+    "script": "verify_feed.py",
+    "exit_code": 0,
+    "seconds": 2.32
+  },
+  {
+    "script": "verify_hum.py",
+    "exit_code": 0,
+    "seconds": 1.89
+  },
+  {
+    "script": "verify_meadow_little_ones.py",
+    "exit_code": 0,
+    "seconds": 2.35
+  },
+  {
+    "script": "verify_mixup_layout.py",
+    "exit_code": 0,
+    "seconds": 1.7
+  },
+  {
+    "script": "verify_mixup_stack.py",
+    "exit_code": 0,
+    "seconds": 3.96
+  },
+  {
+    "script": "verify_onboarding_state.py",
+    "exit_code": 0,
+    "seconds": 1.76
+  },
+  {
+    "script": "verify_play_timer.py",
+    "exit_code": 0,
+    "seconds": 1.79
+  },
+  {
+    "script": "verify_rest_suspension.py",
+    "exit_code": 0,
+    "seconds": 1.53
+  },
+  {
+    "script": "verify_sound_kit.py",
+    "exit_code": 0,
+    "seconds": 11.45
+  },
+  {
+    "script": "verify_wash.py",
+    "exit_code": 0,
+    "seconds": 2.32
+  },
+  {
+    "script": "verify_window.py",
+    "exit_code": 0,
+    "seconds": 1.74
+  },
+  {
+    "script": "verify_world_interactions.py",
+    "exit_code": 0,
+    "seconds": 1.79
+  }
+]

@@ -98,12 +98,12 @@ need no attribution).
 > THE TOYS
 > • Feed: each friend asks for a snack. Give it, and watch them chew and smile.
 > • Mix-Up: swap heads, tops and legs across nine friends, including a robot, a police officer and a firefighter: 729 combinations.
-> • Meadow: lead a ladybug through a meadow that wakes as it passes.
+> • Meadow: lead a ladybug through a meadow that wakes as it passes, and find her five little ones.
 > • Hum: touch the singers to make gentle music, alone or in chords.
 > • Window: turn the day into evening and see who visits.
 > • Sleepy Box: post each shape into its hole and open the drawer.
 > • Little Wash: scrub muddy trucks clean with a sponge, a hose and a towel.
-> • Drop Dots: drop coins into the columns and pour them out again.
+> • Drop Dots: sort twelve felt dots into their colour homes, find rainbows, and pour them out again.
 > • Bubbles: pop soft bubbles and find the little treasures some carry.
 >
 > MADE FOR CALM

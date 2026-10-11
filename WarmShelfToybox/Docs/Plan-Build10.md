@@ -76,7 +76,7 @@ already have been uploaded by the Mac, and skipping a number is harmless.
 - [x] **5. Drop Dots: more matches, more to discover.** Spec §4.4. Update `verify_dropdots.py`.
 - [x] **6. Meadow little ones.** Spec §4.5. Add `Tools/verify_meadow_little_ones.py` for the
   pure model.
-- [ ] **7. Build 10.**
+- [x] **7. Build 10.**
   - `CURRENT_PROJECT_VERSION` 10 in `project.yml` and `Lull.xcodeproj/project.pbxproj`
     (2 places).
   - Syntax-check every changed Swift file.
@@ -309,3 +309,10 @@ universal, like the other Meadow art). The code picks them up automatically.
     - the house is visible at home;
     - Reduce Motion;
     - the finale.
+- Oct 11, step 7 done:
+  - `CURRENT_PROJECT_VERSION` is 10 in `project.yml` and the pbxproj (2 places).
+  - All 10 Swift files changed since `21eb8d2` pass `swiftc -parse`.
+  - The 13 verifiers that run on Linux pass; `verify_window` and `verify_world_interactions`
+    need macOS.
+  - The Drop Dots and Meadow lines are updated in SubmissionKit and on the website (site
+    rebuilt).

@@ -20,8 +20,8 @@ Rules:
 | 0 Plan and founder answers | ✅ | Drop Dots: **new colours each round**. Mix-Up: **felt theatre like the shelf card**. |
 | 1 Purchases on their own page | ✅ `4972f6b` | New `LullPlansViewController.swift` (in the Xcode project). The grown-up area has a "Full Toybox" row with a live status line. The welcome's "Try all nine free" opens it. |
 | 2 Wash wheels on the floor | ✅ `a3f0887` | `WashBayFit` in `WashModel.swift`. Portrait sets the vehicle on the painted floor above the tools; landscape fits the bay to the wheels. |
-| 3 Sleepy Box holes on the front face | ⏳ next | See plan §2. The holes overlap the lid; lay them out from the measured shell fractions. |
-| 4 Mix-Up felt theatre | ⏳ | Bring back `mixup-stage`, the curtains and the valance; no hard floor line. |
+| 3 Sleepy Box holes on the front face | ✅ | `SleepyBoxShellLayout`: sockets on the measured front face, the face between them and the drawer, slightly smaller pieces on phones. `verify_sleepy_box_layout.py`. |
+| 4 Mix-Up felt theatre | ⏳ next | Bring back `mixup-stage`, the curtains and the valance; no hard floor line. |
 | 5 Drop Dots colour rounds | ⏳ | A new felt colour set after each pour; rings re-tint. |
 | 6 Build 11 | ⏳ | Version 11, parse, verifiers, final handoff. |
 
@@ -42,5 +42,7 @@ Rules:
    - **Full Toybox page:** opens from the grown-up area row (as a sheet) and from the welcome.
      - Buy, restore and manage all work in sandbox.
      - Closing the sheet updates the row.
-   - Steps 3–5, once done: see the plan.
+   - **Sleepy Box:** the sockets sit on the box's front face, below the lid, in both
+     orientations. The pieces still feel chunky on a small iPhone.
+   - Steps 4–5, once done: see the plan.
 4. **TestFlight 1.0 (11)** with a What to Test (written in the final step).

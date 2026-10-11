@@ -81,7 +81,7 @@ ChatGPT continues from the first unchecked step in §3, following §4.
 - [x] **2. Wash: wheels on the floor.** Measure the bay's floor contact line. Fit the bay so that
   line sits under the wheels (still covering the screen) in portrait and landscape. Verifier
   over device sizes.
-- [ ] **3. Sleepy Box: holes on the front face.** Use measured shell fractions for the hole grid,
+- [x] **3. Sleepy Box: holes on the front face.** Use measured shell fractions for the hole grid,
   hole size and face. Mock renders for phone and iPad, portrait and landscape. Verifier.
 - [ ] **4. Mix-Up room** (per the founder's answer, §5).
 - [ ] **5. Drop Dots** (per the founder's answer, §5).
@@ -125,3 +125,16 @@ ChatGPT continues from the first unchecked step in §3, following §4.
     - the bay always covers the screen and zooms only as needed.
   - `verify_wash.py` passes 13,336 checks, now including the bay fit across 9 screen sizes.
   - Mock before/after renders confirmed both orientations (scratchpad, not committed).
+- Oct 11, step 3 done:
+  - `SleepyBoxShellLayout` (pure, end of `SleepyDropBoxScene.swift`) is measured from the shell:
+    - front face 0.095–0.745, drawer recess 0.75;
+    - the two socket rows share the band 0.125–0.565, centred at about 0.235 and 0.455;
+    - columns at 0.30 and 0.70;
+    - the face is anchored at 0.655.
+  - The piece radius is capped at 0.076 × the plate height (on a phone, about 24 pt instead
+    of 37 pt; the iPad is almost unchanged), so each socket with its bevel fits its row with
+    wood between the rows.
+  - Only the shell-plate path changed. The older body-art and procedural paths are untouched.
+  - `Tools/verify_sleepy_box_layout.py`: 18 checks pass. The mock render looks right in both
+    orientations.
+  - Needs a device check: the pieces still feel chunky enough on a small iPhone.

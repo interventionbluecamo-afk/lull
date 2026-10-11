@@ -243,6 +243,7 @@ final class WashScene: BaseToyScene {
             }
             if model.isComplete && didTouchVehicle { finishVehicle() }
         case .delighted:
+            model.settleFinish(by: delta)   // the last foam and specks melt away with the sparkle
             if phaseTime >= 0.95 { phase = .leaving; phaseTime = 0; clearHands() }
         case .leaving:
             syncPhasePose()
@@ -250,7 +251,7 @@ final class WashScene: BaseToyScene {
                 phase = .waiting; phaseTime = 0; vehicle?.isHidden = true
             }
         case .waiting:
-            if phaseTime >= 2 {
+            if phaseTime >= 1 {   // a short breath, not a long dead wait between vehicles
                 kind = Self.cast.next(); startVehicle(playArrival: true)
             }
         }

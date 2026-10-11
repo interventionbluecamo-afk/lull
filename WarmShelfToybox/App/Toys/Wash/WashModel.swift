@@ -67,7 +67,6 @@ struct WashStrokeResult {
 struct WashModel {
     static let foamLifetime: Double = 7
     static let cleanThreshold: Double = 0.93
-    static let maximumCompletionFoam: Double = 0.035
     private(set) var patches: [WashMudPatch]
     /// Distance is measured in canvas-height units, keeping a brush circular in world space.
     let canvasAspectRatio: Double
@@ -92,9 +91,11 @@ struct WashModel {
         guard !patches.isEmpty else { return 0 }
         return patches.reduce(0) { $0 + $1.foam } / Double(patches.count)
     }
+    /// The mud decides. Foam no longer gates the finish: a toddler who keeps scrubbing used to
+    /// keep re-foaming and never reach it, or wait up to seven silent seconds for foam to fade
+    /// (build 7 jury review). The finale melts the last foam and specks away (`settleFinish`).
     var isComplete: Bool {
         !patches.isEmpty && cleanFraction >= Self.cleanThreshold
-            && foamFraction <= Self.maximumCompletionFoam
     }
 
     /// A smooth, compact falloff: no dirt is changed outside the brush's footprint.
@@ -130,7 +131,8 @@ struct WashModel {
             removed += lifted
             switch tool {
             case .sponge:
-                patches[index].foam = Self.unit(beforeFoam + lifted * 0.9 + amount * 0.18)
+                // Foam comes from mud: a clean patch scrubbed again stays clean, not freshly foamed.
+                patches[index].foam = Self.unit(beforeFoam + lifted * 0.9 + amount * 0.18 * beforeDirt)
                 patches[index].wetness = Self.unit(patches[index].wetness + amount * 0.08)
             case .hose:
                 patches[index].foam = max(0, beforeFoam - amount * 2.8)
@@ -142,6 +144,17 @@ struct WashModel {
             added += max(0, patches[index].foam - beforeFoam)
         }
         return WashStrokeResult(affectedPatches: affected, removedMud: removed, addedFoam: added)
+    }
+
+    /// The finale: the last foam, water and specks melt away together in about 0.6 s.
+    mutating func settleFinish(by seconds: Double) {
+        guard seconds.isFinite, seconds > 0 else { return }
+        let step = seconds / 0.6
+        for index in patches.indices {
+            patches[index].foam = max(0, patches[index].foam - step)
+            patches[index].wetness = max(0, patches[index].wetness - step)
+            patches[index].dirt = max(0, patches[index].dirt - step)
+        }
     }
 
     /// Full-strength foam disappears in seven seconds without requiring another tool.

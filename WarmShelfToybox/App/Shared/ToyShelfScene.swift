@@ -7,6 +7,9 @@ final class ToyShelfScene: BaseToyScene {
 
     private var contentRoot = SKNode()
     private var isOpeningToy = false
+    /// A card pressed but not yet chosen: toys open when the finger lifts on the card, so a resting
+    /// palm, a swipe across the shelf or the grown-up two-finger hold never opens one by accident.
+    private var pressedCard: (touch: UITouch, toyID: String, card: SKNode, start: CGPoint)?
     private var didBloomIntoToy = false
     private var lastBuiltSize = CGSize.zero
     private var hasAnimatedEntrance = false
@@ -48,11 +51,13 @@ final class ToyShelfScene: BaseToyScene {
         guard abs(size.width - lastBuiltSize.width) > 2 ||
             abs(size.height - lastBuiltSize.height) > 2
         else { return }
+        pressedCard = nil   // the pressed card is about to be rebuilt
         rebuildShelf()
     }
 
     func prepareForShelfInteraction() {
         isOpeningToy = false
+        pressedCard = nil
         if didBloomIntoToy {
             // The chosen object swelled and the room receded — rebuild restores every
             // alpha, scale and z cleanly, then the shelf exhales its welcome-back.
@@ -549,11 +554,9 @@ final class ToyShelfScene: BaseToyScene {
         let safe = view?.safeAreaInsets ?? .zero
         let useRow = toyCount > 1
 
-        // Keep portrait calm (≤3 across); allow wider rows in landscape. A balanced column count
-        // avoids lonely half-empty rows (e.g. 6 toys → 3+3, never 5+1).
-        let maxColumns = isLandscape ? (isPhone ? 4 : 5) : 3
-        let columns = useRow ? balancedColumns(toyCount: toyCount, maxColumns: maxColumns) : 1
-        let rows = Int(ceil(Double(toyCount) / Double(max(1, columns))))
+        // Keep portrait calm (≤3 across); allow wider rows in landscape (phones up to 5: nine toys
+        // in phone landscape were a 3×3 grid of minimum-size cards that overflowed the band).
+        let maxColumns = isLandscape ? 5 : 3
 
         // The band the grid must fit inside. The bottom reserve always clears Wren in their corner,
         // so the lowest row never collides with him at any size or orientation.
@@ -570,13 +573,29 @@ final class ToyShelfScene: BaseToyScene {
         let colGap: CGFloat = isPhone ? (isLandscape ? 20 : 22) : (isLandscape ? 34 : 30)
         let rowGap: CGFloat = isPhone ? (isLandscape ? 30 : 52) : (isLandscape ? 46 : 62)
         let aspect: CGFloat = isLandscape ? 1.08 : 1.10   // card height ÷ width
+        let maxWidth: CGFloat = isPhone ? (isLandscape ? 210 : 250) : 300
 
         // Two-axis fit: the width that satisfies BOTH the row width and the column height.
-        let widthByColumns = (availableWidth - colGap * CGFloat(columns - 1)) / CGFloat(columns)
-        let heightByRows = (availableHeight - rowGap * CGFloat(max(0, rows - 1))) / CGFloat(rows)
-        let widthByRows = heightByRows / aspect
-        let maxWidth: CGFloat = isPhone ? (isLandscape ? 210 : 250) : 300
-        let objectWidth = max(64, min(widthByColumns, widthByRows, maxWidth))
+        func fittedWidth(columns: Int) -> CGFloat {
+            let rows = Int(ceil(Double(toyCount) / Double(max(1, columns))))
+            let byColumns = (availableWidth - colGap * CGFloat(columns - 1)) / CGFloat(columns)
+            let byRows = (availableHeight - rowGap * CGFloat(max(0, rows - 1))) / CGFloat(rows) / aspect
+            return min(byColumns, byRows, maxWidth)
+        }
+        // The balanced column count (no lonely half-empty rows: 6 toys → 3+3, never 5+1), unless its
+        // cards would fall below the 64 pt minimum and overflow the band; then the count with the
+        // biggest cards that fit (nine toys in phone landscape: 5+4 instead of an overflowing 3×3).
+        var columns = 1
+        if useRow {
+            let balanced = balancedColumns(toyCount: toyCount, maxColumns: isLandscape ? (isPhone ? 4 : 5) : 3)
+            if fittedWidth(columns: balanced) >= 64 {
+                columns = balanced
+            } else {
+                columns = (1...max(1, min(maxColumns, toyCount))).max { fittedWidth(columns: $0) < fittedWidth(columns: $1) } ?? balanced
+            }
+        }
+        let rows = Int(ceil(Double(toyCount) / Double(max(1, columns))))
+        let objectWidth = max(64, fittedWidth(columns: columns))
         let objectHeight = objectWidth * aspect
 
         let spacing = useRow ? objectWidth + colGap : objectHeight + rowGap
@@ -1902,17 +1921,38 @@ final class ToyShelfScene: BaseToyScene {
                 continue
             }
 
-            isOpeningToy = true
+            // A second finger anywhere means the grown-up hold (or two hands), not a choice.
+            if pressedCard != nil || (event?.allTouches?.count ?? touches.count) > 1 {
+                pressedCard = nil
+                continue
+            }
+            pressedCard = (touch, toyID, card, point)
             TouchFeedbackAnimator.acknowledge(node: card, profile: .shelfCard)
-            reactToToyTap(toyID: toyID, card: card)
             HapticsManager.shared.cardPress()   // a firm, physical clay-button press, felt not heard
-            playWakeBloom(card: card, toyID: toyID)
-            return
         }
+    }
+
+    /// Opens the pressed toy if its finger lifted on the same card without travelling far.
+    private func releasePressedCard(_ touch: UITouch, cancelled: Bool) -> Bool {
+        guard let pressed = pressedCard, pressed.touch === touch else { return false }
+        pressedCard = nil
+        let point = touch.location(in: self)
+        guard !cancelled, !isOpeningToy,
+              hypot(point.x - pressed.start.x, point.y - pressed.start.y) < 36,
+              cardRoot(for: nodes(at: point)) === pressed.card else { return true }
+        isOpeningToy = true
+        reactToToyTap(toyID: pressed.toyID, card: pressed.card)
+        playWakeBloom(card: pressed.card, toyID: pressed.toyID)
+        return true
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         for touch in touches {
+            if let pressed = pressedCard, pressed.touch === touch {
+                let p = touch.location(in: self)
+                if hypot(p.x - pressed.start.x, p.y - pressed.start.y) >= 36 { pressedCard = nil }   // a swipe
+                continue
+            }
             if moveHostTouch(touch, to: touch.location(in: self)) {
                 continue
             }
@@ -1921,6 +1961,7 @@ final class ToyShelfScene: BaseToyScene {
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         for touch in touches {
+            if releasePressedCard(touch, cancelled: false) { continue }
             if endHostTouch(touch, cancelled: false) {
                 continue
             }
@@ -1929,6 +1970,7 @@ final class ToyShelfScene: BaseToyScene {
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         for touch in touches {
+            if releasePressedCard(touch, cancelled: true) { continue }
             if endHostTouch(touch, cancelled: true) {
                 continue
             }

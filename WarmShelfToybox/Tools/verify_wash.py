@@ -94,9 +94,18 @@ while sponge.cleanFraction < WashModel.cleanThreshold && passes < 20 {
 }
 check(passes < 20, "sponge alone cleans in bounded strokes")
 check(sponge.cleanFraction >= 0.93, "93 percent clean")
-check(!sponge.isComplete, "foam delays completion")
-sponge.advanceTime(by: 7)
-check(sponge.isComplete, "sponge alone completes after evaporation")
+check(sponge.isComplete, "sponge alone completes the moment the mud is gone, foam or not")
+let foamBeforeRescrub = sponge.foamFraction
+for patch in grid where patch.dirt == 0 {
+    sponge.applyStroke(at: patch.center, radius: 0.02, strength: 0.18, tool: .sponge)
+}
+var cleanOnly = WashModel(patches: [WashMudPatch(center: WashPoint(x: 0.5, y: 0.5), radius: 0.05, dirt: 0)])
+cleanOnly.applyStroke(at: WashPoint(x: 0.5, y: 0.5), radius: 0.1, strength: 0.18, tool: .sponge)
+check(cleanOnly.foamFraction == 0, "scrubbing a clean patch adds no foam")
+check(sponge.foamFraction <= foamBeforeRescrub + 1e-9 || sponge.isComplete, "rescrubbing never undoes the finish")
+var finale = sponge
+finale.settleFinish(by: 0.6)
+check(finale.foamFraction == 0 && finale.cleanFraction == 1, "the finale melts the last foam and specks in 0.6 s")
 check(sponge.patches.count == grid.count, "denominator never drops patches")
 
 func strokesToClean(_ tool: WashTool) -> Int {
@@ -107,7 +116,6 @@ func strokesToClean(_ tool: WashTool) -> Int {
         count += 1
     }
     check(count < 50, "every tool makes finite progress")
-    model.advanceTime(by: 7)
     check(model.isComplete, "every tool can finish")
     return count
 }
@@ -133,17 +141,16 @@ for order in orders {
 }
 
 var foamy = WashModel(patches: [WashMudPatch(center: middle, radius: 0.05, dirt: 0, foam: 1, wetness: 1)])
+check(foamy.isComplete, "foam alone never blocks the finish")
 foamy.advanceTime(by: 6)
-check(!foamy.isComplete, "full foam remains at six seconds")
 check(near(foamy.foamFraction, 1.0 / 7), "linear seven-second foam")
 foamy.advanceTime(by: 1)
-check(foamy.isComplete, "full foam evaporates by seven seconds")
 check(near(foamy.foamFraction, 0), "no negative foam")
 check(foamy.patches[0].wetness == 0, "water evaporates")
 var dirtyNoFoam = WashModel(patches: [WashMudPatch(center: middle, radius: 0.05, dirt: 0.08)])
 check(!dirtyNoFoam.isComplete, "92 percent insufficient")
 dirtyNoFoam.applyStroke(at: middle, radius: 0.1, strength: 0.02, tool: .hose)
-check(dirtyNoFoam.isComplete, "94 percent with low foam")
+check(dirtyNoFoam.isComplete, "94 percent clean finishes")
 check(!WashModel(patches: []).isComplete, "empty model cannot finish")
 
 var rinse = WashModel(patches: [WashMudPatch(center: middle, radius: 0.05, dirt: 0, foam: 1, wetness: 1)])

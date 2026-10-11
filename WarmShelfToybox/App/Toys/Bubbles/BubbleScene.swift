@@ -530,31 +530,42 @@ final class BubbleScene: BaseToyScene {
             }
 
             if let bubble = topBubble(at: point) {
-                let isMother = bubble.isMotherBubble
-                let popPoint = bubble.convert(CGPoint.zero, to: self)
-                AudioManager.shared.updateSoundPosition(
-                    nodeID: "bubble.\(ObjectIdentifier(bubble).hashValue)",
-                    screenPoint: popPoint,
-                    sceneSize: size
-                )
-                let wasBig = bubble.radius > 64
-                if bubble.pop(in: self) {
-                    registerPop()
-                    if isMother {
-                        releaseBabyBubbles(from: popPoint, color: bubble.style.popColor)
-                        // Only the mother sends a pressure wave — one tap, one pop,
-                        // is the everyday truth (founder: cascades on every tap read
-                        // wrong). Her burst staying special is what makes it special.
-                        chainPop(near: popPoint, excluding: bubble)
-                    }
-                    // A passenger bird occasionally joins a large pop, at fixed odds.
-                    if wasBig, !isMother, Int.random(in: 0..<birdOdds) == 0 {
-                        releaseBubbleBird(from: popPoint)
-                    }
-                }
+                popByHand(bubble)
             } else {
                 TouchFeedbackAnimator.emptyTap(in: self, at: point)
             }
+        }
+    }
+
+    /// A sweeping finger pops what it passes through, the way a toddler smears across the glass
+    /// (build 7 jury: taps were the only verb, so a swipe popped nothing).
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        for touch in touches {
+            if let bubble = topBubble(at: touch.location(in: self)) { popByHand(bubble) }
+        }
+    }
+
+    private func popByHand(_ bubble: BubbleNode) {
+        let isMother = bubble.isMotherBubble
+        let popPoint = bubble.convert(CGPoint.zero, to: self)
+        AudioManager.shared.updateSoundPosition(
+            nodeID: "bubble.\(ObjectIdentifier(bubble).hashValue)",
+            screenPoint: popPoint,
+            sceneSize: size
+        )
+        let wasBig = bubble.radius > 64
+        guard bubble.pop(in: self) else { return }
+        registerPop()
+        if isMother {
+            releaseBabyBubbles(from: popPoint, color: bubble.style.popColor)
+            // Only the mother sends a pressure wave — one tap, one pop,
+            // is the everyday truth (founder: cascades on every tap read
+            // wrong). Her burst staying special is what makes it special.
+            chainPop(near: popPoint, excluding: bubble)
+        }
+        // A passenger bird occasionally joins a large pop, at fixed odds.
+        if wasBig, !isMother, Int.random(in: 0..<birdOdds) == 0 {
+            releaseBubbleBird(from: popPoint)
         }
     }
 

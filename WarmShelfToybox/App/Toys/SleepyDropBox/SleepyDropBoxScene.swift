@@ -888,6 +888,7 @@ final class SleepyDropBoxScene: BaseToyScene {
                 didSlideThisPull = false
                 drawerTouchStartY = p.y
                 drawerDragStartY = drawer.position.y
+                HapticsManager.shared.impact(style: .light, intensity: 0.2)   // the knob is felt in the hand
                 continue
             }
 
@@ -935,7 +936,10 @@ final class SleepyDropBoxScene: BaseToyScene {
             drawerTouch = nil
             // A quick deliberate pull counts even if the visual drawer was still easing
             // toward the finger. Hold it open briefly so the return has a visible source.
-            let pulledFarEnough = drawerTargetY < drawerClosedY - (drawerClosedY - drawerOpenY) * 0.5
+            // A plain tap on the knob opens it too, like Drop Dots' wooden tab (build 7 jury:
+            // a 2-year-old's tap on the drawer did nothing at all).
+            let tapped = abs(touch.location(in: self).y - drawerTouchStartY) < 12
+            let pulledFarEnough = tapped || drawerTargetY < drawerClosedY - (drawerClosedY - drawerOpenY) * 0.5
             if !didTumbleThisPull, pulledFarEnough {
                 didTumbleThisPull = true
                 tumbleOut()

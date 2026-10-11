@@ -1,0 +1,194 @@
+{
+  "purpose": "Launch website social card and transparent nine-toy strip",
+  "method": "Existing art only: alpha-bound crop, proportional resize and composition",
+  "script": "Tools/Store/compose_web_assets.py",
+  "order": [
+    "bubbles",
+    "wash",
+    "dropdots",
+    "feed",
+    "hum",
+    "window",
+    "mixup",
+    "sleepybox",
+    "meadow"
+  ],
+  "inputs": [
+    {
+      "toy": "bubbles",
+      "source": "App/Resources/Assets.xcassets/shelf-bubbles-v2.imageset/shelf-bubbles-v2.png",
+      "sha256": "07cf096318df3f64c2d586cf7c8c251a01bfa2c3e18d40bb5bacd403f4718e09",
+      "crop": [
+        93,
+        131,
+        950,
+        919
+      ],
+      "stripRect": [
+        16,
+        63,
+        162,
+        149
+      ]
+    },
+    {
+      "toy": "wash",
+      "source": "App/Resources/Assets.xcassets/shelf-wash-v2.imageset/shelf-wash-v2.png",
+      "sha256": "ea3a69f8a81f2aceceeaa727c0e2d47cbda78984be5f32b653c097b2bf1776a2",
+      "crop": [
+        27,
+        200,
+        1003,
+        891
+      ],
+      "stripRect": [
+        192,
+        97,
+        162,
+        115
+      ]
+    },
+    {
+      "toy": "dropdots",
+      "source": "App/Resources/Assets.xcassets/shelf-dropdots-v2.imageset/shelf-dropdots-v2.png",
+      "sha256": "59b9321b86d73b0a07e85ea742e3422607205bc1649b99b05a4b2049ac26760f",
+      "crop": [
+        137,
+        88,
+        893,
+        856
+      ],
+      "stripRect": [
+        367,
+        48,
+        162,
+        164
+      ]
+    },
+    {
+      "toy": "feed",
+      "source": "App/Resources/Assets.xcassets/shelf-feed-v2.imageset/shelf-feed-v2.png",
+      "sha256": "0569d958bc8e19691055f6b5b21c5266487f010c72851784cc0819e197db9f02",
+      "crop": [
+        184,
+        183,
+        1109,
+        1130
+      ],
+      "stripRect": [
+        543,
+        46,
+        162,
+        166
+      ]
+    },
+    {
+      "toy": "hum",
+      "source": "App/Resources/Assets.xcassets/shelf-hum-v2.imageset/shelf-hum-v2.png",
+      "sha256": "0a1cdf3956207c4e3adbcff20ce0e7f2793d0aeb2fcf0f98013904f6a475c2c0",
+      "crop": [
+        12,
+        146,
+        1527,
+        929
+      ],
+      "stripRect": [
+        719,
+        128,
+        162,
+        84
+      ]
+    },
+    {
+      "toy": "window",
+      "source": "App/Resources/Assets.xcassets/shelf-window-v2.imageset/shelf-window-v2.png",
+      "sha256": "f4b553beadfe75297f3e46157b041aadc59e8a0745b5b8414cedfa29a17d0df6",
+      "crop": [
+        124,
+        116,
+        1189,
+        1079
+      ],
+      "stripRect": [
+        895,
+        66,
+        162,
+        146
+      ]
+    },
+    {
+      "toy": "mixup",
+      "source": "App/Resources/Assets.xcassets/shelf-mixup-v2.imageset/shelf-mixup-v2.png",
+      "sha256": "3f6466ecbc0a9e586e586d66f6a4e497027657d7dc195c4f5d8efe0bd4ea64c4",
+      "crop": [
+        17,
+        14,
+        1007,
+        1009
+      ],
+      "stripRect": [
+        1071,
+        49,
+        162,
+        163
+      ]
+    },
+    {
+      "toy": "sleepybox",
+      "source": "App/Resources/Assets.xcassets/shelf-sleepybox-v2.imageset/shelf-sleepybox-v2.png",
+      "sha256": "16de47cbe80e9c62e45677a14d3b02cf7af256cb7d8a4c8d8763850697db6092",
+      "crop": [
+        146,
+        101,
+        1108,
+        1160
+      ],
+      "stripRect": [
+        1246,
+        34,
+        162,
+        178
+      ]
+    },
+    {
+      "toy": "meadow",
+      "source": "App/Resources/Assets.xcassets/shelf-meadow-v2.imageset/shelf-meadow-v2.png",
+      "sha256": "a41b418a298414992ece77ebbf0d86897e30658784861714c95614524f529ff1",
+      "crop": [
+        187,
+        318,
+        1370,
+        863
+      ],
+      "stripRect": [
+        1422,
+        137,
+        162,
+        75
+      ]
+    }
+  ],
+  "icon": {
+    "source": "LandingPageDeploy/assets/icon-512.png",
+    "sha256": "6b0edec1f24ac0ec17ab02b6c28323b85ab5f84601085a974745e4efaf8ddda3",
+    "identity": "Wren, unchanged"
+  },
+  "outputs": [
+    {
+      "file": "og.png",
+      "size": [
+        1200,
+        630
+      ],
+      "sha256": "38de734616196a2f2fe516a2107bf725c0ab8794b6e3a71aa25ef0f266aa55d7"
+    },
+    {
+      "file": "toys.webp",
+      "size": [
+        1600,
+        222
+      ],
+      "sha256": "1813e128e9e0a52bcbb18d94b5b959cc5ca3aeb414fe2f23390111e86cdc8442"
+    }
+  ]
+}

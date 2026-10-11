@@ -1,0 +1,69 @@
+[
+  {
+    "script": "verify_adult_gate.py",
+    "exit_code": 0,
+    "seconds": 3.06
+  },
+  {
+    "script": "verify_audio_lifecycle.py",
+    "exit_code": 0,
+    "seconds": 25.53
+  },
+  {
+    "script": "verify_dropdots.py",
+    "exit_code": 0,
+    "seconds": 1.78
+  },
+  {
+    "script": "verify_feed.py",
+    "exit_code": 0,
+    "seconds": 2.41
+  },
+  {
+    "script": "verify_hum.py",
+    "exit_code": 0,
+    "seconds": 1.86
+  },
+  {
+    "script": "verify_mixup_layout.py",
+    "exit_code": 0,
+    "seconds": 1.63
+  },
+  {
+    "script": "verify_mixup_stack.py",
+    "exit_code": 0,
+    "seconds": 5.99,
+    "python": "/Users/User2/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3"
+  },
+  {
+    "script": "verify_onboarding_state.py",
+    "exit_code": 0,
+    "seconds": 1.62
+  },
+  {
+    "script": "verify_rest_suspension.py",
+    "exit_code": 0,
+    "seconds": 1.51
+  },
+  {
+    "script": "verify_sound_kit.py",
+    "exit_code": 0,
+    "seconds": 12.83,
+    "python": "/Users/User2/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3"
+  },
+  {
+    "script": "verify_wash.py",
+    "exit_code": 0,
+    "seconds": 2.17
+  },
+  {
+    "script": "verify_window.py",
+    "exit_code": 0,
+    "seconds": 1.71
+  },
+  {
+    "script": "verify_world_interactions.py",
+    "exit_code": 0,
+    "seconds": 1.76
+  }
+]

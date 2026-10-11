@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Tools/verify_sound_kit.py", line 18, in <module>
+    import numpy as np
+ModuleNotFoundError: No module named 'numpy'

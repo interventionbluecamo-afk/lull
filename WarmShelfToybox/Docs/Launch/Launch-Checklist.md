@@ -18,32 +18,33 @@ as they close. Nothing here has been submitted to Apple.
 
 | | Decision | Recommendation |
 |---|---|---|
-| [ ] | **Free week model** (Guideline 3.1.1) | Submit as is (duration, what stays free and the price shown before the week starts). If App Review objects, switch to a $0 "7-day Trial" product (about half a day of code). |
+| [ ] | **Free week model** (Guideline 3.1.1) | Resolve before public submission: Apple’s documented non-subscription trial uses a $0 non-consumable named "7-day Trial". Choose that flow, remove the timed trial, or obtain written clarification from App Review. The current local timer is not cleared by this checklist. See [Guideline 3.1.1](https://developer.apple.com/app-store/review/guidelines/#in-app-purchase). |
 | [ ] | **Family Sharing** for the lifetime purchase (cannot be turned off later) | On. |
 | [ ] | **Kids age band** (permanent once approved) | Made for Kids → 5 and under. |
-| [ ] | **Territories** | English-speaking first: US, UK, Canada, Australia, New Zealand, Ireland. No EU for 1.0, which avoids the Digital Services Act trader address. |
-| [ ] | **Price** | $9.99 one-time (approved). |
+| [ ] | **Territories** | English-speaking first: US, UK, Canada, Australia and New Zealand if excluding the EU for 1.0. Ireland is in the EU; include it only with the applicable EU trader requirements resolved. |
+| [x] | **Price** | $9.99 one-time (founder approved). |
 | [ ] | **Release style and target date** | Manual release. Avoid Apple's late-December slowdown. |
 | [ ] | **Store name and subtitle** | "Lull Quiet Toybox" / "Calm toys for ages 2–6". |
 
 ## 2. Accounts, legal and web (Founder unless noted)
 
-- [ ] **Domain** (Founder is choosing one). Everything below waits on it.
-- [ ] **Support email on that domain.** `support@lull.app` is on a domain that was for sale.
-  Claude swaps the address everywhere (app and site) and rebuilds the privacy page.
+- [ ] **Public website address.** Founder prefers a free option (October 10). Recommended: Cloudflare Pages with its included `*.pages.dev` address; a paid custom domain is optional. Hosting/account and final address are not yet chosen.
+- [ ] **Working support email owned by the founder.** An existing mailbox can be used; a domain mailbox is optional. Do not publish the unowned `support@lull.app` address. Claude swaps the chosen address in the app and site and rebuilds the privacy page.
 
 ### The landing page (`LandingPageDeploy/`)
 
-Ready apart from the domain. The site has three pages:
+Prepared locally; hosting, the working support email and final absolute social-image URL are still needed. The site has three pages:
 
 - **Home:** the nine toys including Little Wash, free toys and free week, no ads/tracking/accounts,
   and an App Store button that shows "Coming soon" until launch.
 - **Privacy:** the full policy, matching the one inside the app.
 - **Support.**
 
-All links are relative, so it works on any domain.
+Page links are relative. Set `og:image` to the absolute hosted URL before launch.
 
-- [ ] Host it on the domain, e.g. Netlify drop or Cloudflare Pages. Founder.
+- [x] Refresh `assets/og.png` (1200 × 630) and `toys.webp` (1600 × 222) from all nine current shelf cards, keeping Wren. Completed October 11; reproducible script and source hashes included. No generated art.
+
+- [ ] Host it at the chosen address, e.g. the free Cloudflare Pages subdomain. Founder.
   `_headers` adds strict security headers.
 - [ ] Swap the support email (one command). Claude.
 - [ ] Privacy link everywhere it's needed, all pointing at `https://<domain>/privacy.html`:
@@ -110,7 +111,7 @@ rest go to §8._
 ## 7. Discovery and awards (Founder + Claude)
 
 - [ ] **App Store featuring nomination** in App Store Connect, submitted well before launch
-  (check the current lead time there). Lead with the story: a calm, wordless toybox with no ads
+  (Apple’s current guidance recommends a minimum of three weeks; confirm the launch date first). [Apple guidance](https://developer.apple.com/help/app-store-connect/manage-featuring-nominations/nominate-your-app-for-featuring/). Lead with the story: a calm, wordless toybox with no ads
   and no data, where every sound is made in code.
 - [ ] Press kit page on the website: three screenshots, the preview video, a 100-word story and
   a founder note.

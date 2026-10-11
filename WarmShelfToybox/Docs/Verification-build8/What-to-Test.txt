@@ -1,0 +1,17 @@
+Lull 1.0 (8) — founder testing
+
+NEW LAUNCH
+The old loading animation is gone. Opening Lull should show the shelf room, then the toys rise into place. Check a fresh launch in portrait and landscape, return from the background, and the transition into the evening tint.
+
+If the old launch screen persists, restart your phone and check again: iOS can cache launch screens. Reinstalling is another option, but deletes local settings and saved creations, so restart first.
+
+ALL NINE TOYS
+Gameplay is unchanged from build 7. Please play each toy in both orientations and report the toy, orientation and exact steps for anything broken. Focus on Little Wash cleaning/refill, Feed food and friend variety, Sleepy Box shuffling each completed round, Mix-Up stage fit, Drop Dots colors, Hum spacing and expressions, Meadow visibility, Window and Bubbles.
+
+SOUND AND CONTROLS
+Check Sound On in Silent Mode; Sound Off should be silent. Try Haptics Off, Reduce Motion, leaving/returning, headphones, the play timer rest, and VoiceOver on the shelf and two toys. A longer session helps uncover stutters or crashes.
+
+PURCHASE CHECKS (SANDBOX)
+If available, test purchase, cancel, pending Ask to Buy, restore, and the free week ending. Do not treat missing store pricing as a successful purchase test.
+
+Please own the hands-on listening/device checks. Automated checks and successful compilation do not establish a device pass. This build is for TestFlight, not public App Review.

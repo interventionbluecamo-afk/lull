@@ -84,7 +84,7 @@ ChatGPT continues from the first unchecked step in §3, following §4.
 - [x] **3. Sleepy Box: holes on the front face.** Use measured shell fractions for the hole grid,
   hole size and face. Mock renders for phone and iPad, portrait and landscape. Verifier.
 - [x] **4. Mix-Up room** (per the founder's answer, §5).
-- [ ] **5. Drop Dots** (per the founder's answer, §5).
+- [x] **5. Drop Dots** (per the founder's answer, §5).
 - [ ] **6. Build 11.** Version bump, parse, verifiers, handoff.
 
 ## 4. Specs
@@ -153,3 +153,22 @@ ChatGPT continues from the first unchecked step in §3, following §4.
     `verify_mixup_stack` passes.
   - Not in the cloud: the curtain colour is the art's red (the shelf card is a little rosier).
     Judge on device and tint if wanted.
+- Oct 11, step 5 done (`DropDotsScene.swift`):
+  - **`DropDotsColourSets`:** 5 sets.
+    1. The board's own felts (rust, butter, blue, lavender).
+    2. Cherry, lemon, apple, plum.
+    3. Pink, sky, mint, lilac.
+    4. Marigold, leaf, berry, cornflower.
+    5. Indigo, moon, teal, rose.
+  - **Each pour** (`triggerReset`), once the dots are home in the tray (about 1.3 s + 0.07 s
+    per dot): `nextColourRound()` slips the old dots away under the tray, pops in a fresh
+    shuffled hand in the new colours, and re-tints the rings.
+  - **Rings:** felt half-annulus overlays (`ringTints`) over each painted ring. The radii,
+    0.044–0.080 of the board art width, are measured: the dark mouth ends at 0.045 and the
+    ring at 0.079. The upper half sits behind the dots and the lower half in front, like the
+    lip. Hidden in round 0.
+  - Tokens, hover rims, discoveries and VoiceOver names follow `DropDotToken.roundFelts` and
+    `roundNames`. Each visit starts on round 0. Rotation keeps the round.
+  - `verify_dropdots.py`: 45 checks, including colour distance for every pair in every set.
+  - Needs a device check: the ring overlays sit exactly on the painted rings, adjusting the
+    radii if needed (`makeRingTint`, 0.044 and 0.080). And the swap feels calm.

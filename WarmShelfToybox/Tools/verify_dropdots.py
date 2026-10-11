@@ -46,6 +46,28 @@ check(re.search(r"feltIndex: hand\[slot % hand\.count\]", scene) is not None, "t
 for cue in ["dots.pickup", "dots.hover", "dots.fall"]:
     check(f'"{cue}"' not in scene, f"{cue} stays silent (felt, not heard)")
 
+# Colour rounds (founder, October 11): every set has four clearly different felts a toddler can
+# tell apart (in colour and in brightness), unique names, and arrives after each pour.
+import colorsys
+sets_src = re.search(r"enum DropDotsColourSets \{(.*?)\n\}\n", scene, re.S).group(1)
+extra = re.findall(r"\[\(UIColor\(hex: 0x([0-9A-F]{6})\), \"(\w+)\"\), \(UIColor\(hex: 0x([0-9A-F]{6})\), \"(\w+)\"\),\s*\(UIColor\(hex: 0x([0-9A-F]{6})\), \"(\w+)\"\), \(UIColor\(hex: 0x([0-9A-F]{6})\), \"(\w+)\"\)\]", sets_src)
+check(len(extra) >= 3, f"at least three new felt sets after the board's own ({len(extra)})")
+def rgb(h): return tuple(int(h[i:i+2], 16) / 255 for i in (0, 2, 4))
+def lab_like(c):
+    r, g, b = c; return (0.299*r + 0.587*g + 0.114*b, r - g, (r + g) / 2 - b)
+for entry in extra:
+    colours = [rgb(entry[i]) for i in (0, 2, 4, 6)]
+    names = [entry[i] for i in (1, 3, 5, 7)]
+    check(len(set(names)) == 4, f"four names in the {names[0]} set")
+    for i in range(4):
+        for j in range(i + 1, 4):
+            a, b = lab_like(colours[i]), lab_like(colours[j])
+            d = sum((x - y) ** 2 for x, y in zip(a, b)) ** 0.5
+            check(d > 0.18, f"{names[i]} and {names[j]} are clearly different ({d:.2f})")
+check("self?.nextColourRound()" in scene and 'withKey: "dots.nextRound"' in scene, "a new set arrives after each pour")
+check("ringTints.append((upper, lower))" in scene, "the rings re-tint with each set")
+check("DropDotToken.roundFelts = DropDotToken.felts" in scene, "each visit starts on the board's own felts")
+
 hand = re.search(r"enum DropDotsHand \{.*?\n\}\n", scene, re.S).group(0)
 discoveries = re.search(r"enum DropDotsDiscoveries \{.*?\n\}\n", scene, re.S).group(0)
 program = """

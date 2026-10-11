@@ -22,8 +22,8 @@ Rules:
 | 2 Wash wheels on the floor | ✅ `a3f0887` | `WashBayFit` in `WashModel.swift`. Portrait sets the vehicle on the painted floor above the tools; landscape fits the bay to the wheels. |
 | 3 Sleepy Box holes on the front face | ✅ | `SleepyBoxShellLayout`: sockets on the measured front face, the face between them and the drawer, slightly smaller pieces on phones. `verify_sleepy_box_layout.py`. |
 | 4 Mix-Up felt theatre | ✅ | A soft floor (no seam), the round felt `mixup-stage`, a tiled valance and corner curtains. The heart is below the stage in portrait and beside it in landscape. `verify_mixup_layout.py`: 546 checks. |
-| 5 Drop Dots colour rounds | ⏳ next | A new felt colour set after each pour; rings re-tint. |
-| 6 Build 11 | ⏳ | Version 11, parse, verifiers, final handoff. |
+| 5 Drop Dots colour rounds | ✅ | 5 felt sets take turns: after each pour a fresh shuffled hand pops in and the rings re-tint (felt overlays on the painted rings). `verify_dropdots.py`: 45 checks. |
+| 6 Build 11 | ⏳ next | Version 11, parse, verifiers, final handoff. |
 
 ## Mac work once the steps are done
 
@@ -50,5 +50,9 @@ Rules:
      - The heart is clear of the stage in both orientations.
      - No hard floor line.
      - Is the curtain red right next to the shelf card?
-   - Step 5, once done: see the plan.
+   - **Drop Dots:**
+     - Pour, then a new colour set appears and the rings change colour.
+     - The felt ring overlays line up with the painted rings. If not, adjust the radii in
+       `makeRingTint` (inner 0.044, outer 0.080 × board art width).
+     - Rotation keeps the round.
 4. **TestFlight 1.0 (11)** with a What to Test (written in the final step).

@@ -176,6 +176,9 @@ final class LullDemoState {
 
     /// Parent-set play timer in minutes (0 = off). When play time elapses, Lull gently "rests"
     /// behind a calm moon veil until a grown-up wakes it through the gate — never a buzzer.
+    /// False until a grown-up has chosen a play timer (the welcome then suggests 30 minutes).
+    var hasChosenPlayTimer: Bool { defaults.object(forKey: "lull.playTimerMinutes") != nil }
+
     var playTimerMinutes: Int {
         get { defaults.integer(forKey: "lull.playTimerMinutes") }
         set {

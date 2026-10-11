@@ -71,7 +71,7 @@ already have been uploaded by the Mac, and skipping a number is harmless.
     screenshots spec.
   - Check the verifiers for the free set.
 - [x] **2. Play timer per sitting, survives relaunch.** Spec §4.1. Add `Tools/verify_play_timer.py`.
-- [ ] **3. Welcome page 2: "Your family's rhythm".** Spec §4.2.
+- [x] **3. Welcome page 2: "Your family's rhythm".** Spec §4.2.
 - [ ] **4. Grown-up area: a clear play timer card.** Spec §4.3.
 - [ ] **5. Drop Dots: more matches, more to discover.** Spec §4.4. Update `verify_dropdots.py`.
 - [ ] **6. Meadow little ones.** Spec §4.5. Add `Tools/verify_meadow_little_ones.py` for the
@@ -246,3 +246,12 @@ universal, like the other Meadow art). The code picks them up automatically.
     (`LullRestViewController.wakeWithoutGrownUp`).
   - `Tools/verify_play_timer.py`: 14 checks pass.
   - Needs a device check: force-quit while the rest is showing, then reopen. The rest returns.
+- Oct 11, step 3 done:
+  - `rhythmPage()` replaces `windDownPage()` in `LullOnboardingViewController`, with:
+    - a play timer card: pills Off/15/30/45/60, a live status line, a moon-rest note;
+    - a wind-down card: pills 5–9 pm, matching the grown-up area;
+    - a "change these anytime" card showing the real person button.
+  - 30 minutes is pre-selected only if no timer was ever chosen (new
+    `LullDemoState.hasChosenPlayTimer`). `finish()` saves the timer.
+  - The new page uses Dynamic Type; pills carry VoiceOver labels and the selected trait.
+  - Needs a device check: the page fits on a small iPhone (it scrolls if not).

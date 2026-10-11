@@ -22,6 +22,10 @@ final class LullOnboardingViewController: UIViewController {
 
     private var windDownHour = LullDemoState.shared.windDownHour
     private var windPills: [UIButton] = []
+    /// A first welcome suggests 30 minutes; a replay shows what the family already chose.
+    private var playTimerMinutes = LullDemoState.shared.hasChosenPlayTimer ? LullDemoState.shared.playTimerMinutes : 30
+    private var timerPills: [UIButton] = []
+    private let timerStatus = UILabel()
     private let pageCount = 3
     private var currentPage = 0
 
@@ -137,7 +141,7 @@ final class LullOnboardingViewController: UIViewController {
     }
 
     private func buildPages() {
-        let pages = [welcomePage(), windDownPage(), handoffPage()]
+        let pages = [welcomePage(), rhythmPage(), handoffPage()]
         for page in pages {
             page.translatesAutoresizingMaskIntoConstraints = false
             pagesStack.addArrangedSubview(page)
@@ -179,52 +183,142 @@ final class LullOnboardingViewController: UIViewController {
         return wrapInPage(stack)
     }
 
-    // MARK: - Page 2 — wind-down
+    // MARK: - Page 2 — the family's rhythm (play timer + wind-down)
 
-    private func windDownPage() -> UIView {
-        let eyebrow = makeEyebrow("BEDTIME, GENTLY")
-        let title = makeTitle("When does the\nday wind down?")
-        let body = makeBody("At your chosen hour, Lull's rooms become warmer and dimmer. It's a quiet cue you can pair with your family's evening routine.")
+    /// Few toy apps let a grown-up end play gently, so this page makes both settings plain:
+    /// what each does, the choice, and where to change it later (founder, October 11).
+    private func rhythmPage() -> UIView {
+        let eyebrow = makeEyebrow("YOUR FAMILY'S RHYTHM")
+        let title = makeTitle("Play, then rest.")
+        let body = makeBody("Lull can end play gently and grow sleepy in the evening. Choose both now; you can change them anytime.")
 
-        let card = makeWarmCard()
-        let squircle = makeIconSquircle("moon.zzz.fill", tint: WarmShelfPalette.lavender)
-        let hint = makeBody("Wind-down begins around")
-        hint.font = .systemFont(ofSize: 14.5, weight: .semibold)
-        hint.textColor = WarmShelfPalette.cocoa.withAlphaComponent(0.85)
-        let header = UIStackView(arrangedSubviews: [squircle, hint])
-        header.axis = .horizontal
-        header.spacing = 11
-        header.alignment = .center
-
-        let pillRow = UIStackView()
-        pillRow.axis = .horizontal
-        pillRow.spacing = 10
-        pillRow.distribution = .fillEqually
-        for hour in [18, 19, 20, 21] {
-            let pill = makeTimePill(hour: hour)
-            windPills.append(pill)
-            pillRow.addArrangedSubview(pill)
+        // Play timer, first: the one parents ask about.
+        let timerPillRow = UIStackView()
+        timerPillRow.axis = .horizontal
+        timerPillRow.spacing = 8
+        timerPillRow.distribution = .fillEqually
+        for minutes in [0, 15, 30, 45, 60] {
+            let pill = makeChoicePill(title: minutes == 0 ? "Off" : "\(minutes)", tag: minutes,
+                                      action: #selector(timerPillTapped(_:)))
+            pill.accessibilityLabel = minutes == 0 ? "Play timer off" : "Play timer, \(minutes) minutes"
+            timerPills.append(pill)
+            timerPillRow.addArrangedSubview(pill)
         }
-        let cardStack = UIStackView(arrangedSubviews: [header, pillRow])
-        cardStack.axis = .vertical
-        cardStack.spacing = 12
-        cardStack.translatesAutoresizingMaskIntoConstraints = false
-        card.addSubview(cardStack)
+        timerStatus.font = scaled(.systemFont(ofSize: 14.5, weight: .semibold), .subheadline)
+        timerStatus.adjustsFontForContentSizeCategory = true
+        timerStatus.textColor = WarmShelfPalette.clayInk
+        timerStatus.numberOfLines = 0
+        let restNote = makeSettingNote(symbol: "moon.stars.fill", tint: WarmShelfPalette.lavender,
+            text: "When time is up, the screen settles into a night sky with a soft moon. No alarms. Only a grown-up can wake Lull, even if the app is closed and reopened.")
+        let timerCard = makeSettingCard(symbol: "hourglass", tint: WarmShelfPalette.butter, title: "Play timer",
+                                        detail: "Minutes of play before Lull rests.",
+                                        content: [timerPillRow, timerStatus, restNote])
+
+        // Wind-down hour, second.
+        let windPillRow = UIStackView()
+        windPillRow.axis = .horizontal
+        windPillRow.spacing = 8
+        windPillRow.distribution = .fillEqually
+        for hour in [17, 18, 19, 20, 21] {
+            let pill = makeChoicePill(title: displayHour(hour), tag: hour, action: #selector(pillTapped(_:)))
+            pill.accessibilityLabel = "Wind-down at \(hour - 12) PM"
+            windPills.append(pill)
+            windPillRow.addArrangedSubview(pill)
+        }
+        let windCard = makeSettingCard(symbol: "moon.zzz.fill", tint: WarmShelfPalette.lavender, title: "Wind-down hour",
+                                       detail: "After this hour, Lull's rooms turn warmer and dimmer: a quiet cue for your evening routine.",
+                                       content: [windPillRow])
+
+        // Where to find them again, shown as the real button.
+        let whereCard = makeWarmCard()
+        let button = UIImageView(image: UIImage(systemName: "person.fill",
+            withConfiguration: UIImage.SymbolConfiguration(pointSize: 16, weight: .semibold)))
+        button.tintColor = WarmShelfPalette.cocoa.withAlphaComponent(0.75)
+        button.backgroundColor = WarmShelfPalette.sand.withAlphaComponent(0.3)
+        button.contentMode = .center
+        button.layer.cornerRadius = 22
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.isAccessibilityElement = false
+        let whereText = makeBody("Change these anytime: tap this button at the bottom right of the shelf, then answer the grown-up check. Sound, haptics, calmer motion and which toys are on the shelf are there too.")
+        whereText.font = scaled(.systemFont(ofSize: 14, weight: .medium), .footnote)
+        whereText.adjustsFontForContentSizeCategory = true
+        whereText.translatesAutoresizingMaskIntoConstraints = false
+        whereCard.addSubview(button)
+        whereCard.addSubview(whereText)
         NSLayoutConstraint.activate([
-            cardStack.topAnchor.constraint(equalTo: card.topAnchor, constant: 18),
-            cardStack.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 18),
-            cardStack.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -18),
-            cardStack.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -18)
+            button.leadingAnchor.constraint(equalTo: whereCard.leadingAnchor, constant: 16),
+            button.centerYAnchor.constraint(equalTo: whereCard.centerYAnchor),
+            button.widthAnchor.constraint(equalToConstant: 44),
+            button.heightAnchor.constraint(equalToConstant: 44),
+            whereText.topAnchor.constraint(equalTo: whereCard.topAnchor, constant: 14),
+            whereText.leadingAnchor.constraint(equalTo: button.trailingAnchor, constant: 14),
+            whereText.trailingAnchor.constraint(equalTo: whereCard.trailingAnchor, constant: -16),
+            whereText.bottomAnchor.constraint(equalTo: whereCard.bottomAnchor, constant: -14)
         ])
         refreshPills()
 
-        let stack = UIStackView(arrangedSubviews: [eyebrow, title, body, card])
+        let stack = UIStackView(arrangedSubviews: [eyebrow, title, body, timerCard, windCard, whereCard])
         stack.axis = .vertical
         stack.spacing = 14
         stack.alignment = .fill
         stack.setCustomSpacing(6, after: eyebrow)
-        stack.setCustomSpacing(22, after: body)
+        stack.setCustomSpacing(20, after: body)
         return wrapInPage(stack)
+    }
+
+    /// A settings card in the parent area's language: icon, bold name, one plain line, controls.
+    private func makeSettingCard(symbol: String, tint: UIColor, title: String, detail: String, content: [UIView]) -> UIView {
+        let card = makeWarmCard()
+        let name = UILabel()
+        name.text = title
+        name.font = scaled(.systemFont(ofSize: 17, weight: .bold), .headline)
+        name.adjustsFontForContentSizeCategory = true
+        name.textColor = WarmShelfPalette.clayInk
+        name.numberOfLines = 0
+        name.accessibilityTraits = .header
+        let line = makeBody(detail)
+        line.font = scaled(.systemFont(ofSize: 14.5), .subheadline)
+        line.adjustsFontForContentSizeCategory = true
+        let words = UIStackView(arrangedSubviews: [name, line])
+        words.axis = .vertical
+        words.spacing = 2
+        let header = UIStackView(arrangedSubviews: [makeIconSquircle(symbol, tint: tint), words])
+        header.axis = .horizontal
+        header.spacing = 12
+        header.alignment = .top
+        let column = UIStackView(arrangedSubviews: [header] + content)
+        column.axis = .vertical
+        column.spacing = 12
+        column.translatesAutoresizingMaskIntoConstraints = false
+        card.addSubview(column)
+        NSLayoutConstraint.activate([
+            column.topAnchor.constraint(equalTo: card.topAnchor, constant: 16),
+            column.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 16),
+            column.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -16),
+            column.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -16)
+        ])
+        return card
+    }
+
+    private func makeSettingNote(symbol: String, tint: UIColor, text: String) -> UIView {
+        let icon = UIImageView(image: UIImage(systemName: symbol,
+            withConfiguration: UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)))
+        icon.tintColor = tint
+        icon.setContentHuggingPriority(.required, for: .horizontal)
+        icon.isAccessibilityElement = false
+        let label = makeBody(text)
+        label.font = scaled(.systemFont(ofSize: 13.5), .footnote)
+        label.adjustsFontForContentSizeCategory = true
+        label.textColor = WarmShelfPalette.cocoa.withAlphaComponent(0.85)
+        let row = UIStackView(arrangedSubviews: [icon, label])
+        row.axis = .horizontal
+        row.spacing = 8
+        row.alignment = .firstBaseline
+        return row
+    }
+
+    private func scaled(_ font: UIFont, _ style: UIFont.TextStyle) -> UIFont {
+        UIFontMetrics(forTextStyle: style).scaledFont(for: font)
     }
 
     // MARK: - Page 3 — hand-off
@@ -465,20 +559,24 @@ final class LullOnboardingViewController: UIViewController {
 
     private func finish() {
         LullDemoState.shared.windDownHour = windDownHour
+        LullDemoState.shared.playTimerMinutes = playTimerMinutes   // also starts a fresh sitting
         LullDemoState.shared.completeOnboarding()
         onComplete?()
     }
 
-    // MARK: - Wind-down pills
+    // MARK: - Choice pills (play timer and wind-down)
 
-    private func makeTimePill(hour: Int) -> UIButton {
+    private func makeChoicePill(title: String, tag: Int, action: Selector) -> UIButton {
         let pill = UIButton(type: .system)
-        pill.setTitle(displayHour(hour), for: .normal)
-        pill.titleLabel?.font = .systemFont(ofSize: 16, weight: .bold)
+        pill.setTitle(title, for: .normal)
+        pill.titleLabel?.font = scaled(.systemFont(ofSize: 16, weight: .bold), .body)
+        pill.titleLabel?.adjustsFontForContentSizeCategory = true
+        pill.titleLabel?.adjustsFontSizeToFitWidth = true
+        pill.titleLabel?.minimumScaleFactor = 0.7
         pill.layer.cornerRadius = 16
-        pill.tag = hour
-        pill.heightAnchor.constraint(equalToConstant: 52).isActive = true
-        pill.addTarget(self, action: #selector(pillTapped(_:)), for: .touchUpInside)
+        pill.tag = tag
+        pill.heightAnchor.constraint(greaterThanOrEqualToConstant: 52).isActive = true
+        pill.addTarget(self, action: action, for: .touchUpInside)
         return pill
     }
 
@@ -489,19 +587,33 @@ final class LullOnboardingViewController: UIViewController {
         refreshPills()
     }
 
+    @objc private func timerPillTapped(_ sender: UIButton) {
+        playTimerMinutes = sender.tag
+        HapticsManager.shared.softTap()
+        AudioManager.shared.playSoftTap()
+        refreshPills()
+        UIAccessibility.post(notification: .announcement, argument: timerStatus.text)
+    }
+
     private func refreshPills() {
-        for pill in windPills {
-            let selected = pill.tag == windDownHour
-            pill.backgroundColor = selected ? WarmShelfPalette.terracotta : WarmShelfPalette.sand.withAlphaComponent(0.16)
-            pill.setTitleColor(selected ? WarmShelfPalette.paperHighlight : WarmShelfPalette.cocoa, for: .normal)
-            pill.layer.borderWidth = selected ? 0 : 1
-            pill.layer.borderColor = WarmShelfPalette.softLine.withAlphaComponent(0.4).cgColor
-        }
+        for pill in windPills { style(pill, selected: pill.tag == windDownHour) }
+        for pill in timerPills { style(pill, selected: pill.tag == playTimerMinutes) }
+        timerStatus.text = playTimerMinutes == 0
+            ? "Off: Lull never rests on its own."
+            : "Lull will rest after \(playTimerMinutes) minutes of play."
+    }
+
+    private func style(_ pill: UIButton, selected: Bool) {
+        pill.backgroundColor = selected ? WarmShelfPalette.terracotta : WarmShelfPalette.sand.withAlphaComponent(0.16)
+        pill.setTitleColor(selected ? WarmShelfPalette.paperHighlight : WarmShelfPalette.cocoa, for: .normal)
+        pill.layer.borderWidth = selected ? 0 : 1
+        pill.layer.borderColor = WarmShelfPalette.softLine.withAlphaComponent(0.4).cgColor
+        pill.accessibilityTraits = selected ? [.button, .selected] : .button
     }
 
     private func displayHour(_ hour: Int) -> String {
         let h = hour % 12 == 0 ? 12 : hour % 12
-        return "\(h):00"
+        return "\(h) pm"
     }
 
     // MARK: - Building blocks (warm handmade cards)

@@ -39,7 +39,9 @@ Mac checkout: `~/Desktop/lull v.2` · Last updated: **October 12, 2026, by Claud
 ## Next steps (in order)
 
 1. **Screenshots:**
-   - iPhone 6.9": done (8 images, `~/Desktop/lull-store/iphone/`);
+   - iPhone: done (8 images, `~/Desktop/lull-store/iphone/`). Apple's 2026 required slot is
+     **"iPhone with Dynamic Island (medium display)" = 1206 × 2622** (or 1179 × 2556). 1320 × 2868
+     is rejected there. No transparency allowed. Larger copies are in `lull-store/iphone-large/`;
    - iPad 13": done (8 images, `~/Desktop/lull-store/ipad/`), checked by eye.
      - Raw files: `/private/tmp/claude-502/-Users-User2-Desktop-lull-v-2/*/scratchpad/caps/ipad/`.
      - Compose with `python3 Tools/Store/compose_screenshots.py --captures <dir with iphone/ and ipad/> --out ~/Desktop/lull-store --devices ipad`.

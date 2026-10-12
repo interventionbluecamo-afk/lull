@@ -25,7 +25,7 @@ LINEN = (248, 243, 233)
 CREAM = (238, 227, 209)
 INK = (73, 53, 42)
 COCOA = (101, 75, 58)
-SIZES = {"iphone": (1320, 2868), "ipad": (2064, 2752)}
+SIZES = {"iphone": (1206, 2622), "ipad": (2064, 2752)}  # iPhone: Apple's required "Dynamic Island (medium)" size
 SERIF_BOLD = ["/System/Library/Fonts/Supplemental/Georgia Bold.ttf",
               "/Library/Fonts/Georgia Bold.ttf",
               "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf"]

@@ -1,3 +1,5 @@
+> **October 12 status: build 1.0 (14) was submitted and is Waiting for Review.** All four review items were received at 3:33 PM America/Chicago. See `Docs/HANDOFF-CURRENT.md` for current state; older preparation steps below are historical and must not be restarted.
+
 # Lull — App Store submission kit
 
 Updated October 11, 2026 for the 1.0 (8) candidate. Preparation for a public App Store

@@ -1,66 +1,44 @@
-# Lull — CURRENT HANDOFF (read this first, every session)
+# Lull — CURRENT HANDOFF (read first)
 
-**The founder switches between Claude and ChatGPT to save money.** Whoever is working keeps
-this file current *while* working, and pushes it after every meaningful step, so that the
-other AI can continue if usage runs out mid-task. Keep it short. Older dated handoffs in
-`Docs/` are background only.
+Updated October 12, 2026 by ChatGPT. Branch `claude/modest-bell-cjarqm` in `interventionbluecamo-afk/lull`. Mac checkout: `~/Desktop/lull v.2`.
 
-Branch: `claude/modest-bell-cjarqm` · Repo: github.com/interventionbluecamo-afk/lull ·
-Mac checkout: `~/Desktop/lull v.2` · Last updated: **October 12, 2026, by Claude**.
+## Current state: SUBMITTED TO APPLE
 
-## Where we are
+**Lull 1.0 (14) is Waiting for Review.** The founder clicked Submit for Review on October 12, 2026 at 3:33 PM America/Chicago; ChatGPT verified Apple's receipt and all four item statuses.
 
-- **Goal now: submit Lull 1.0 (14) to App Review.** The founder said go. The founder clicks
-  Submit themselves.
-- **Build 1.0 (14):** uploaded to App Store Connect October 12 at 11:31 CDT. It contains:
-  - the free-week-only model;
-  - the review fixes;
-  - support email `lullios@proton.me` and website links;
-  - the regrouped grown-up area (Your plan / Play / Sound & motion / Shelf / Help & privacy).
-  
-  Build 13 is also in TestFlight.
-- **Website live:** https://lulltoybox.pages.dev (Cloudflare Pages). To update it, rebuild with
-  `python3 Tools/Store/build_site.py` from `WarmShelfToybox/`. The founder then drags the
-  `LandingPageDeploy` folder into Cloudflare (lulltoybox → Create new deployment).
-- **App Store Connect:**
-  - agreements, banking and tax: Active;
-  - Lull Family: $29.99 a year, 1-week free trial;
-  - Keep Forever: $59.99;
-  - Family Sharing on for both;
-  - 16-day billing grace period on;
-  - US only.
-- **Founder decisions (final):**
-  - Kids age band: 5 and under;
-  - name and subtitle: Lull Quiet Toybox / Calm toys for ages 2–6;
-  - "new toys each season" stays;
-  - copyright: 2026 Timothy Doyle;
-  - manual release.
+- Submission ID: `6a0fb891-02a0-4692-b70c-e9d49264ad07`.
+- App Review: https://appstoreconnect.apple.com/apps/6819919245/distribution/reviewsubmissions/details/6a0fb891-02a0-4692-b70c-e9d49264ad07
+- Submitted together: iOS App 1.0 / build 14, Lull Keep Forever (non-consumable), Lull Family Yearly (annual subscription), and Lull Family (subscription group).
+- **Manual release** remains selected. Approval will not automatically publish the app.
+- App Store name currently saved: **Lull: Quiet Toybox**; subtitle: Calm toys for ages 2–6.
 
-## Next steps (in order)
+## Final checks and corrections
 
-1. **Screenshots:**
-   - iPhone: done (8 images, `~/Desktop/lull-store/iphone/`). Apple's 2026 required slot is
-     **"iPhone with Dynamic Island (medium display)" = 1206 × 2622** (or 1179 × 2556). 1320 × 2868
-     is rejected there. No transparency allowed. Larger copies are in `lull-store/iphone-large/`;
-   - iPad 13": done (8 images, `~/Desktop/lull-store/ipad/`), checked by eye.
-     - Raw files: `/private/tmp/claude-502/-Users-User2-Desktop-lull-v-2/*/scratchpad/caps/ipad/`.
-     - Compose with `python3 Tools/Store/compose_screenshots.py --captures <dir with iphone/ and ipad/> --out ~/Desktop/lull-store --devices ipad`.
-     - The compose script needs Pillow (`pip install pillow` in a venv).
-     - Captures come from a Debug build in the simulator, with env `LULL_DEBUG_FULL=1 LULL_DEBUG_TOY=<toy id>`.
-     - Wait about 30 s after launch before capturing.
-     - Check every image before the founder uploads.
-2. **The founder fills in App Store Connect**, following `Docs/Launch/Submit-Day.md` field by
-   field.
-   - The built-in browser can't upload files, so the founder drags in the screenshots and the
-     IAP review screenshot (`~/Desktop/Lull-IAP-review-screenshot.png`).
-   - An AI may type text fields if the founder is signed in.
-3. **The founder clicks Submit to App Review.** No AI submits or accepts agreements.
-4. **After approval:** Release, then `build_site.py --launched`, then re-upload the site.
+- Founder explicitly confirmed build 14's welcome, purchase/restore and grown-up-page device checks pass. No duplicate agent gameplay pass.
+- Build 14 was already uploaded by Claude. No new app code, build or upload was needed this session.
+- Onboarding and parent-page source changes inspected: adult gate, setup, disclosed plan offer; grouped grown-up controls and constrained chevrons. No new redesign started.
+- Version 1.0 had build 14 selected, final description/review notes/contact fields saved, no sign-in required and manual release selected.
+- App Privacy published: Data Not Collected; live privacy URL correct.
+- Age questionnaire reviewed: Made for Kids, ages 5 and under; 4+ calculated rating. Education / Entertainment categories saved.
+- Both public URLs return HTTP 200: https://lulltoybox.pages.dev/privacy and /support, using `lullios@proton.me`.
+- All **16 screenshot assets** (8 iPhone, 8 iPad) existed in Apple's Asset Library and became Ready for Review with this version. Local composites checked as a contact sheet. Dimensions: iPhone 1206×2622; iPad 2064×2752; all RGB. No generated replacement gameplay or new image generation.
+- **Actual launch bug corrected:** the app itself was still available in all 175 territories, despite the agreed US-only plan. Set United States only and disabled automatic future-country availability. Verified 1 Available / 174 Not Available.
+- Disabled untested Apple Silicon Mac distribution; Vision Pro remains off. Launch is iPhone/iPad.
+- App download price verified US $0.00. Paid access remains annual $29.99 with an eligible one-week introductory offer, or Keep Forever $59.99. Family Sharing is on for both; 16-day billing grace period is on. Agreements/banking/tax previously verified Active.
 
-## Rules
+## Next steps — do not restart submission preparation
 
-- Never commit signing files.
-- Never enter payment, tax or bank details, and never accept agreements.
-- TestFlight uploads are OK. App Review submission is the founder's click.
-- The child's shelf never shows prices or locks. Purchases stay behind the adult check.
-- Be token-thrifty. No big multi-agent reviews unless asked.
+1. Wait for Apple's response. No monitor/automation has been created. Founder can check App Review or bring the response to either assistant.
+2. If Apple asks a question or rejects an item, address the specific finding. Do not withdraw the submission or start a broad redesign without the founder's direction.
+3. After approval, founder chooses when to release. Then run `python3 Tools/Store/build_site.py --launched` from `WarmShelfToybox/` and upload `LandingPageDeploy` to Cloudflare Pages so the site points to the live App Store product.
+4. The founder retained “new toys each season.” Plan the first update without delaying 1.0.
+
+## Evidence, assets and context
+
+- `Docs/Launch/Final-Submission-Check-2026-10-12.md`: scoped findings and exact receipt.
+- `Docs/AppStore/Submitted-build14/`: the 16 listing composites, contact sheet and submission receipt, saved to Git for cloud Claude.
+- `Docs/Launch/Submit-Day.md`: historical field-by-field guide; submission steps already complete.
+- `Docs/Product-Assessment-2026-10-11.md`: longer strategic assessment and prioritized roadmap; recommendations, not new launch requirements.
+- Site: https://lulltoybox.pages.dev; support: lullios@proton.me.
+- Source and prior verifications are in Git. Never commit signing material, credentials, tax or banking information.
+- Be token-thrifty; founder owns hands-on tests. Keep this file current and push after meaningful progress.

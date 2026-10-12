@@ -1,3 +1,5 @@
+> **October 12 status: build 1.0 (14) was submitted and is Waiting for Review.** All four review items were received at 3:33 PM America/Chicago. See `Docs/HANDOFF-CURRENT.md` for current state; older preparation steps below are historical and must not be restarted.
+
 # Lull 1.0 — launch checklist
 
 Started October 10, 2026, at build 1.0 (8). This is the single list from here to "Submit for

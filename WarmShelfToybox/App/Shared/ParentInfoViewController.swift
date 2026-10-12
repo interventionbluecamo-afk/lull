@@ -5,9 +5,9 @@ import StoreKit
 /// (`LandingPageDeploy/`) and App Store Connect (Support URL, Privacy Policy URL).
 enum LullLinks {
     /// FOUNDER: must be a mailbox you control before public release (see Docs/AppStore/).
-    static let supportEmail = "support@lull.app"
+    static let supportEmail = "lullios@proton.me"
     /// The hosted copy of `LullPrivacyViewController.sections`. nil hides "Read it on the web".
-    static let privacyPolicyURL: URL? = nil
+    static let privacyPolicyURL: URL? = URL(string: "https://lulltoybox.pages.dev/privacy.html")
 }
 
 /// Parent-only access, preferences, and a clear description of the current toybox.

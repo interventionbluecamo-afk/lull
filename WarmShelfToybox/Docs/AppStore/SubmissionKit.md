@@ -89,8 +89,8 @@ need no attribution).
 - **Promotional text (120/170):** Nine felt-and-wood toys for little hands. No ads, no tracking,
   no accounts, and a play timer that ends with a calm rest.
 - **Keywords (99/100):** `toddler,preschool,montessori,sensory,baby,music,shapes,sorting,quiet,bedtime,learning,play,kid,felt`
-- **Support URL:** `https://YOURPROJECT.pages.dev/support.html` · **Marketing URL:** `https://YOURPROJECT.pages.dev/`
-  · **Privacy Policy URL:** `https://YOURPROJECT.pages.dev/privacy.html`
+- **Support URL:** `https://lulltoybox.pages.dev/support.html` · **Marketing URL:** `https://lulltoybox.pages.dev/`
+  · **Privacy Policy URL:** `https://lulltoybox.pages.dev/privacy.html`
 - **Copyright:** 2026 *your legal name or company*
 
 **Description:**
@@ -132,7 +132,7 @@ need no attribution).
 > It renews automatically unless cancelled at least 24 hours before the end of the current
 > period. Manage or cancel in your Apple Account settings.
 > Terms of Use: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
-> Privacy Policy: https://YOURPROJECT.pages.dev/privacy.html
+> Privacy Policy: https://lulltoybox.pages.dev/privacy.html
 
 Before pasting, check each toy line against the approved shipping build. Little Wash replaces
 Stack from build 7 onward and needs the founder's device review. Replace the privacy URL with

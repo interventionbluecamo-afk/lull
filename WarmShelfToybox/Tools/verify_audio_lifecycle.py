@@ -94,13 +94,31 @@ check(!audio.play(cue: "ui.tap"), "An immediate repeat of the same cue is held b
 spin(0.1)
 check(audio.play(cue: "ui.tap"), "After the cooldown the cue plays again")
 check(!audio.play(cue: "no.such.cue"), "Unknown cues are refused")
+// A cold cue renders its first buffer immediately and refills the rest asynchronously.
+// Wait for readiness instead of assuming the utility queue finishes during twelve taps.
+func cachedVariantCount(_ id: String) -> Int {
+    let cache = Mirror(reflecting: audio).children.first { $0.label == "cache" }!.value as! [String: [AVAudioPCMBuffer]]
+    return cache[id]?.count ?? 0
+}
+check(audio.play(cue: "bubble.small"), "A cold cue plays before its variants finish rendering")
+let expectedVariants = LullSoundBook.variants(for: "bubble.small")
+let variationDeadline = ProcessInfo.processInfo.systemUptime + 10
+while cachedVariantCount("bubble.small") < expectedVariants,
+      ProcessInfo.processInfo.systemUptime < variationDeadline {
+    spinReal(0.05)
+}
+check(expectedVariants > 1 && cachedVariantCount("bubble.small") == expectedVariants,
+      "The cold cue's background refill renders all \(expectedVariants) variants (saw \(cachedVariantCount("bubble.small")))")
 let logStart = stubScheduledLog.count
 for _ in 0..<12 {
     spinReal(0.06)
-    _ = audio.play(cue: "bubble.small")
+    check(audio.play(cue: "bubble.small"), "A repeated cue plays after its cooldown")
 }
-let seen = Set(stubScheduledLog[logStart...])
-check(seen.count >= 3, "Repeated cues rotate through rendered variants (saw \(seen.count))")
+let repeated = Array(stubScheduledLog[logStart...])
+// Selection is random, so twelve plays need not visit three distinct variants.
+// The production promise is that adjacent plays never reuse the same ready buffer.
+check(repeated.count == 12 && zip(repeated, repeated.dropFirst()).allSatisfy { pair in pair.0 != pair.1 },
+      "Repeated cues avoid immediate repeats across rendered variants")
 spin(0.1)
 check(audio.play(cue: "feed.success", delay: 0.5), "A delayed cue is accepted")
 check(players().contains { $0.scheduled.contains { $0.at != nil } }, "Delays are scheduled sample-accurately (host time)")

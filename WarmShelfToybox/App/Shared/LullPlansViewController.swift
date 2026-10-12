@@ -72,7 +72,7 @@ struct LullPlanOffer {
     /// The line beside every start button: the billed price, in plain words (Guideline 3.1.2).
     var startCaption: String? {
         guard let price = familyPrice else { return nil }
-        if let free = freeHeadline { return "\(free), then \(price) a \(period). Cancel anytime." }
+        if let free = freeHeadline { return "\(free), then \(price) a \(period). To pay nothing, cancel at least 24 hours before the trial ends." }
         return "\(price) a \(period), renewing each \(period). Cancel anytime."
     }
 
@@ -149,7 +149,7 @@ enum LullFreeWeekReminder {
         let content = UNMutableNotificationContent()
         content.title = "Lull's free week ends in \(daysBefore) days"
         content.body = "On \(LullPlanOffer.longDay(end)), Lull Family begins at \(price) a \(period). "
-            + "To pay nothing, cancel at least a day before in Settings › your name › Subscriptions."
+            + "To pay nothing, cancel at least 24 hours before the trial ends in Settings › your name › Subscriptions."
         content.sound = nil   // Lull never makes a sound on its own.
         let when = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
         let request = UNNotificationRequest(identifier: identifier, content: content,
@@ -189,12 +189,12 @@ enum LullPurchaseFlow {
         }
         if state.isInFreeWeek {
             let end = state.freeWeekEndDate.map(LullPlanOffer.longDay) ?? "the end of the week"
-            // The timeline promised a reminder: ask now, while the grown-up is here.
+            // Offer to schedule the reminder now, while the grown-up is here.
             let reminded = await LullFreeWeekReminder.requestAndSchedule()
             let reminder = reminded
-                ? LullFreeWeekReminder.reminderDate.map { " Lull will remind you on \(LullPlanOffer.longDay($0))." } ?? ""
-                : " The grown-up area always shows the days left."
-            return .opened("Your free week has begun. All nine toys are open until \(end), and nothing is charged before then.\(reminder)")
+                ? LullFreeWeekReminder.reminderDate.map { " A reminder is scheduled for \(LullPlanOffer.longDay($0))." } ?? " A reminder is scheduled."
+                : " No reminder is set. The grown-up area shows the days left."
+            return .opened("Your free week has begun. All nine toys are open until \(end). To pay nothing, cancel at least 24 hours before the trial ends.\(reminder)")
         }
         return .opened("Lull Family is active. All nine toys are open.")
     }
@@ -346,10 +346,10 @@ final class LullOfferView: UIView {
         var beats: [(String, String, UIColor)] = [
             ("Today", "All nine toys open. Nothing to pay today.", WarmShelfPalette.butter)
         ]
-        let charge = "Lull Family begins at \(price) a \(offer.period). Cancel at least a day before and you pay nothing."
+        let charge = "Lull Family begins at \(price) a \(offer.period). To pay nothing, cancel at least 24 hours before the trial ends."
         if let days = offer.freeDays, days > LullFreeWeekReminder.daysBefore {
             beats.append((LullPlanOffer.dayLabel(afterDays: days - LullFreeWeekReminder.daysBefore),
-                          "Lull reminds you that the free week is ending.", WarmShelfPalette.sage))
+                          "With notifications enabled, Lull can remind you that the free week is ending.", WarmShelfPalette.sage))
             beats.append((LullPlanOffer.dayLabel(afterDays: days), charge, WarmShelfPalette.terracotta))
         } else {
             beats.append(("When the free \(offer.freeLength ?? "week") ends", charge, WarmShelfPalette.terracotta))
@@ -448,12 +448,12 @@ final class LullOfferView: UIView {
         let trial = offer.freeLength != nil
         var rows: [UIView] = [makeEyebrow("NO SURPRISES")]
         if trial {
-            rows.append(makePromise("bell.fill", tint: WarmShelfPalette.butter, title: "A reminder before you pay",
-                                    detail: "Two days before the week ends, if you allow Lull's one notification."))
+            rows.append(makePromise("bell.fill", tint: WarmShelfPalette.butter, title: "An optional reminder before you pay",
+                                    detail: "Allow notifications to set a reminder two days before the week ends."))
         }
         rows.append(makePromise("hand.tap.fill", tint: WarmShelfPalette.sage, title: "Cancel in a few taps",
                                 detail: trial
-                                    ? "In Settings › your name › Subscriptions. Cancel during the free week and you pay nothing."
+                                    ? "In Settings › your name › Subscriptions. To pay nothing, cancel at least 24 hours before the trial ends."
                                     : "In Settings › your name › Subscriptions, whenever you like."))
         if offer.familyShared || offer.keepForeverShared {
             rows.append(makePromise("person.2.fill", tint: WarmShelfPalette.waterBlue, title: "One purchase, the whole family",
@@ -729,7 +729,7 @@ final class LullOfferPauseViewController: UIViewController {
 
         let body = UILabel()
         body.text = trial
-            ? "Here's exactly how the free week works. Your child plays with all nine toys. Two days before the week ends, Lull reminds you. If Lull hasn't found a place in your family's day, cancel in Settings and you pay nothing."
+            ? "Here's how the free week works. Your child plays with all nine toys. Allow notifications to set a reminder two days before the week ends. To pay nothing, cancel in Settings at least 24 hours before the trial ends."
             : "Whenever you're ready, a grown-up can open the toybox from the button at the bottom of the shelf."
         body.font = UIFontMetrics(forTextStyle: .body).scaledFont(for: .systemFont(ofSize: 16))
         body.adjustsFontForContentSizeCategory = true
@@ -1006,7 +1006,7 @@ final class LullPlansViewController: UIViewController {
             let end = LullPlanOffer.longDay(state.freeWeekEndDate ?? Date())
             body.text = state.planWillRenew == false
                 ? "All nine toys are open until \(end). Lull Family won't renew, so the toybox then rests until a grown-up opens it again."
-                : "All nine toys are open. On \(end), Lull Family begins at \(store.displayPrice(for: LullStoreProduct.familyYearly)) a \(period). To pay nothing, cancel at least a day before with Manage subscription below."
+                : "All nine toys are open. On \(end), Lull Family begins at \(store.displayPrice(for: LullStoreProduct.familyYearly)) a \(period). To pay nothing, cancel at least 24 hours before the trial ends with Manage subscription below."
         } else if state.hasSubscription {
             eyebrow.text = "LULL FAMILY"
             body.text = state.planWillRenew == false
@@ -1096,8 +1096,8 @@ final class LullPlansViewController: UIViewController {
         Task { @MainActor in
             let set = await LullFreeWeekReminder.requestAndSchedule()
             statusMessage = set
-                ? LullFreeWeekReminder.reminderDate.map { "Lull will remind you on \(LullPlanOffer.longDay($0))." }
-                : "Notifications are off for Lull, so there's no reminder. This page always shows the days left, and notifications can be turned on in Settings."
+                ? LullFreeWeekReminder.reminderDate.map { "A reminder is scheduled for \(LullPlanOffer.longDay($0))." } ?? "A reminder is scheduled."
+                : "No reminder is set. This page always shows the days left. Check that notifications are enabled for Lull in Settings, then try again."
             render()
         }
     }

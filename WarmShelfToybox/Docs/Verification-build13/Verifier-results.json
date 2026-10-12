@@ -1,0 +1,85 @@
+[
+  {
+    "script": "verify_adult_gate.py",
+    "exit_code": 0,
+    "seconds": 23.36
+  },
+  {
+    "script": "verify_audio_lifecycle.py",
+    "exit_code": 0,
+    "initial_exit_code": 1,
+    "initial_seconds": 57.26,
+    "retry_log": "verify_audio_lifecycle-retry.log",
+    "note": "Verifier readiness/random-distribution fix only; targeted rerun passed 78 checks. Original failed log preserved."
+  },
+  {
+    "script": "verify_dropdots.py",
+    "exit_code": 0,
+    "seconds": 7.7
+  },
+  {
+    "script": "verify_feed.py",
+    "exit_code": 0,
+    "seconds": 42.22
+  },
+  {
+    "script": "verify_hum.py",
+    "exit_code": 0,
+    "seconds": 46.03
+  },
+  {
+    "script": "verify_meadow_little_ones.py",
+    "exit_code": 0,
+    "seconds": 16.15
+  },
+  {
+    "script": "verify_mixup_layout.py",
+    "exit_code": 0,
+    "seconds": 9.44
+  },
+  {
+    "script": "verify_mixup_stack.py",
+    "exit_code": 0,
+    "seconds": 22.23
+  },
+  {
+    "script": "verify_onboarding_state.py",
+    "exit_code": 0,
+    "seconds": 5.38
+  },
+  {
+    "script": "verify_play_timer.py",
+    "exit_code": 0,
+    "seconds": 6.91
+  },
+  {
+    "script": "verify_rest_suspension.py",
+    "exit_code": 0,
+    "seconds": 8.94
+  },
+  {
+    "script": "verify_sleepy_box_layout.py",
+    "exit_code": 0,
+    "seconds": 13.59
+  },
+  {
+    "script": "verify_sound_kit.py",
+    "exit_code": 0,
+    "seconds": 53.99
+  },
+  {
+    "script": "verify_wash.py",
+    "exit_code": 0,
+    "seconds": 18.46
+  },
+  {
+    "script": "verify_window.py",
+    "exit_code": 0,
+    "seconds": 29.93
+  },
+  {
+    "script": "verify_world_interactions.py",
+    "exit_code": 0,
+    "seconds": 20.98
+  }
+]

@@ -122,8 +122,8 @@ need no attribution).
 >
 > TRY ALL NINE TOYS FREE FOR A WEEK
 > Lull Family opens all nine toys, and the new ones that arrive each season, starting with
-> 7 days free for new subscribers. Lull can remind you two days before the free week ends,
-> and cancelling during the week costs nothing. Rather not subscribe? Keep Forever is one
+> 7 days free for new subscribers. With notifications enabled, Lull schedules a reminder two days before the free week ends.
+> Cancel at least 24 hours before the free week ends to avoid the charge. Rather not subscribe? Keep Forever is one
 > payment for every toy, for good. Both work with Family Sharing, and both are chosen by a
 > grown-up, behind the adult check.
 >

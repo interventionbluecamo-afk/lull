@@ -1,0 +1,17 @@
+Build 13 — paid-only toybox and clearer trial information.
+
+All nine toys now require Lull Family or Keep Forever. This includes build 12's welcome and resting shelf, plus corrected reminder and cancellation wording.
+
+1. Welcome: Set up Lull should ask the grown-up check before settings and prices. On Your toybox is ready, confirm the annual price, eligible seven-day offer, one-time option and 24-hour cancellation deadline are clear. Try Not now and Decide later; the shelf should show Nine toys are waiting with a grown-up button.
+
+2. Sandbox purchase: start the eligible free week or buy Keep Forever. Confirm all nine toys open and the grown-up Full Toybox page shows the correct plan. Check Restore Purchases. No prices or locks should appear on the child's shelf.
+
+3. Reminder: test allowing notifications and declining them. Success should say a reminder is scheduled; denial/failure should say No reminder is set. The reminder is optional and silent. Check the days-left and Manage subscription controls. Sandbox subscription timing can be faster than real time.
+
+4. Cancellation: cancel through Manage subscription and confirm the displayed renewal state and subsequent access follow Apple's sandbox entitlement. Allow at least 24 hours before a real trial ends to avoid the charge. Keep Forever should have no renewal controls.
+
+5. Continue the build-11 device checks: Little Wash wheels sit on the floor in both orientations; Sleepy Box holes align and pieces remain easy to handle; Mix-Up's felt theatre/stage has no hard cutoff; Drop Dots colors change after pouring and rings match; Meadow babies follow, hop and arrive home, including after rotation.
+
+6. Check Sound Off/On, Reduce Motion, and the per-sitting play timer. Force-quit/reopen during the moon rest: it should remain until a grown-up wakes Lull or an hour away starts a fresh sitting.
+
+Testing is owned by the founder. No new agent device-play pass is claimed.

@@ -22,8 +22,8 @@ as they close. Nothing here has been submitted to Apple.
 | [x] | **Family Sharing** for both products (cannot be turned off later) | **On for both** (founder, October 11). |
 | [ ] | **Kids age band** (permanent once approved) | Made for Kids → 5 and under. |
 | [ ] | **Territories** | English-speaking first: US, UK, Canada, Australia and New Zealand if excluding the EU for 1.0. Ireland is in the EU; include it only with the applicable EU trader requirements resolved. |
-| [x] | **Price** | Changed October 11 (founder): **Lull Family** $29.99 a year with a free week, or **Keep Forever** $59.99 once. Three toys free forever. Replaces $9.99 one-time. |
-| [x] | **Free toys** | Bubbles, Drop Dots, Hum (founder, October 11). Little Wash is paid. |
+| [x] | **Price** | Changed October 11 (founder): **Lull Family** $29.99 a year with a free week, or **Keep Forever** $59.99 once. Build 12/13 has no free toys. Replaces $9.99 one-time. |
+| [x] | **Access model** | Build 12/13: all nine require the eligible annual introductory offer, annual subscription, or Keep Forever. Build 11 retains the older three-free-toy model. |
 | [ ] | **"New toys each season"** | The app, site and store page now promise it, and Lull Family's value depends on it. Confirm the first seasonal toy and its month (§8). Keep Forever includes every future toy. |
 | [ ] | **Release style and target date** | Manual release. Avoid Apple's late-December slowdown. |
 | [ ] | **Store name and subtitle** | "Lull Quiet Toybox" / "Calm toys for ages 2–6". |
@@ -35,7 +35,7 @@ as they close. Nothing here has been submitted to Apple.
 
 ### The landing page (`LandingPageDeploy/`)
 
-**Finished October 11** and deploy-ready: home (the nine toys with Free tags, the three
+**Updated October 12 for build 13**: home (nine toys, no Free tags, the two
 plans with subscription terms), support, privacy, press, a 404 page, robots and sitemap.
 No scripts or trackers. Light and dark. Checked at phone and desktop widths. How to build,
 host and launch it: `Docs/Launch/Website.md`.
@@ -50,7 +50,7 @@ host and launch it: `Docs/Launch/Website.md`.
 - [ ] Check every page on a phone and a desktop after hosting: links, images, the email, a share preview.
 - [ ] Launch day: `python3 Tools/Store/build_site.py --launched`, then re-upload.
 - [ ] Later (§7): screenshots and the preview video on the press page; a founder note.
-- [ ] **Paid Apps Agreement, tax and banking active.** Blocks both products, sandbox included. On October 11, ASC Business showed Free Apps Agreement Active and Paid Apps Agreement **New**, with “View and Agree to Terms.” Account Holder must complete this; tax/banking readiness has not been verified. No agreement was accepted by the agent.
+- [x] **Paid Apps Agreement, tax and banking active.** All three verified Active in ASC on October 12. The founder entered the details and accepted agreements. No financial/tax details were entered by ChatGPT.
 - [ ] **Copyright line**: your legal name or company.
 - [ ] **Make the GitHub repository private.** Revoke old tokens; give agents an App Manager role,
   not the Account Holder's.
@@ -166,3 +166,12 @@ Still worth doing before launch, if founder testing agrees (small, Claude):
 3. Submit for Review with **manual release**.
 4. When approved: release on the chosen day. Then `python3 Tools/Store/build_site.py --launched`
    and re-upload the website (`Docs/Launch/Website.md`).
+
+
+## October 12 release continuation
+
+- Current handoff: `../Handoff-ChatGPT-to-Claude-2026-10-12-build13.md`.
+- Founder-requested product assessment: `../Product-Assessment-2026-10-11.md`. Larger recommendations do not automatically expand the feature freeze.
+- Actual sales availability remains US-only by explicit founder instruction. Calculated price and introductory-offer tables may cover all 175 storefronts.
+- Both products have Family Sharing; annual US $29.99, one-week intro offer, and Keep Forever US $59.99 are configured.
+- Founder confirmed 16-day Billing Grace Period for All Renewals in Production and Sandbox; verified October 12.

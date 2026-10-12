@@ -448,15 +448,15 @@ final class LullOnboardingViewController: UIViewController {
             let end = state.freeWeekEndDate.map(LullPlanOffer.longDay) ?? "When the week ends"
             let afterWeek = state.planWillRenew == false
                 ? "Lull Family won't renew, so the toybox rests until a grown-up opens it again."
-                : "Lull Family begins at \(store.displayPrice(for: LullStoreProduct.familyYearly)) a \(period). To pay nothing, cancel at least a day before in Settings › your name › Subscriptions."
+                : "Lull Family begins at \(store.displayPrice(for: LullStoreProduct.familyYearly)) a \(period). To pay nothing, cancel at least 24 hours before the trial ends in Settings › your name › Subscriptions."
             timelineRows = [makeTimelineRow(dot: WarmShelfPalette.butter, label: "Today",
                                             text: "All nine toys are open for \(days) day\(days == 1 ? "" : "s"). Nothing to pay.")]
             if LullFreeWeekReminder.isScheduled, let reminder = LullFreeWeekReminder.reminderDate {
                 timelineRows.append(makeTimelineRow(dot: WarmShelfPalette.sage, label: LullPlanOffer.longDay(reminder),
-                                                    text: "Lull reminds you that the free week is ending."))
+                                                    text: "A reminder is scheduled."))
             } else {
                 timelineRows.append(makeTimelineRow(dot: WarmShelfPalette.sage, label: "Any day",
-                                                    text: "The grown-up area shows how many days are left."))
+                                                    text: "No reminder is set. The grown-up area shows how many days are left."))
             }
             timelineRows.append(makeTimelineRow(dot: WarmShelfPalette.terracotta, label: end, text: afterWeek, isLast: true))
         } else {
@@ -536,7 +536,7 @@ final class LullOnboardingViewController: UIViewController {
             isPurchasing = false
             switch outcome {
             case .opened:
-                // The open page says what's open, until when, and when the reminder comes.
+                // The open page says what's open, until when, and whether a reminder is set.
                 offerMessage = nil
                 HapticsManager.shared.softTap()
             case .notOpened(let reason):

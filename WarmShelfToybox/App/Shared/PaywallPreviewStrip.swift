@@ -27,7 +27,7 @@ final class PaywallPreviewStrip: UIView {
         heightConstraint.isActive = true
 
         isAccessibilityElement = true
-        accessibilityLabel = "Included in the full toybox: "
+        accessibilityLabel = "The nine toys: "
             + toyIDs.compactMap { ToyRegistry.toy(id: $0)?.parentName }.joined(separator: ", ")
 
         skView.translatesAutoresizingMaskIntoConstraints = false

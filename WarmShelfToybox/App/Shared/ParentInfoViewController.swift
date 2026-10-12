@@ -111,7 +111,18 @@ final class ParentInfoViewController: UIViewController {
             stack.addArrangedSubview(makeNoticeCard(text: statusMessage))
         }
 
-        stack.addArrangedSubview(makeCaption("FAMILY CONTROLS"))
+        // The plan comes first, like an account at the top of Settings: it's what a grown-up
+        // opens this room to check (days left, cancel, restore).
+        stack.addArrangedSubview(makeCaption("YOUR PLAN"))
+        stack.addArrangedSubview(makeGroupCard([
+            makeChevronRow(icon: "sparkles", tint: WarmShelfPalette.butter,
+                           title: state.hasFullToybox ? "Lull is open" : "Open the toybox",
+                           detail: LullPlansViewController.statusLine(),
+                           action: #selector(showPlans))
+        ]))
+        stack.setCustomSpacing(24, after: stack.arrangedSubviews.last!)
+
+        stack.addArrangedSubview(makeCaption("PLAY"))
         // The play timer comes first: few toy apps have one, and it's what grown-ups look for.
         let timerMinutes = state.playTimerMinutes
         let played = LullPlayTimer.shared.minutesPlayed
@@ -134,6 +145,8 @@ final class ParentInfoViewController: UIViewController {
                 action: #selector(windDownPicked(_:))
             )
         ]))
+        stack.setCustomSpacing(24, after: stack.arrangedSubviews.last!)
+        stack.addArrangedSubview(makeCaption("SOUND & MOTION"))
         stack.addArrangedSubview(makeGroupCard([
             makeSwitchGroupRow(
                 icon: "speaker.wave.2.fill", tint: WarmShelfPalette.waterBlue,
@@ -174,6 +187,8 @@ final class ParentInfoViewController: UIViewController {
             ))
         }
         let chosenCount = ToyRegistry.launchToyIDs.filter { !hiddenToys.contains($0) }.count
+        stack.setCustomSpacing(24, after: stack.arrangedSubviews.last!)
+        stack.addArrangedSubview(makeCaption("SHELF"))
         stack.addArrangedSubview(makeDisclosureCard(
             title: "Choose shelf toys",
             detail: state.hasFullToybox ? "\(chosenCount) toys on the child's shelf" : "\(chosenCount) toys chosen · toybox not open yet",
@@ -182,15 +197,8 @@ final class ParentInfoViewController: UIViewController {
                       makeFootnote("Choose which toys appear. At least one toy always stays on the shelf.")]
         ))
 
-        // Plans and prices live on their own page (founder, October 11): one quiet row here.
         stack.setCustomSpacing(24, after: stack.arrangedSubviews.last!)
-        stack.addArrangedSubview(makeCaption("FULL TOYBOX"))
-        stack.addArrangedSubview(makeGroupCard([
-            makeChevronRow(icon: "sparkles", tint: WarmShelfPalette.butter,
-                           title: "Full Toybox", detail: LullPlansViewController.statusLine(),
-                           action: #selector(showPlans))
-        ]))
-        stack.setCustomSpacing(24, after: stack.arrangedSubviews.last!)
+        stack.addArrangedSubview(makeCaption("HELP & PRIVACY"))
 
         let welcome = makeActionButton(title: "See the welcome again", style: .text)
         welcome.addTarget(self, action: #selector(resetOnboarding), for: .touchUpInside)
@@ -521,8 +529,11 @@ final class ParentInfoViewController: UIViewController {
         titleLabel.isUserInteractionEnabled = false
 
         let chevron = UIImageView(image: UIImage(systemName: "chevron.right",
-            withConfiguration: UIImage.SymbolConfiguration(pointSize: 12, weight: .semibold)))
+            withConfiguration: UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)))
         chevron.tintColor = WarmShelfPalette.cocoa.withAlphaComponent(0.4)
+        chevron.contentMode = .center
+        chevron.setContentHuggingPriority(.required, for: .horizontal)
+        chevron.setContentCompressionResistancePriority(.required, for: .horizontal)
 
         [squircle, titleLabel, chevron].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
@@ -538,7 +549,8 @@ final class ParentInfoViewController: UIViewController {
             titleLabel.bottomAnchor.constraint(lessThanOrEqualTo: row.bottomAnchor, constant: -12),
             titleLabel.trailingAnchor.constraint(equalTo: chevron.leadingAnchor, constant: -8),
             chevron.trailingAnchor.constraint(equalTo: row.trailingAnchor, constant: -16),
-            chevron.centerYAnchor.constraint(equalTo: row.centerYAnchor)
+            chevron.centerYAnchor.constraint(equalTo: row.centerYAnchor),
+            chevron.widthAnchor.constraint(equalToConstant: 14)
         ])
         return row
     }
@@ -561,8 +573,10 @@ final class ParentInfoViewController: UIViewController {
         labels.axis = .vertical
         labels.spacing = 3
         labels.isUserInteractionEnabled = false
-        let arrow = UIImageView(image: UIImage(systemName: expanded ? "chevron.up" : "chevron.down"))
-        arrow.tintColor = WarmShelfPalette.cocoa
+        let arrow = UIImageView(image: UIImage(systemName: expanded ? "chevron.up" : "chevron.down",
+            withConfiguration: UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)))
+        arrow.tintColor = WarmShelfPalette.cocoa.withAlphaComponent(0.4)
+        arrow.contentMode = .center
         arrow.setContentHuggingPriority(.required, for: .horizontal)
         [labels, arrow].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
@@ -576,8 +590,8 @@ final class ParentInfoViewController: UIViewController {
             labels.trailingAnchor.constraint(equalTo: arrow.leadingAnchor, constant: -12),
             arrow.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -16),
             arrow.centerYAnchor.constraint(equalTo: button.centerYAnchor),
-            arrow.widthAnchor.constraint(equalToConstant: 15),
-            arrow.heightAnchor.constraint(equalToConstant: 11)
+            arrow.widthAnchor.constraint(equalToConstant: 16),
+            arrow.heightAnchor.constraint(equalToConstant: 16)
         ])
         let column = UIStackView(arrangedSubviews: [button])
         column.axis = .vertical

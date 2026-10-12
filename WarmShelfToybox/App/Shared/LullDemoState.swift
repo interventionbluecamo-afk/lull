@@ -481,7 +481,7 @@ final class LullPurchaseManager {
         }
 
         guard let product = product(for: productID) else {
-            lastErrorMessage = "The full toybox isn't available from the App Store right now. Please try again later."
+            lastErrorMessage = "Lull's plans aren't available from the App Store right now. Please try again later."
             return false
         }
 

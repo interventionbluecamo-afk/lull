@@ -82,16 +82,16 @@ Expected result: 4+. Read each question on screen; Apple revised this questionna
 for Lull; confirm the audio sources in `Docs/AudioDropInManifest.md` are licensed for apps and
 need no attribution).
 
-## 3. Product page text (build 8 draft; resolve the trial model before pasting)
+## 3. Product page text (final for 1.0 (14), October 12; paste as is)
 
 - **Name:** Lull Quiet Toybox
 - **Subtitle (22/30):** Calm toys for ages 2–6
-- **Promotional text (120/170):** Nine felt-and-wood toys for little hands. No ads, no tracking,
-  no accounts, and a play timer that ends with a calm rest.
+- **Promotional text (139/170):** Try all nine felt-and-wood toys free for 7 days. No ads, no
+  tracking, no accounts, and a play timer that ends with a calm rest.
 - **Keywords (99/100):** `toddler,preschool,montessori,sensory,baby,music,shapes,sorting,quiet,bedtime,learning,play,kid,felt`
-- **Support URL:** `https://lulltoybox.pages.dev/support.html` · **Marketing URL:** `https://lulltoybox.pages.dev/`
-  · **Privacy Policy URL:** `https://lulltoybox.pages.dev/privacy.html`
-- **Copyright:** 2026 *your legal name or company*
+- **Support URL:** `https://lulltoybox.pages.dev/support` · **Marketing URL:** `https://lulltoybox.pages.dev/`
+  · **Privacy Policy URL:** `https://lulltoybox.pages.dev/privacy`
+- **Copyright:** 2026 Timothy Doyle
 
 **Description:**
 
@@ -132,7 +132,7 @@ need no attribution).
 > It renews automatically unless cancelled at least 24 hours before the end of the current
 > period. Manage or cancel in your Apple Account settings.
 > Terms of Use: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
-> Privacy Policy: https://lulltoybox.pages.dev/privacy.html
+> Privacy Policy: https://lulltoybox.pages.dev/privacy
 
 Before pasting, check each toy line against the approved shipping build. Little Wash replaces
 Stack from build 7 onward and needs the founder's device review. Replace the privacy URL with
@@ -155,12 +155,12 @@ the hosted one. Keep learning claims at this level; do not claim outcomes.
 > check, then the family's play timer and wind-down hour, then the offer page ("Start my free
 > week", "Buy once", Restore purchases, Terms of Use, Privacy Policy, subscription terms).
 > "Not now" explains the free week and offers "Decide later". Later, the same offer is on the
-> Full Toybox page: the shelf's "I'm a grown-up" button or the grown-up area's "Full Toybox"
+> Your plan page: the shelf's "I'm a grown-up" button or the grown-up area's "Your plan"
 > row, both behind the adult check. If the grown-up allows notifications after starting the
 > free week, Lull schedules one local reminder two days before it ends.
 > Without a purchase the child's shelf shows only "Nine toys are waiting · A grown-up can open
-> the toybox"; it never shows prices, locks or upgrade prompts. Support email is inside the
-> grown-up area; the optional web privacy link is currently unset. The device's tilt moves
+> the toybox"; it never shows prices, locks or upgrade prompts. Support email (lullios@proton.me) is inside the
+> grown-up area, with the privacy policy, also at https://lulltoybox.pages.dev/privacy. The device's tilt moves
 > the shelf picture slightly and is never stored.
 
 ## 4. Screenshots (Mac)
@@ -179,8 +179,8 @@ with rounded corners; no device frames, no fake UI).
    `xcrun simctl io booted screenshot ~/Desktop/lull-captures/iphone/03-feed.png` (use the shot
    ids as file names; `ipad/` for iPad; landscape iPad captures are fine).
 4. Shot 9 (`09-grownups`) uses the current **Family settings** screen: family controls first,
-   then Choose shelf toys and the Full Toybox card farther down. Capture the controls at the
-   top for the product page. The separate IAP review screenshot must show the Full Toybox card
+   then Choose shelf toys and the Your plan row farther down. Capture the controls at the
+   top for the product page. The separate IAP review screenshot must show the Your plan row
    with a successfully loaded App Store price; take that from TestFlight with sandbox access
    if the Release simulator cannot load the product. Never add a price to an image by hand.
 5. `python3 Tools/Store/compose_screenshots.py --captures ~/Desktop/lull-captures --out ~/Desktop/lull-store`

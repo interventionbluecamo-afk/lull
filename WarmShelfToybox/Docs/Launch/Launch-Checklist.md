@@ -20,18 +20,18 @@ as they close. Nothing here has been submitted to Apple.
 |---|---|---|
 | [x] | **Free week model** | Resolved October 11 (build 9): the local timer is gone. The free week is Lull Family's introductory offer, run by Apple (Guideline 3.1.2 disclosures in the plans card). |
 | [x] | **Family Sharing** for both products (cannot be turned off later) | **On for both** (founder, October 11). |
-| [ ] | **Kids age band** (permanent once approved) | Made for Kids → 5 and under. |
-| [ ] | **Territories** | English-speaking first: US, UK, Canada, Australia and New Zealand if excluding the EU for 1.0. Ireland is in the EU; include it only with the applicable EU trader requirements resolved. |
+| [x] | **Kids age band** (permanent once approved) | **5 and under** (founder, October 12). |
+| [x] | **Territories** | **US only for 1.0** (founder, October 12; products and app). Expand later. Was: | English-speaking first: US, UK, Canada, Australia and New Zealand if excluding the EU for 1.0. Ireland is in the EU; include it only with the applicable EU trader requirements resolved. |
 | [x] | **Price** | Changed October 11 (founder): **Lull Family** $29.99 a year with a free week, or **Keep Forever** $59.99 once. Build 12/13 has no free toys. Replaces $9.99 one-time. |
 | [x] | **Access model** | Build 12/13: all nine require the eligible annual introductory offer, annual subscription, or Keep Forever. Build 11 retains the older three-free-toy model. |
-| [ ] | **"New toys each season"** | The app, site and store page now promise it, and Lull Family's value depends on it. Confirm the first seasonal toy and its month (§8). Keep Forever includes every future toy. |
-| [ ] | **Release style and target date** | Manual release. Avoid Apple's late-December slowdown. |
-| [ ] | **Store name and subtitle** | "Lull Quiet Toybox" / "Calm toys for ages 2–6". |
+| [x] | **"New toys each season"** | **Kept** (founder, October 12): plan a new toy about every 3 months. Was: | The app, site and store page now promise it, and Lull Family's value depends on it. Confirm the first seasonal toy and its month (§8). Keep Forever includes every future toy. |
+| [x] | **Release style and target date** | **Manual release**, submit October 2026. Avoid Apple's late-December slowdown. |
+| [x] | **Store name and subtitle** | **"Lull Quiet Toybox" / "Calm toys for ages 2–6"** (founder, October 12). |
 
 ## 2. Accounts, legal and web (Founder unless noted)
 
-- [ ] **Public website address.** Founder prefers a free option (October 10). Recommended: Cloudflare Pages with its included `*.pages.dev` address; a paid custom domain is optional. Hosting/account and final address are not yet chosen.
-- [ ] **Working support email owned by the founder.** An existing mailbox can be used; a domain mailbox is optional. Do not publish the unowned `support@lull.app` address. Claude swaps the chosen address in the app and site and rebuilds the privacy page.
+- [x] **Public website address.** Live October 12: https://lulltoybox.pages.dev (Cloudflare Pages). Was: Founder prefers a free option (October 10). Recommended: Cloudflare Pages with its included `*.pages.dev` address; a paid custom domain is optional. Hosting/account and final address are not yet chosen.
+- [x] **Working support email owned by the founder.** lullios@proton.me (October 12), in the app (build 14) and site. Was: An existing mailbox can be used; a domain mailbox is optional. Do not publish the unowned `support@lull.app` address. Claude swaps the chosen address in the app and site and rebuilds the privacy page.
 
 ### The landing page (`LandingPageDeploy/`)
 
@@ -51,7 +51,7 @@ host and launch it: `Docs/Launch/Website.md`.
 - [ ] Launch day: `python3 Tools/Store/build_site.py --launched`, then re-upload.
 - [ ] Later (§7): screenshots and the preview video on the press page; a founder note.
 - [x] **Paid Apps Agreement, tax and banking active.** All three verified Active in ASC on October 12. The founder entered the details and accepted agreements. No financial/tax details were entered by ChatGPT.
-- [ ] **Copyright line**: your legal name or company.
+- [x] **Copyright line**: **2026 Timothy Doyle** (founder, October 12).
 - [ ] **Make the GitHub repository private.** Revoke old tokens; give agents an App Manager role,
   not the Account Holder's.
 

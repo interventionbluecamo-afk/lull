@@ -977,7 +977,7 @@ final class LullPlansViewController: UIViewController {
 
     private func makeHeader() -> UIView {
         let title = UILabel()
-        title.text = "Full Toybox"
+        title.text = "Your plan"
         title.font = scaledFont(UIFont(name: "Georgia", size: 28) ?? .systemFont(ofSize: 28, weight: .semibold), style: .title1)
         title.adjustsFontForContentSizeCategory = true
         title.accessibilityTraits = .header
@@ -1036,7 +1036,7 @@ final class LullPlansViewController: UIViewController {
         let eyebrow = UILabel()
         let title = UILabel()
         let body = UILabel()
-        title.text = "Full Toybox"
+        title.text = "All nine toys"
         if state.hasKeepForever {
             eyebrow.text = "KEEP FOREVER"
             body.text = "All nine toys, and every new one, are yours for good. Thank you for supporting Lull."

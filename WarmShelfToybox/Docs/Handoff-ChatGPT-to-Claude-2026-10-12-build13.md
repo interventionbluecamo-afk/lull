@@ -45,3 +45,33 @@ October 12 additional confirmations: annual US $29.99 verified in the current-pr
 ## Strategic assessment
 
 `Product-Assessment-2026-10-11.md` contains the requested reasoning, all-nine-toy roles, and concise prioritized action list. Larger ideas are recommendations, not a new redesign mandate. It distinguishes inspected source, founder reports and hypotheses. Do not copy old build-10 bugs forward without checking later code.
+
+## Update by Claude, October 12 (late morning) — supersedes "Exact remaining work" items 2–3
+
+- **Five fixes from Claude's code review went into build 13** before upload. All are small and
+  compile clean:
+  1. The free-week reminder is no longer dropped when Lull is open. `AppDelegate` is now the
+     notification delegate and files it quietly in Notification Center (`.list`, no banner over
+     the child's toy).
+  2. The reminder is never rebuilt with the hard-coded "$29.99" fallback. It fetches the real
+     product, and keeps the existing reminder if the App Store can't answer.
+  3. The "Not sure yet?" sheet now shows the billed price larger than its button, plus the full
+     subscription terms and Terms/Privacy links (Guideline 3.1.2).
+  4. VoiceOver can reach the resting card and the grown-up chip. Off-screen welcome pages are
+     hidden from VoiceOver and the keyboard, so the adult check can't be skipped.
+  5. "Your toybox is ready" now repeats the timer and wind-down hour actually chosen on page 2.
+- **Build 1.0 (13)** was re-archived with these fixes
+  (`~/Library/Developer/Xcode/Archives/2026-10-12/Lull 1.0 (13).xcarchive`). It replaces
+  ChatGPT's `/private/tmp` archive. It was uploaded to App Store Connect on October 12 at about
+  11:05 CDT.
+- **Review screenshot for both products:** `Docs/AppStore/IAP-review-screenshot.png`, also on
+  the founder's Desktop as `Lull-IAP-review-screenshot.png`. It's an iPad 13" capture of the
+  full offer with both plans (Debug preview prices, matching App Store Connect). The founder
+  uploads it on each product page under Review Information → Screenshot. The built-in browser
+  can't upload files.
+- **Unverified review findings, not fixed (low severity, for later):**
+  - The offer page rebuild loses scroll position.
+  - On iPhone landscape or with very large text, the price card is below the fold.
+  - "Lull Family has ended" copy is cleared before it's read.
+  - An offline renewal can briefly show the resting shelf until the device is back online.
+  - Page changes slide even with Reduce Motion on.

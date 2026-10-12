@@ -137,15 +137,33 @@ enum LullFreeWeekReminder {
     /// Keeps the one reminder in step with the plan. Never asks for permission.
     static func sync() async {
         let center = UNUserNotificationCenter.current()
+        guard let fireDate = reminderDate, let end = LullDemoState.shared.freeWeekEndDate else {
+            center.removePendingNotificationRequests(withIdentifiers: [identifier])
+            UserDefaults.standard.set(false, forKey: scheduledKey)
+            return
+        }
+        // The reminder names the family's real price in their currency. A cold launch hasn't
+        // loaded products, so ask the App Store for this one; if it can't answer, keep the
+        // reminder already set rather than rewrite it with a guessed price.
+        var plan = LullPurchaseManager.shared.product(for: LullStoreProduct.familyYearly)
+        if plan == nil {
+            plan = try? await Product.products(for: [LullStoreProduct.familyYearly]).first
+        }
+        guard let plan, let renewal = plan.subscription?.subscriptionPeriod else { return }
         center.removePendingNotificationRequests(withIdentifiers: [identifier])
         UserDefaults.standard.set(false, forKey: scheduledKey)
-        guard let fireDate = reminderDate, let end = LullDemoState.shared.freeWeekEndDate else { return }
         let settings = await center.notificationSettings()
         guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
 
-        let store = LullPurchaseManager.shared
-        let price = store.displayPrice(for: LullStoreProduct.familyYearly)
-        let period = store.renewalPeriod(for: LullStoreProduct.familyYearly) ?? "year"
+        let price = plan.displayPrice
+        let periodWords: String
+        switch renewal.unit {
+        case .year: periodWords = renewal.value == 1 ? "year" : "\(renewal.value) years"
+        case .month: periodWords = renewal.value == 1 ? "month" : "\(renewal.value) months"
+        case .week: periodWords = renewal.value == 1 ? "week" : "\(renewal.value) weeks"
+        default: periodWords = renewal.value == 1 ? "day" : "\(renewal.value) days"
+        }
+        let period = periodWords
         let content = UNMutableNotificationContent()
         content.title = "Lull's free week ends in \(daysBefore) days"
         content.body = "On \(LullPlanOffer.longDay(end)), Lull Family begins at \(price) a \(period). "
@@ -739,17 +757,18 @@ final class LullOfferPauseViewController: UIViewController {
 
         var rows: [UIView] = [markHolder, title, body]
         if let startTitle = offer.startTitle {
-            rows.append(makeButton(startTitle, style: .filled) { [weak self] in self?.close(then: self?.onStart) })
+            // The billed price leads, larger than the button's words (Guideline 3.1.2).
             if let caption = offer.startCaption {
-                let small = UILabel()
-                small.text = caption
-                small.font = UIFontMetrics(forTextStyle: .footnote).scaledFont(for: .systemFont(ofSize: 13, weight: .medium))
-                small.adjustsFontForContentSizeCategory = true
-                small.textColor = WarmShelfPalette.cocoa.withAlphaComponent(0.75)
-                small.textAlignment = .center
-                small.numberOfLines = 0
-                rows.append(small)
+                let price = UILabel()
+                price.text = caption
+                price.font = UIFontMetrics(forTextStyle: .headline).scaledFont(for: UIFont(name: "Georgia-Bold", size: 19) ?? .systemFont(ofSize: 19, weight: .bold))
+                price.adjustsFontForContentSizeCategory = true
+                price.textColor = WarmShelfPalette.clayInk
+                price.textAlignment = .center
+                price.numberOfLines = 0
+                rows.append(price)
             }
+            rows.append(makeButton(startTitle, style: .filled) { [weak self] in self?.close(then: self?.onStart) })
         }
         if let keepForeverPrice = offer.keepForeverPrice {
             rows.append(makeButton("Pay \(keepForeverPrice) once instead", style: .outlined) { [weak self] in
@@ -757,6 +776,27 @@ final class LullOfferPauseViewController: UIViewController {
             })
         }
         rows.append(makeButton("Decide later", style: .text) { [weak self] in self?.close(then: self?.onLater) })
+        if let legal = offer.legalText {
+            let terms = UILabel()
+            terms.text = legal
+            terms.font = UIFontMetrics(forTextStyle: .caption1).scaledFont(for: .systemFont(ofSize: 12))
+            terms.adjustsFontForContentSizeCategory = true
+            terms.textColor = WarmShelfPalette.cocoa.withAlphaComponent(0.68)
+            terms.textAlignment = .center
+            terms.numberOfLines = 0
+            rows.append(terms)
+            let links = UIStackView(arrangedSubviews: [
+                makeButton("Terms of Use", style: .text) { UIApplication.shared.open(LullStoreProduct.termsOfUseURL) },
+                makeButton("Privacy Policy", style: .text) { [weak self] in
+                    let privacy = LullPrivacyViewController()
+                    privacy.modalPresentationStyle = .pageSheet
+                    self?.present(privacy, animated: true)
+                }
+            ])
+            links.axis = .horizontal
+            links.distribution = .fillEqually
+            rows.append(links)
+        }
 
         let stack = UIStackView(arrangedSubviews: rows)
         stack.axis = .vertical

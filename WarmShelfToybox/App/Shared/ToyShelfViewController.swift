@@ -304,12 +304,21 @@ final class ToyShelfViewController: UIViewController {
     private func configureAccessibility(for scene: ToyShelfScene, in skView: SKView) {
         skView.isAccessibilityElement = false
         skView.accessibilityLabel = "Lull toy shelf"
-        skView.accessibilityElements = scene.accessibilityElements(in: skView)
+        skView.accessibilityElements = accessibleElements(for: scene, in: skView)
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self, weak skView, weak scene] in
             guard let self, let skView, let scene, scene === self.currentScene else { return }
-            skView.accessibilityElements = scene.accessibilityElements(in: skView)
+            skView.accessibilityElements = self.accessibleElements(for: scene, in: skView)
         }
+    }
+
+    /// The toys, then the resting card (when the toybox is closed) and the grown-up chip, so
+    /// VoiceOver never finds a dead end.
+    private func accessibleElements(for scene: ToyShelfScene, in skView: SKView) -> [Any] {
+        var elements: [Any] = scene.accessibilityElements(in: skView)
+        if let restingCard { elements.append(restingCard) }
+        elements.append(parentButton)
+        return elements
     }
 
     private func installParentAreaGesture() {
@@ -330,6 +339,9 @@ final class ToyShelfViewController: UIViewController {
     @objc private func accessDidChange() {
         refreshParentAttentionDot()
         refreshRestingCard()
+        if let skView = view as? SKView, let scene = currentScene {
+            skView.accessibilityElements = accessibleElements(for: scene, in: skView)
+        }
         guard let skView = view as? SKView, hasPresentedInitialScene else { return }
         presentShelfScene(in: skView, animated: true)
     }

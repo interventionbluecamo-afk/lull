@@ -674,6 +674,8 @@ final class LullOnboardingViewController: UIViewController {
 
     private func go(to page: Int) {
         guard page < pageCount else { return }
+        // The offer page repeats the timer and wind-down hour just chosen on page two.
+        if page == pageCount - 1 { refreshOfferPage() }
         scrollView.setContentOffset(CGPoint(x: CGFloat(page) * scrollView.bounds.width, y: 0), animated: true)
         updateForPage(page, animated: true)
         UIAccessibility.post(notification: .screenChanged, argument: nil)
@@ -682,6 +684,11 @@ final class LullOnboardingViewController: UIViewController {
     private func updateForPage(_ page: Int, animated: Bool) {
         currentPage = page
         pageDots.currentPage = page
+        // Only the current page is reachable by VoiceOver or a keyboard, so nobody passes the
+        // grown-up check by moving focus to a page off screen.
+        for (index, pageView) in pagesStack.arrangedSubviews.enumerated() {
+            pageView.accessibilityElementsHidden = index != page
+        }
         var title = "Continue"
         var caption: String?
         var enabled = true

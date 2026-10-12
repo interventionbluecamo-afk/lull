@@ -24,9 +24,9 @@ October 12, 2026. Everything below is decided. Work top to bottom.
 |---|---|
 | Name | Lull Quiet Toybox |
 | Subtitle | Calm toys for ages 2–6 |
-| Category | Primary: **Kids**, age band **5 and under**. Secondary: Education (optional) |
+| Category | Primary: **Education**. Secondary: **Entertainment**. (There is no "Kids" choice here; Kids comes from the age rating below.) |
 | Content rights | Does not contain third-party content |
-| Age rating | Answer **None / No** to everything. Made for Kids, 5 and under. |
+| Age rating | Answer **None / No** to every content question. At the end, turn on **Made for Kids** and choose **5 and under**. This puts Lull in the Kids category, and it's permanent once approved. |
 | Privacy Policy URL | https://lulltoybox.pages.dev/privacy |
 
 **App Privacy** (left menu): **Data Not Collected**, then Publish.

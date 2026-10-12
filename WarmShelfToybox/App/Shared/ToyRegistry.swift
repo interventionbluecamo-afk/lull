@@ -57,7 +57,7 @@ enum ToyRegistry {
             id: bubblesID,
             parentName: "Bubbles",
             accentColor: WarmShelfPalette.waterBlue,
-            accessTier: .free,
+            accessTier: .fullToybox,
             isDemoReady: true,
             makeScene: { size in BubbleScene(size: size) }
         ),
@@ -81,7 +81,7 @@ enum ToyRegistry {
             id: humID,
             parentName: "Hum",
             accentColor: WarmShelfPalette.terracotta,
-            accessTier: .free,
+            accessTier: .fullToybox,
             isDemoReady: true,
             makeScene: { size in HumScene(size: size) }
         ),
@@ -145,7 +145,7 @@ enum ToyRegistry {
             id: dropDotsID,
             parentName: "Drop Dots",
             accentColor: WarmShelfPalette.rhubarb,
-            accessTier: .free,
+            accessTier: .fullToybox,
             isDemoReady: true,
             makeScene: { size in DropDotsScene(size: size) }
         ),
@@ -201,7 +201,9 @@ enum ToyRegistry {
         return visible
     }
 
-    /// A toy is unavailable to the child unless it's free or the grown-up has purchased it.
+    /// A toy is unavailable to the child until a grown-up opens the toybox: the App Store's free
+    /// week of Lull Family, the plan itself, or Keep Forever (founder, October 11: one offer, no
+    /// free tier). Until then the shelf shows its resting card, never a lock or a price.
     static func isToyLocked(_ id: String) -> Bool {
         if LullDemoState.shared.hasFullToybox { return false }
         if toy(id: id)?.accessTier == .free { return false }

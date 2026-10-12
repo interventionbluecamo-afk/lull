@@ -4,10 +4,14 @@ import UIKit
 
 // MARK: - LullOnboardingViewController
 //
-// A warm, paged parent setup — handed over to the child at the end. Three calm moments:
-//   1. Welcome: Wren says hello; the quiet promise (no ads, no scores, no pressure).
-//   2. Wind-down: the grown-up picks bedtime; Lull's rooms warm and dim toward it.
-//   3. Hand-off: what stays free, Lull Family (free week) and Keep Forever, and the grown-up gate.
+// A warm, paged welcome that ends with the toybox open (founder, October 11: one offer, a free
+// week, and onboarding good enough to win over the grown-up who is uneasy about it). Three moments:
+//   1. Welcome: Wren says hello, and the nine toys are already alive on the page: value first.
+//      "Set up Lull" asks the grown-up check; nothing past this page is for a child.
+//   2. The family's rhythm: play timer and wind-down hour, chosen now (their investment).
+//   3. "Your toybox is ready": their setup said back, the toys, the price first and largest, the
+//      free week as three dated beats, four promises, the pay-once door, Apple's terms; the start
+//      button pinned below with the billed price beside it. "Not now" opens the honest version.
 // Built from warm handmade cards on warm paper, to match the toys themselves.
 
 final class LullOnboardingViewController: UIViewController {
@@ -28,10 +32,19 @@ final class LullOnboardingViewController: UIViewController {
     private let timerStatus = UILabel()
     private let pageCount = 3
     private var currentPage = 0
+    /// The billed price, beside the pinned button on the last page (Guideline 3.1.2).
+    private let ctaCaption = UILabel()
+    private var isLoadingProducts = false
+    private var isPurchasing = false
+    /// A purchase that didn't complete says why on the last page.
+    private var offerMessage: String?
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = WarmShelfPalette.linen
+        // The last page names the real App Store price and free week (Guideline 3.1.2); start
+        // asking the App Store now, while the grown-up reads the first two pages.
+        isLoadingProducts = LullPurchaseManager.shared.products.isEmpty
         setupBackground()
         setupScaffold()
         buildPages()
@@ -39,14 +52,13 @@ final class LullOnboardingViewController: UIViewController {
         accessObserver = NotificationCenter.default.addObserver(
             forName: .lullAccessDidChange, object: nil, queue: .main
         ) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.refreshHandoffPage() }
+            Task { @MainActor [weak self] in self?.refreshOfferPage() }
         }
-        // The last page names the real App Store prices and free week (Guideline 3.1.2).
-        // Offline, it falls back to pointing at the grown-up area.
-        if LullPurchaseManager.shared.products.isEmpty {
+        if isLoadingProducts {
             Task { @MainActor [weak self] in
                 await LullPurchaseManager.shared.loadProducts()
-                self?.refreshHandoffPage()
+                self?.isLoadingProducts = false
+                self?.refreshOfferPage()
             }
         }
     }
@@ -89,6 +101,9 @@ final class LullOnboardingViewController: UIViewController {
     private func setupScaffold() {
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.isPagingEnabled = true
+        // Pages move only with the button: the grown-up check stands between the welcome and the
+        // family's setup, so a child can't swipe past it.
+        scrollView.isScrollEnabled = false
         scrollView.showsHorizontalScrollIndicator = false
         scrollView.alwaysBounceVertical = false
         scrollView.delegate = self
@@ -115,14 +130,26 @@ final class LullOnboardingViewController: UIViewController {
         primaryButton.layer.shadowRadius = 14
         primaryButton.layer.shadowOffset = CGSize(width: 0, height: 8)
         primaryButton.translatesAutoresizingMaskIntoConstraints = false
+        primaryButton.setTitleColor(WarmShelfPalette.paperHighlight.withAlphaComponent(0.85), for: .disabled)
+        primaryButton.titleLabel?.adjustsFontSizeToFitWidth = true
+        primaryButton.titleLabel?.minimumScaleFactor = 0.8
         primaryButton.addTarget(self, action: #selector(primaryTapped), for: .touchUpInside)
         view.addSubview(primaryButton)
+
+        ctaCaption.font = UIFontMetrics(forTextStyle: .footnote).scaledFont(for: .systemFont(ofSize: 13, weight: .medium))
+        ctaCaption.adjustsFontForContentSizeCategory = true
+        ctaCaption.textColor = WarmShelfPalette.cocoa.withAlphaComponent(0.78)
+        ctaCaption.textAlignment = .center
+        ctaCaption.numberOfLines = 2
+        ctaCaption.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(ctaCaption)
 
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: primaryButton.topAnchor, constant: -16),
+            // Content scrolls above the page dots, never under them.
+            scrollView.bottomAnchor.constraint(equalTo: pageDots.topAnchor, constant: -4),
 
             pagesStack.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
             pagesStack.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
@@ -130,18 +157,22 @@ final class LullOnboardingViewController: UIViewController {
             pagesStack.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
             pagesStack.heightAnchor.constraint(equalTo: scrollView.frameLayoutGuide.heightAnchor),
 
-            pageDots.bottomAnchor.constraint(equalTo: primaryButton.topAnchor, constant: -16),
+            pageDots.bottomAnchor.constraint(equalTo: primaryButton.topAnchor, constant: -10),
             pageDots.centerXAnchor.constraint(equalTo: view.centerXAnchor),
 
             primaryButton.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 28),
             primaryButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -28),
-            primaryButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -18),
-            primaryButton.heightAnchor.constraint(equalToConstant: 58)
+            primaryButton.bottomAnchor.constraint(equalTo: ctaCaption.topAnchor, constant: -8),
+            primaryButton.heightAnchor.constraint(equalToConstant: 58),
+
+            ctaCaption.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 28),
+            ctaCaption.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -28),
+            ctaCaption.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -10)
         ])
     }
 
     private func buildPages() {
-        let pages = [welcomePage(), rhythmPage(), handoffPage()]
+        let pages = [welcomePage(), rhythmPage(), offerPage()]
         for page in pages {
             page.translatesAutoresizingMaskIntoConstraints = false
             pagesStack.addArrangedSubview(page)
@@ -152,15 +183,15 @@ final class LullOnboardingViewController: UIViewController {
     // MARK: - Page 1 — welcome
 
     private func welcomePage() -> UIView {
-        let hero = WrenHeroView(side: 180)
+        let hero = WrenHeroView(side: 132)
 
         let eyebrow = makeEyebrow("WELCOME TO LULL")
-        let title = makeTitle("Little hands.\nRoom to explore.")
-        let body = makeBody("Nine felt-and-wood toys for ages 2–6. Wash, sort, feed, make music, and wander through a meadow. Pictures and touch invite your child to choose, try, and repeat at their own pace.")
+        let title = makeTitle("Calm toys for\nlittle hands.")
+        let body = makeBody("Nine felt-and-wood toys for ages 2–6. Scrub a muddy truck, feed hungry friends, sort colours, make music, and wander a meadow. Each one answers touch the way a real toy would.")
 
-        let privacy = makeBody("No child account. Play and family settings are saved on this device.")
-        privacy.font = .systemFont(ofSize: 13.5, weight: .medium)
-        privacy.textColor = WarmShelfPalette.cocoa.withAlphaComponent(0.72)
+        // Value before anything else: the nine toys the child will find, already breathing.
+        let toys = PaywallPreviewStrip(toyIDs: ToyRegistry.launchToyIDs,
+                                       labelColor: WarmShelfPalette.cocoa.withAlphaComponent(0.85), rowHeight: 92)
 
         let chips = UIStackView(arrangedSubviews: [
             makePromiseChip("No ads", icon: "rectangle.slash", WarmShelfPalette.waterBlue),
@@ -171,15 +202,18 @@ final class LullOnboardingViewController: UIViewController {
         chips.spacing = 8
         chips.distribution = .equalSpacing
 
-        let stack = UIStackView(arrangedSubviews: [hero, eyebrow, title, body, chips, privacy])
+        let stack = UIStackView(arrangedSubviews: [hero, eyebrow, title, body, toys, chips])
         stack.axis = .vertical
         stack.spacing = 14
         stack.alignment = .leading
-        stack.setCustomSpacing(22, after: hero)
+        stack.setCustomSpacing(18, after: hero)
         stack.setCustomSpacing(6, after: eyebrow)
+        stack.setCustomSpacing(8, after: body)
+        stack.setCustomSpacing(8, after: toys)
         hero.translatesAutoresizingMaskIntoConstraints = false
-        hero.widthAnchor.constraint(equalToConstant: 180).isActive = true
-        hero.heightAnchor.constraint(equalToConstant: 180).isActive = true
+        hero.widthAnchor.constraint(equalToConstant: 132).isActive = true
+        hero.heightAnchor.constraint(equalToConstant: 132).isActive = true
+        toys.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         return wrapInPage(stack)
     }
 
@@ -321,77 +355,122 @@ final class LullOnboardingViewController: UIViewController {
         UIFontMetrics(forTextStyle: style).scaledFont(for: font)
     }
 
-    // MARK: - Page 3 — hand-off
+    // MARK: - Page 3 — the toybox, and the one offer
 
-    private func handoffPage() -> UIView {
-        let eyebrow = makeEyebrow("YOUR FAMILY'S TOYBOX")
+    /// Everything a hesitant grown-up needs, on one page (founder, October 11: "it needs to save
+    /// the people who are immediately uneasy; they need to see the value"). Their setup said
+    /// back, the nine toys alive, the price first and largest, the free week as three dated
+    /// beats, four promises, the pay-once door, Apple's terms. The start button is pinned below
+    /// with the billed price beside it; "Not now" opens the honest version of the free week
+    /// instead of a dead end. Reached only through the grown-up check on page one.
+    private func offerPage() -> UIView {
+        if LullDemoState.shared.hasPurchasedFullToybox { return toyboxOpenPage() }
+        let offer = LullPlanOffer.current()
+
+        let eyebrow = makeEyebrow("YOUR TOYBOX IS READY")
+        let notNow = UIButton(type: .system)
+        notNow.setTitle("Not now", for: .normal)
+        notNow.titleLabel?.font = scaled(.systemFont(ofSize: 15, weight: .semibold), .subheadline)
+        notNow.titleLabel?.adjustsFontForContentSizeCategory = true
+        notNow.setTitleColor(WarmShelfPalette.cocoa.withAlphaComponent(0.72), for: .normal)
+        notNow.accessibilityIdentifier = "offer-not-now"
+        notNow.isEnabled = !isPurchasing
+        notNow.addTarget(self, action: #selector(notNowTapped), for: .touchUpInside)
+        notNow.setContentHuggingPriority(.required, for: .horizontal)
+        let spacer = UIView()
+        spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        let header = UIStackView(arrangedSubviews: [eyebrow, spacer, notNow])
+        header.axis = .horizontal
+        header.alignment = .center
+
+        let title = makeTitle("Your toybox is ready.")
+        let summary = makeBody(setupSummary())
+        summary.font = scaled(.systemFont(ofSize: 15.5, weight: .medium), .body)
+        summary.adjustsFontForContentSizeCategory = true
+
+        var rows: [UIView] = [header, title, summary]
+        if let offerMessage {
+            rows.append(makeMessageCard(offerMessage))
+        }
+        rows.append(LullOfferView(
+            offer: offer, isLoading: isLoadingProducts, isBusy: isPurchasing, showsStartButton: false,
+            actions: .init(
+                start: { [weak self] in self?.buy(LullStoreProduct.familyYearly) },
+                keepForever: { [weak self] in self?.buy(LullStoreProduct.lifetime) },
+                restore: { [weak self] in self?.restore() },
+                terms: { UIApplication.shared.open(LullStoreProduct.termsOfUseURL) },
+                privacy: { [weak self] in self?.showPrivacy() },
+                retry: { [weak self] in self?.reloadProducts() }
+            )
+        ))
+        let stack = UIStackView(arrangedSubviews: rows)
+        stack.axis = .vertical
+        stack.spacing = 14
+        stack.alignment = .fill
+        stack.setCustomSpacing(2, after: header)
+        stack.setCustomSpacing(8, after: title)
+        stack.setCustomSpacing(16, after: summary)
+        return wrapInPage(stack)
+    }
+
+    /// The setup they just chose, said back, so the toybox is theirs before it's offered.
+    private func setupSummary() -> String {
+        let evening = displayHour(windDownHour)
+        if playTimerMinutes == 0 {
+            return "Set up for your family: no play timer, and Lull grows sleepy from \(evening)."
+        }
+        return "Set up for your family: Lull rests after \(playTimerMinutes) minutes of play and grows sleepy from \(evening)."
+    }
+
+    /// After the free week starts, or on a replay with the toybox already open: a happy Wren,
+    /// what is open and until when, then "Open the toybox".
+    private func toyboxOpenPage() -> UIView {
         let state = LullDemoState.shared
         let store = LullPurchaseManager.shared
-        let family = store.product(for: LullStoreProduct.familyYearly)
-        let familyPrice = family?.type == .autoRenewable ? family?.displayPrice : nil
         let period = store.renewalPeriod(for: LullStoreProduct.familyYearly) ?? "year"
-        let keepForever = store.product(for: LullStoreProduct.lifetime)
-        let keepForeverPrice = keepForever?.type == .nonConsumable ? keepForever?.displayPrice : nil
-        let titleText: String
-        let timelineRows: [UIView]
-        if state.hasPurchasedFullToybox && state.isInFreeWeek {
-            titleText = "Your free week,\nstill open."
+        let hero = WrenHeroView(side: 120)
+        hero.translatesAutoresizingMaskIntoConstraints = false
+        let heroHolder = UIView()
+        heroHolder.addSubview(hero)
+        NSLayoutConstraint.activate([
+            hero.widthAnchor.constraint(equalToConstant: 120),
+            hero.heightAnchor.constraint(equalToConstant: 120),
+            hero.topAnchor.constraint(equalTo: heroHolder.topAnchor),
+            hero.bottomAnchor.constraint(equalTo: heroHolder.bottomAnchor),
+            hero.leadingAnchor.constraint(equalTo: heroHolder.leadingAnchor)
+        ])
+
+        let eyebrow = makeEyebrow(state.isInFreeWeek ? "YOUR FREE WEEK HAS BEGUN" : "THE TOYBOX IS OPEN")
+        let title = makeTitle("All nine toys\nare open.")
+        var timelineRows: [UIView]
+        if state.isInFreeWeek {
             let days = state.freeWeekDaysRemaining
+            let end = state.freeWeekEndDate.map(LullPlanOffer.longDay) ?? "When the week ends"
             let afterWeek = state.planWillRenew == false
-                ? "The shelf goes back to Bubbles, Drop Dots, and Hum. These three stay free."
-                : "Lull Family continues at \(store.displayPrice(for: LullStoreProduct.familyYearly)) a \(period) unless you cancel in your Apple Account settings at least a day before."
-            timelineRows = [
-                makeTimelineRow(dot: WarmShelfPalette.butter, label: "Today",
-                                text: "All nine toys are open for \(days) more day\(days == 1 ? "" : "s")."),
-                makeTimelineRow(dot: WarmShelfPalette.waterBlue, label: "When the week ends", text: afterWeek),
-                makeTimelineRow(dot: WarmShelfPalette.terracotta, label: "Whenever you like",
-                                text: "See or cancel your plan in the grown-up area.", isLast: true)
-            ]
-        } else if state.hasPurchasedFullToybox {
-            titleText = "Your toybox,\nready for play."
+                ? "Lull Family won't renew, so the toybox rests until a grown-up opens it again."
+                : "Lull Family begins at \(store.displayPrice(for: LullStoreProduct.familyYearly)) a \(period). To pay nothing, cancel at least a day before in Settings › your name › Subscriptions."
+            timelineRows = [makeTimelineRow(dot: WarmShelfPalette.butter, label: "Today",
+                                            text: "All nine toys are open for \(days) day\(days == 1 ? "" : "s"). Nothing to pay.")]
+            if LullFreeWeekReminder.isScheduled, let reminder = LullFreeWeekReminder.reminderDate {
+                timelineRows.append(makeTimelineRow(dot: WarmShelfPalette.sage, label: LullPlanOffer.longDay(reminder),
+                                                    text: "Lull reminds you that the free week is ending."))
+            } else {
+                timelineRows.append(makeTimelineRow(dot: WarmShelfPalette.sage, label: "Any day",
+                                                    text: "The grown-up area shows how many days are left."))
+            }
+            timelineRows.append(makeTimelineRow(dot: WarmShelfPalette.terracotta, label: end, text: afterWeek, isLast: true))
+        } else {
             timelineRows = [
                 makeTimelineRow(dot: WarmShelfPalette.butter, label: "Open",
-                                text: "Your full toybox is unlocked. All nine toys are ready."),
+                                text: state.hasKeepForever ? "Keep Forever: every toy, and every new one, for good."
+                                                           : "All nine toys, plus new ones each season."),
                 makeTimelineRow(dot: WarmShelfPalette.sage, label: "Your shelf",
-                                text: "Keep favorite toys in reach and tuck others away in the grown-up area."),
+                                text: "Keep favourite toys in reach and tuck others away in the grown-up area."),
                 makeTimelineRow(dot: WarmShelfPalette.waterBlue, label: "Whenever you like",
-                                text: "Return to familiar toys. Replaying this welcome never changes your purchase.", isLast: true)
-            ]
-        } else {
-            titleText = "Three toys to keep,\nnine to play."
-            let familyText: String
-            if let familyPrice, let free = store.isEligibleForFreeWeek == true
-                ? store.freeWeekLength(for: LullStoreProduct.familyYearly) : nil {
-                familyText = "All nine toys, and new ones each season. First \(free) free, then \(familyPrice) a \(period). Cancel anytime."
-            } else if let familyPrice {
-                familyText = "All nine toys, and new ones each season, for \(familyPrice) a \(period). Cancel anytime."
-            } else {
-                familyText = "All nine toys, and new ones each season, starting with a free week. Prices are in the grown-up area."
-            }
-            timelineRows = [
-                makeTimelineRow(dot: WarmShelfPalette.waterBlue, label: "Free, always",
-                                text: "Bubbles, Drop Dots, and Hum. No ads, no accounts, nothing to pay."),
-                makeTimelineRow(dot: WarmShelfPalette.butter, label: "Lull Family", text: familyText),
-                makeTimelineRow(dot: WarmShelfPalette.terracotta, label: "Keep Forever",
-                                text: keepForeverPrice.map { "Or pay \($0) once and keep every toy for good." }
-                                    ?? "Or pay once and keep every toy for good.", isLast: true)
+                                text: "See or change your plan in the grown-up area. Replaying this welcome never changes it.",
+                                isLast: true)
             ]
         }
-        let title = makeTitle(titleText)
-
-        let parentOptions = UIButton(type: .system)
-        parentOptions.setTitle(state.hasPurchasedFullToybox ? "Set up our shelf" : "Start with the free toys", for: .normal)
-        parentOptions.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
-        parentOptions.titleLabel?.numberOfLines = 0
-        parentOptions.titleLabel?.textAlignment = .center
-        parentOptions.setTitleColor(WarmShelfPalette.terracotta, for: .normal)
-        parentOptions.backgroundColor = WarmShelfPalette.paperHighlight.withAlphaComponent(0.74)
-        parentOptions.layer.cornerRadius = 18
-        parentOptions.layer.borderWidth = 1
-        parentOptions.layer.borderColor = WarmShelfPalette.softLine.cgColor
-        parentOptions.heightAnchor.constraint(greaterThanOrEqualToConstant: 48).isActive = true
-        parentOptions.accessibilityIdentifier = state.hasPurchasedFullToybox ? "welcome-set-up-shelf" : "welcome-free-toys"
-        parentOptions.addTarget(self, action: #selector(secondaryTapped), for: .touchUpInside)
 
         let timeline = makeWarmCard()
         let rows = UIStackView(arrangedSubviews: timelineRows)
@@ -406,66 +485,111 @@ final class LullOnboardingViewController: UIViewController {
             rows.bottomAnchor.constraint(equalTo: timeline.bottomAnchor, constant: -18)
         ])
 
-        let gate = makeWarmCard()
-        let gateLabel = makeBody("Prices, settings, and purchases stay in the grown-up area, behind an adult check. The child's shelf is only for play.")
-        gateLabel.font = .systemFont(ofSize: 14, weight: .medium)
-        gateLabel.translatesAutoresizingMaskIntoConstraints = false
-        let seal = LullHostMarkView(side: 46)
-        seal.translatesAutoresizingMaskIntoConstraints = false
-        gate.addSubview(seal)
-        gate.addSubview(gateLabel)
-        NSLayoutConstraint.activate([
-            seal.leadingAnchor.constraint(equalTo: gate.leadingAnchor, constant: 16),
-            seal.centerYAnchor.constraint(equalTo: gate.centerYAnchor),
-            seal.widthAnchor.constraint(equalToConstant: 46),
-            seal.heightAnchor.constraint(equalToConstant: 46),
-            gateLabel.topAnchor.constraint(equalTo: gate.topAnchor, constant: 16),
-            gateLabel.leadingAnchor.constraint(equalTo: seal.trailingAnchor, constant: 14),
-            gateLabel.trailingAnchor.constraint(equalTo: gate.trailingAnchor, constant: -16),
-            gateLabel.bottomAnchor.constraint(equalTo: gate.bottomAnchor, constant: -16)
-        ])
-
-        let stack = UIStackView(arrangedSubviews: [eyebrow, title, timeline, parentOptions, gate])
+        let stack = UIStackView(arrangedSubviews: [heroHolder, eyebrow, title, timeline])
         stack.axis = .vertical
         stack.spacing = 14
         stack.alignment = .fill
+        stack.setCustomSpacing(18, after: heroHolder)
         stack.setCustomSpacing(6, after: eyebrow)
         stack.setCustomSpacing(18, after: title)
-        stack.setCustomSpacing(16, after: timeline)
-        stack.setCustomSpacing(16, after: parentOptions)
         return wrapInPage(stack)
     }
 
-    private func refreshHandoffPage() {
+    private func makeMessageCard(_ text: String) -> UIView {
+        let card = makeWarmCard()
+        card.backgroundColor = WarmShelfPalette.sage.withAlphaComponent(0.14)
+        let label = makeBody(text)
+        label.font = scaled(.systemFont(ofSize: 15, weight: .semibold), .body)
+        label.adjustsFontForContentSizeCategory = true
+        label.translatesAutoresizingMaskIntoConstraints = false
+        card.addSubview(label)
+        NSLayoutConstraint.activate([
+            label.topAnchor.constraint(equalTo: card.topAnchor, constant: 14),
+            label.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 16),
+            label.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -16),
+            label.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -14)
+        ])
+        return card
+    }
+
+    private func refreshOfferPage() {
         guard pagesStack.arrangedSubviews.count == pageCount,
               let oldPage = pagesStack.arrangedSubviews.last else { return }
         pagesStack.removeArrangedSubview(oldPage)
         oldPage.removeFromSuperview()
-        let page = handoffPage()
+        let page = offerPage()
         page.translatesAutoresizingMaskIntoConstraints = false
         pagesStack.addArrangedSubview(page)
         page.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor).isActive = true
         updateForPage(currentPage, animated: false)
     }
 
-    @objc private func secondaryTapped() {
-        if LullDemoState.shared.hasPurchasedFullToybox {
-            showParentOptions(atPlans: false)
-        } else {
-            HapticsManager.shared.softTap()
-            AudioManager.shared.playSoftTap()
-            finish()
+    // MARK: - Buying (this page is already behind the grown-up check)
+
+    private func buy(_ productID: String) {
+        guard !isPurchasing, LullPurchaseManager.shared.product(for: productID) != nil else { return }
+        isPurchasing = true
+        offerMessage = nil
+        refreshOfferPage()
+        Task { @MainActor in
+            let outcome = await LullPurchaseFlow.buy(productID)
+            isPurchasing = false
+            switch outcome {
+            case .opened:
+                // The open page says what's open, until when, and when the reminder comes.
+                offerMessage = nil
+                HapticsManager.shared.softTap()
+            case .notOpened(let reason):
+                offerMessage = reason
+            }
+            refreshOfferPage()
         }
     }
 
-    /// The plans have their own page; "Set up our shelf" opens the grown-up area.
-    private func showParentOptions(atPlans: Bool) {
-        AdultGate.present(from: self) { [weak self] in
-            guard let self else { return }
-            let next: UIViewController = atPlans ? LullPlansViewController() : ParentInfoViewController()
-            next.modalPresentationStyle = atPlans ? .pageSheet : .fullScreen
-            self.present(next, animated: true)
+    private func restore() {
+        guard !isPurchasing else { return }
+        isPurchasing = true
+        offerMessage = nil
+        refreshOfferPage()
+        Task { @MainActor in
+            let restored = await LullPurchaseManager.shared.restorePurchases()
+            isPurchasing = false
+            offerMessage = restored ? nil
+                : (LullPurchaseManager.shared.lastErrorMessage ?? "No Lull Family plan or Keep Forever purchase was found for this Apple Account.")
+            refreshOfferPage()
         }
+    }
+
+    private func reloadProducts() {
+        guard !isLoadingProducts else { return }
+        isLoadingProducts = true
+        offerMessage = nil
+        refreshOfferPage()
+        Task { @MainActor in
+            await LullPurchaseManager.shared.loadProducts()
+            isLoadingProducts = false
+            refreshOfferPage()
+        }
+    }
+
+    private func showPrivacy() {
+        let privacy = LullPrivacyViewController()
+        privacy.modalPresentationStyle = .pageSheet
+        present(privacy, animated: true)
+    }
+
+    /// "Not now" never dead-ends: it opens the honest version of the free week, with the same
+    /// start button, the pay-once door, and a real "Decide later".
+    @objc private func notNowTapped() {
+        guard !isPurchasing, presentedViewController == nil else { return }
+        HapticsManager.shared.softTap()
+        let pause = LullOfferPauseViewController(
+            offer: LullPlanOffer.current(),
+            onStart: { [weak self] in self?.buy(LullStoreProduct.familyYearly) },
+            onKeepForever: { [weak self] in self?.buy(LullStoreProduct.lifetime) },
+            onLater: { [weak self] in self?.finish() }
+        )
+        present(pause, animated: true)
     }
 
     /// One row of the trial timeline: a clay dot with a connecting thread, a bold beat
@@ -526,35 +650,82 @@ final class LullOnboardingViewController: UIViewController {
     @objc private func primaryTapped() {
         HapticsManager.shared.softTap()
         AudioManager.shared.playSoftTap()
-        if currentPage < pageCount - 1 {
-            let next = currentPage + 1
-            scrollView.setContentOffset(CGPoint(x: CGFloat(next) * scrollView.bounds.width, y: 0), animated: true)
-            updateForPage(next, animated: true)
-        } else if LullDemoState.shared.hasPurchasedFullToybox {
-            finish()
-        } else {
-            // The free week is the App Store's: a grown-up starts it from the plans.
-            showParentOptions(atPlans: true)
+        switch currentPage {
+        case 0:
+            // Everything past the welcome is for grown-ups: the family's setup and the offer.
+            AdultGate.present(from: self) { [weak self] in self?.go(to: 1) }
+        case 1:
+            go(to: 2)
+        default:
+            if LullDemoState.shared.hasPurchasedFullToybox {
+                finish()
+                return
+            }
+            let offer = LullPlanOffer.current()
+            if offer.familyPrice != nil {
+                buy(LullStoreProduct.familyYearly)
+            } else if offer.keepForeverPrice != nil {
+                buy(LullStoreProduct.lifetime)
+            } else {
+                reloadProducts()
+            }
         }
+    }
+
+    private func go(to page: Int) {
+        guard page < pageCount else { return }
+        scrollView.setContentOffset(CGPoint(x: CGFloat(page) * scrollView.bounds.width, y: 0), animated: true)
+        updateForPage(page, animated: true)
+        UIAccessibility.post(notification: .screenChanged, argument: nil)
     }
 
     private func updateForPage(_ page: Int, animated: Bool) {
         currentPage = page
         pageDots.currentPage = page
-        let state = LullDemoState.shared
-        let title: String
-        if page != pageCount - 1 {
-            title = "Continue"
-        } else if state.hasPurchasedFullToybox {
-            title = "Open toybox"
-        } else if LullPurchaseManager.shared.isEligibleForFreeWeek == true {
-            title = "Try all nine free"
-        } else {
-            title = "See all nine toys"
+        var title = "Continue"
+        var caption: String?
+        var enabled = true
+        switch page {
+        case 0:
+            title = "Set up Lull"
+            caption = "For grown-ups: a quick check comes next."
+        case 1:
+            break
+        default:
+            if LullDemoState.shared.hasPurchasedFullToybox {
+                title = "Open the toybox"
+            } else if isPurchasing {
+                title = "Waiting for the App Store…"
+                enabled = false
+            } else {
+                let offer = LullPlanOffer.current()
+                if let start = offer.startTitle {
+                    title = start
+                    caption = offer.startCaption
+                    enabled = AppStore.canMakePayments
+                } else if let keepForever = offer.keepForeverPrice {
+                    title = "Buy once · \(keepForever)"
+                    caption = "One payment. Every toy, for good."
+                    enabled = AppStore.canMakePayments
+                } else if isLoadingProducts {
+                    title = "Connecting to the App Store…"
+                    enabled = false
+                } else {
+                    title = "Try again"
+                }
+            }
         }
-        UIView.transition(with: primaryButton, duration: animated ? 0.2 : 0, options: .transitionCrossDissolve) {
-            self.primaryButton.setTitle(title, for: .normal)
+        // Set without a transition: a cross-dissolve here could leave the title blank.
+        UIView.performWithoutAnimation {
+            primaryButton.setTitle(title, for: .normal)
+            primaryButton.layoutIfNeeded()
         }
+        primaryButton.isEnabled = enabled
+        primaryButton.alpha = enabled ? 1 : 0.62
+        primaryButton.accessibilityHint = caption
+        ctaCaption.text = caption
+        ctaCaption.isHidden = caption == nil
+        if animated { UIView.animate(withDuration: 0.2) { self.view.layoutIfNeeded() } }
     }
 
     private func finish() {

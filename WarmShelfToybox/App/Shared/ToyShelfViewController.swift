@@ -24,6 +24,7 @@ final class ToyShelfViewController: UIViewController {
         super.viewDidLoad()
         installParentAreaGesture()
         installParentButton()
+        refreshRestingCard()
         LullPlayTimer.shared.activate()
         NotificationCenter.default.addObserver(
             self,
@@ -76,6 +77,129 @@ final class ToyShelfViewController: UIViewController {
 
     @objc private func parentButtonTapped() {
         presentParentArea()
+    }
+
+    // MARK: - The resting shelf
+
+    /// Before a grown-up opens the toybox (the free week, the plan, or Keep Forever), and after
+    /// a plan ends, the shelf rests: the room, Wren, two plain lines and a button for a grown-up.
+    /// Never a price or a lock on the child's side; the offer lives behind the grown-up check.
+    private var restingCard: UIView?
+
+    private func refreshRestingCard() {
+        guard !LullDemoState.shared.hasFullToybox else {
+            restingCard?.removeFromSuperview()
+            restingCard = nil
+            return
+        }
+        guard restingCard == nil else { return }
+        let card = makeRestingCard()
+        view.insertSubview(card, belowSubview: parentButton)
+        NSLayoutConstraint.activate([
+            card.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor),
+            card.centerYAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerYAnchor),
+            card.widthAnchor.constraint(lessThanOrEqualToConstant: 400),
+            card.leadingAnchor.constraint(greaterThanOrEqualTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 28),
+            card.trailingAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -28)
+        ])
+        let fill = card.widthAnchor.constraint(equalToConstant: 400)
+        fill.priority = .defaultHigh
+        fill.isActive = true
+        restingCard = card
+        if !(UIAccessibility.isReduceMotionEnabled || LullDemoState.shared.isReducedMotion) {
+            card.alpha = 0
+            card.transform = CGAffineTransform(translationX: 0, y: 14)
+            UIView.animate(withDuration: 0.5, delay: 0.35, options: [.curveEaseOut]) {
+                card.alpha = 1
+                card.transform = .identity
+            }
+        }
+    }
+
+    private func makeRestingCard() -> UIView {
+        let card = UIView()
+        card.translatesAutoresizingMaskIntoConstraints = false
+        card.accessibilityIdentifier = "shelf-resting"
+        card.backgroundColor = WarmShelfPalette.paperHighlight.withAlphaComponent(0.94)
+        card.layer.cornerRadius = 28
+        card.layer.borderWidth = 1
+        card.layer.borderColor = WarmShelfPalette.softLine.withAlphaComponent(0.5).cgColor
+        card.layer.shadowColor = WarmShelfPalette.contactShadow.cgColor
+        card.layer.shadowOpacity = 0.16
+        card.layer.shadowRadius = 22
+        card.layer.shadowOffset = CGSize(width: 0, height: 12)
+
+        let mark = LullHostMarkView(side: 84)
+        let markHolder = UIView()
+        markHolder.addSubview(mark)
+        NSLayoutConstraint.activate([
+            mark.topAnchor.constraint(equalTo: markHolder.topAnchor),
+            mark.bottomAnchor.constraint(equalTo: markHolder.bottomAnchor),
+            mark.centerXAnchor.constraint(equalTo: markHolder.centerXAnchor)
+        ])
+
+        let title = UILabel()
+        title.text = "Nine toys are waiting"
+        title.font = UIFontMetrics(forTextStyle: .title1).scaledFont(for: UIFont(name: "Georgia", size: 26) ?? .systemFont(ofSize: 26, weight: .semibold))
+        title.adjustsFontForContentSizeCategory = true
+        title.textColor = WarmShelfPalette.clayInk
+        title.textAlignment = .center
+        title.numberOfLines = 0
+        title.accessibilityTraits = .header
+
+        let words = UILabel()
+        words.text = "A grown-up can open the toybox."
+        words.font = UIFontMetrics(forTextStyle: .body).scaledFont(for: .systemFont(ofSize: 16))
+        words.adjustsFontForContentSizeCategory = true
+        words.textColor = WarmShelfPalette.cocoa
+        words.textAlignment = .center
+        words.numberOfLines = 0
+
+        var config = UIButton.Configuration.filled()
+        config.title = "I'm a grown-up"
+        config.image = UIImage(systemName: "person.fill",
+                               withConfiguration: UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold))
+        config.imagePadding = 8
+        config.baseBackgroundColor = WarmShelfPalette.terracotta
+        config.baseForegroundColor = WarmShelfPalette.paperHighlight
+        config.background.cornerRadius = 18
+        config.contentInsets = NSDirectionalEdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16)
+        config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+            var outgoing = incoming
+            outgoing.font = UIFontMetrics(forTextStyle: .headline).scaledFont(for: .systemFont(ofSize: 17, weight: .bold))
+            return outgoing
+        }
+        let button = UIButton(configuration: config)
+        button.accessibilityIdentifier = "shelf-resting-grown-up"
+        button.accessibilityHint = "Asks the grown-up check, then shows how to open the toybox."
+        button.heightAnchor.constraint(greaterThanOrEqualToConstant: 54).isActive = true
+        button.addTarget(self, action: #selector(openToyboxForGrownUp), for: .touchUpInside)
+
+        let stack = UIStackView(arrangedSubviews: [markHolder, title, words, button])
+        stack.axis = .vertical
+        stack.spacing = 8
+        stack.setCustomSpacing(16, after: markHolder)
+        stack.setCustomSpacing(20, after: words)
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        card.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.topAnchor.constraint(equalTo: card.topAnchor, constant: 26),
+            stack.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 24),
+            stack.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -24),
+            stack.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -24)
+        ])
+        return card
+    }
+
+    /// The grown-up check, then the Full Toybox page with the one offer.
+    @objc private func openToyboxForGrownUp() {
+        guard presentedViewController == nil else { return }
+        AdultGate.present(from: self) { [weak self] in
+            guard let self, self.presentedViewController == nil else { return }
+            let plans = LullPlansViewController()
+            plans.modalPresentationStyle = .pageSheet
+            self.present(plans, animated: true)
+        }
     }
 
     private func presentParentArea() {
@@ -205,6 +329,7 @@ final class ToyShelfViewController: UIViewController {
 
     @objc private func accessDidChange() {
         refreshParentAttentionDot()
+        refreshRestingCard()
         guard let skView = view as? SKView, hasPresentedInitialScene else { return }
         presentShelfScene(in: skView, animated: true)
     }

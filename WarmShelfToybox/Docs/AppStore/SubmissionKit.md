@@ -34,18 +34,22 @@ outstanding work in `Docs/Launch/Launch-Checklist.md`.
      1 week**, for new subscribers.
    - **Keep Forever**: the existing non-consumable `com.lull.full.lifetime` (Apple ID
      6820224689), renamed and repriced from $9.99 to **$59.99** US.
-   - A review screenshot for each, from a TestFlight build with a sandbox account (the
-     grown-up area's plans card with real prices).
+   - A review screenshot for each: `Docs/AppStore/IAP-review-screenshot.png` (the welcome's
+     offer page with the launch prices, build 12). Replace it with a TestFlight capture once
+     sandbox prices load, if you like; the layout is the same.
    - **Family Sharing: on for both** (founder decision, October 11; it cannot be turned off).
    - Test in sandbox: free week, renewal, cancel during the week, Ask to Buy, restore,
      delete and reinstall, Keep Forever.
    - On the 1.0 version page, attach **both** under *In-App Purchases and Subscriptions*
      before you submit (first purchases must ride along with an app version).
-5. **Free week: resolved.** The on-device timer is gone (build 9). The free week is now Lull
-   Family's introductory offer, run by Apple. Apple's checkout states the trial and renewal
-   price; the app's plans card shows the billed price most prominently, the free week, the
-   renewal terms, and links to the Terms of Use (Apple's standard EULA) and Privacy Policy
-   (Guideline 3.1.2). The welcome never opens toys by itself.
+5. **Access model: free week only (founder decision, October 11, build 12).** There are no
+   free toys. Every family starts Lull Family's free week (Apple's introductory offer) or buys
+   Keep Forever; until then the shelf shows a calm "Nine toys are waiting" card with an
+   "I'm a grown-up" button, never a price or a lock. The offer (welcome page 3 and the Full
+   Toybox page) shows the billed price as the largest pricing text, the free week as dated
+   steps, the renewal terms, Restore purchases, and links to the Terms of Use (Apple's
+   standard EULA) and Privacy Policy (Guideline 3.1.2). The welcome never opens toys by itself.
+   Plan and research: `Docs/Revenue-Plan-2026-10-11.md`.
 6. **Kids Category age band** (permanent once approved): choose **Made for Kids → 5 and under**.
    Lull's core is 2–5; "6–8" would put it beside reading and maths apps for older children.
 7. **Where to sell.** Set both products' availability to the same territories as the app.
@@ -58,8 +62,8 @@ outstanding work in `Docs/Launch/Launch-Checklist.md`.
 ## 2. App Store Connect answers
 
 **App Privacy:** *Data Not Collected* for the app’s current behavior: no analytics, ads,
-accounts or transmission of play data to the developer. Family settings, the trial date and
-Mix-Up creations are local, subject to the device owner’s backups. Apple handles StoreKit
+accounts or transmission of play data to the developer. Family settings, the plan state, the
+optional free-week reminder (a local notification) and Mix-Up creations are local, subject to the device owner’s backups. Apple handles StoreKit
 product loading, purchases and restore; those operations can use the network. Support email
 voluntarily sends the sender’s address and message to the support mailbox. Keep the website
 policy consistent with its chosen host. The app’s required-reason API declaration is UserDefaults.
@@ -116,11 +120,12 @@ need no attribution).
 > Settings live behind an adult check: choose which toys are on the shelf, turn sound and
 > haptics on or off, choose calmer motion, and set a play timer and a wind-down hour.
 >
-> THREE TOYS FREE, ALL NINE TO PLAY
-> Bubbles, Drop Dots and Hum are free, with no ads and no account. Lull Family opens
-> all nine toys, and the new ones that arrive each season, with a free week for new
-> subscribers. Or choose Keep Forever: one payment for every toy, for good. Purchases are made
-> by a grown-up, behind the adult check.
+> TRY ALL NINE TOYS FREE FOR A WEEK
+> Lull Family opens all nine toys, and the new ones that arrive each season, starting with
+> 7 days free for new subscribers. Lull can remind you two days before the free week ends,
+> and cancelling during the week costs nothing. Rather not subscribe? Keep Forever is one
+> payment for every toy, for good. Both work with Family Sharing, and both are chosen by a
+> grown-up, behind the adult check.
 >
 > Lull Family is an auto-renewable subscription: 1 year, $29.99 (US) after the free week.
 > Payment is charged to your Apple Account at confirmation of purchase, after any free trial.
@@ -143,15 +148,18 @@ the hosted one. Keep learning claims at this level; do not claim outcomes.
 > fingers on the shelf). The adult check shows three numbers written as words, for example
 > "four · seven · two"; type them as digits (472). Three misses rest the check for 30 seconds.
 >
-> Purchases (grown-up area only, behind the adult check): an auto-renewable subscription,
+> Purchases (always behind the adult check): an auto-renewable subscription,
 > com.lull.family.yearly ("Lull Family", 1 year, with a 1-week free introductory offer), and
-> a non-consumable, com.lull.full.lifetime ("Keep Forever"). Both are on the Full Toybox page,
-> opened from the "Full Toybox" row in the grown-up area, with the subscription terms, Terms of Use,
-> Privacy Policy, Manage subscription and Restore purchases. The last welcome page explains
-> both plans; its "Try all nine free" button opens the same page through the adult check. The
-> app has no local or timed trial; without a purchase, Bubbles, Drop Dots and Hum
-> stay open.
-> The child's shelf never shows prices, locks or upgrade prompts. Support email is inside the
+> a non-consumable, com.lull.full.lifetime ("Keep Forever"). All toys need one of them; there
+> is no local or timed trial. First launch: the welcome's "Set up Lull" button asks the adult
+> check, then the family's play timer and wind-down hour, then the offer page ("Start my free
+> week", "Buy once", Restore purchases, Terms of Use, Privacy Policy, subscription terms).
+> "Not now" explains the free week and offers "Decide later". Later, the same offer is on the
+> Full Toybox page: the shelf's "I'm a grown-up" button or the grown-up area's "Full Toybox"
+> row, both behind the adult check. If the grown-up allows notifications after starting the
+> free week, Lull schedules one local reminder two days before it ends.
+> Without a purchase the child's shelf shows only "Nine toys are waiting · A grown-up can open
+> the toybox"; it never shows prices, locks or upgrade prompts. Support email is inside the
 > grown-up area; the optional web privacy link is currently unset. The device's tilt moves
 > the shelf picture slightly and is never stored.
 
@@ -186,7 +194,7 @@ with rounded corners; no device frames, no fake UI).
 - Build the current 1.0 (8) candidate from this branch and run all `Tools/verify_*.py`.
   TestFlight uploads to Founder Testing are already authorized by the October 10 handoff;
   the founder’s device review and public App Review approval are separate. Before release, check:
-  welcome → the approved trial/access model; grown-up check (words → digits, three misses rest it); privacy screen;
+  welcome → adult check → setup → offer → free week (sandbox); grown-up check (words → digits, three misses rest it); privacy screen;
   support email (and the copy fallback with Mail signed out); purchase and restore in sandbox.
 - Resolve §1.5 before public submission and reconcile all trial copy with the approved model.
 - App Store Connect: version 1.0 page filled, build selected, purchase attached, screenshots,

@@ -162,7 +162,7 @@ final class ParentInfoViewController: UIViewController {
             let isVisible = !hiddenToys.contains(toyID)
             let detail: String
             if ToyRegistry.isToyLocked(toyID) {
-                detail = isVisible ? "Full Toybox · shown when unlocked" : "Full Toybox · tucked away"
+                detail = isVisible ? "On the shelf once the toybox is open" : "Tucked away"
             } else {
                 detail = isVisible ? "On the child's shelf" : "Tucked away"
             }
@@ -173,13 +173,13 @@ final class ParentInfoViewController: UIViewController {
                 action: #selector(toyRowTapped(_:))
             ))
         }
-        let shownCount = ToyRegistry.launchToyIDs.filter {
-            !hiddenToys.contains($0) && !ToyRegistry.isToyLocked($0)
-        }.count
+        let chosenCount = ToyRegistry.launchToyIDs.filter { !hiddenToys.contains($0) }.count
         stack.addArrangedSubview(makeDisclosureCard(
-            title: "Choose shelf toys", detail: "\(shownCount) toys on the child's shelf", section: 0,
+            title: "Choose shelf toys",
+            detail: state.hasFullToybox ? "\(chosenCount) toys on the child's shelf" : "\(chosenCount) toys chosen · toybox not open yet",
+            section: 0,
             content: [makeGroupCard(toyRows),
-                      makeFootnote("Choose which toys appear. At least one free toy stays visible.")]
+                      makeFootnote("Choose which toys appear. At least one toy always stays on the shelf.")]
         ))
 
         // Plans and prices live on their own page (founder, October 11): one quiet row here.
@@ -814,7 +814,7 @@ final class ParentInfoViewController: UIViewController {
         } else {
             hidden.insert(id)
             // Never let the child's shelf go empty.
-            let stillVisible = ids.filter { !hidden.contains($0) && !ToyRegistry.isToyLocked($0) }
+            let stillVisible = ids.filter { !hidden.contains($0) }
             if stillVisible.isEmpty {
                 AudioManager.shared.playSoftTap()
                 return
@@ -885,7 +885,7 @@ final class LullPrivacyViewController: UIViewController {
             ("Purchases",
              "The full toybox is an In-App Purchase handled entirely by Apple: the Lull Family subscription or the one-time Keep Forever purchase. Lull never sees your name, Apple Account, or payment details; Apple tells the app only whether the full toybox is open, and when a plan's free week or renewal is due. Apple's privacy policy covers the purchase itself."),
             ("Device features",
-             "Lull does not use the camera, microphone, location, contacts, photos, or notifications. The shelf may read the device's tilt to move its picture gently; that motion is used in the moment and never saved."),
+             "Lull does not use the camera, microphone, location, contacts, or photos. If a grown-up starts Lull Family's free week and allows notifications, Lull sets one silent reminder on this device for two days before the week ends; it is made and shown on this device only, and nothing is sent anywhere. The shelf may read the device's tilt to move its picture gently; that motion is used in the moment and never saved."),
             ("Children",
              "Lull is made for children aged 2 to 6. We do not knowingly collect personal information from children, and the app gives a child no way to type, share, or send information. Settings, purchases, and links live in the grown-up area behind an adult check."),
             ("If you contact us",

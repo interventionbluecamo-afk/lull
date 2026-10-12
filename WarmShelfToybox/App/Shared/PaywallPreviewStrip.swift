@@ -10,16 +10,20 @@ import SpriteKit
 final class PaywallPreviewStrip: UIView {
     private let skView = SKView()
     private let toyCount: Int
+    private let rowHeight: CGFloat
     private var heightConstraint: NSLayoutConstraint!
 
-    static let rowHeight: CGFloat = 104
     static let minimumCellWidth: CGFloat = 76
 
-    init(toyIDs: [String]) {
+    /// `labelColor` suits the surface: paper-light names on the dark plans card, cocoa on the
+    /// welcome's warm paper.
+    init(toyIDs: [String], labelColor: UIColor = WarmShelfPalette.paperHighlight.withAlphaComponent(0.88),
+         rowHeight: CGFloat = 104) {
         toyCount = max(1, toyIDs.count)
+        self.rowHeight = rowHeight
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
-        heightConstraint = heightAnchor.constraint(equalToConstant: Self.rowHeight + 18)
+        heightConstraint = heightAnchor.constraint(equalToConstant: rowHeight + 18)
         heightConstraint.isActive = true
 
         isAccessibilityElement = true
@@ -38,7 +42,7 @@ final class PaywallPreviewStrip: UIView {
             skView.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
 
-        let scene = PaywallPreviewScene(toyIDs: toyIDs)
+        let scene = PaywallPreviewScene(toyIDs: toyIDs, labelColor: labelColor)
         scene.scaleMode = .resizeFill
         scene.backgroundColor = .clear
         skView.presentScene(scene)
@@ -55,7 +59,7 @@ final class PaywallPreviewStrip: UIView {
         guard bounds.width > 0 else { return }
         let columns = Self.columns(for: bounds.width, count: toyCount)
         let rows = Int((Double(toyCount) / Double(columns)).rounded(.up))
-        let wanted = CGFloat(rows) * Self.rowHeight + 18
+        let wanted = CGFloat(rows) * rowHeight + 18
         if abs(heightConstraint.constant - wanted) > 0.5 {
             heightConstraint.constant = wanted
         }
@@ -64,10 +68,12 @@ final class PaywallPreviewStrip: UIView {
 
 private final class PaywallPreviewScene: SKScene {
     private let toyIDs: [String]
+    private let labelColor: UIColor
     private var lastBuilt = CGSize.zero
 
-    init(toyIDs: [String]) {
+    init(toyIDs: [String], labelColor: UIColor) {
         self.toyIDs = toyIDs
+        self.labelColor = labelColor
         super.init(size: CGSize(width: 320, height: 150))
     }
 
@@ -92,7 +98,10 @@ private final class PaywallPreviewScene: SKScene {
         for (index, id) in toyIDs.enumerated() {
             let column = index % columns
             let row = index / columns
-            let cx = cellW * (CGFloat(column) + 0.5)
+            // A shorter last row sits centred under the full one (nine toys read 5 + 4).
+            let inRow = min(columns, count - row * columns)
+            let rowInset = CGFloat(columns - inRow) * cellW / 2
+            let cx = rowInset + cellW * (CGFloat(column) + 0.5)
             let cellBottom = size.height - CGFloat(row + 1) * cellH
             let labelY = cellBottom + cellH * 0.10
             let floorY = cellBottom + cellH * 0.25
@@ -135,7 +144,7 @@ private final class PaywallPreviewScene: SKScene {
             let label = SKLabelNode(text: shortName(for: id))
             label.fontName = "Georgia"
             label.fontSize = max(10, min(13, cellW * 0.15))
-            label.fontColor = WarmShelfPalette.paperHighlight.withAlphaComponent(0.88)
+            label.fontColor = labelColor
             label.verticalAlignmentMode = .center
             label.horizontalAlignmentMode = .center
             label.position = CGPoint(x: cx, y: labelY)

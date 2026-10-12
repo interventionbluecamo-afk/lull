@@ -434,6 +434,33 @@ final class LullPurchaseManager {
         return period.value == 1 ? Self.unitName(period.unit) : Self.describe(period)
     }
 
+    /// The free period in whole days (7 for a week), for the dated free-week timeline. nil for
+    /// no free offer, or one counted in months, whose days vary.
+    func freeTrialDays(for productID: String) -> Int? {
+        guard let offer = product(for: productID)?.subscription?.introductoryOffer,
+              offer.paymentMode == .freeTrial else { return nil }
+        switch offer.period.unit {
+        case .day: return offer.period.value
+        case .week: return offer.period.value * 7
+        default: return nil
+        }
+    }
+
+    /// "$2.50": a yearly plan's price spread over twelve months, in the App Store's own
+    /// currency format. Always shown smaller than the billed price (Guideline 3.1.2).
+    func monthlyEquivalent(for productID: String) -> String? {
+        guard let product = product(for: productID),
+              let period = product.subscription?.subscriptionPeriod,
+              period.unit == .year, period.value == 1 else { return nil }
+        return (product.price / 12).formatted(product.priceFormatStyle)
+    }
+
+    /// Whether App Store Connect shares this purchase with the buyer's Family Sharing group.
+    /// Read from the App Store, so the plans never promise sharing that isn't switched on.
+    func isFamilyShareable(_ productID: String) -> Bool {
+        product(for: productID)?.isFamilyShareable ?? false
+    }
+
     private static func unitName(_ unit: Product.SubscriptionPeriod.Unit) -> String {
         switch unit {
         case .day: return "day"
@@ -472,6 +499,7 @@ final class LullPurchaseManager {
                     let willRenew: Bool? = product.subscription == nil ? nil : true
                     LullDemoState.shared.applyPlan(snapshot(for: transaction, willRenew: willRenew))
                     if transaction.offerType == .introductory { isEligibleForFreeWeek = false }
+                    await LullFreeWeekReminder.sync()
                 }
                 await transaction.finish()
                 lastErrorMessage = nil
@@ -514,8 +542,10 @@ final class LullPurchaseManager {
 
         var best: Transaction?
         for await result in Transaction.currentEntitlements {
-            guard let transaction = verifiedTransaction(from: result),
-                  isFullToyboxTransaction(transaction) else { continue }
+            guard let transaction = verifiedTransaction(from: result) else { continue }
+            var opensToybox = isFullToyboxTransaction(transaction)
+            if !opensToybox, await isInBillingGracePeriod(transaction) { opensToybox = true }
+            guard opensToybox else { continue }
             // Keep Forever outranks a plan: it never ends.
             if transaction.productID == LullStoreProduct.lifetime {
                 best = transaction
@@ -526,6 +556,7 @@ final class LullPurchaseManager {
 
         guard let best else {
             LullDemoState.shared.applyPlan(nil)
+            await LullFreeWeekReminder.sync()
             return
         }
         var willRenew: Bool?
@@ -533,6 +564,27 @@ final class LullPurchaseManager {
             willRenew = await willAutoRenew(best)
         }
         LullDemoState.shared.applyPlan(snapshot(for: best, willRenew: willRenew))
+        // Cancelling during the free week, or the week ending, retires its reminder.
+        await LullFreeWeekReminder.sync()
+    }
+
+    /// Apple's Billing Grace Period (switched on in App Store Connect): while Apple retries a
+    /// failed renewal, the family keeps the toybox and Apple usually recovers the payment. The
+    /// renewal's date has already passed, so ask the subscription's status instead.
+    private func isInBillingGracePeriod(_ transaction: Transaction) async -> Bool {
+        guard transaction.productType == .autoRenewable,
+              LullStoreProduct.subscriptionProductIDs.contains(transaction.productID),
+              transaction.revocationDate == nil else { return false }
+        var plan = product(for: transaction.productID)
+        if plan == nil {
+            plan = try? await Product.products(for: [transaction.productID]).first
+        }
+        guard let statuses = try? await plan?.subscription?.status else { return false }
+        return statuses.contains { status in
+            guard status.state == .inGracePeriod,
+                  case .verified(let current) = status.transaction else { return false }
+            return current.originalID == transaction.originalID
+        }
     }
 
     private func snapshot(for transaction: Transaction, willRenew: Bool?) -> LullDemoState.PlanSnapshot {

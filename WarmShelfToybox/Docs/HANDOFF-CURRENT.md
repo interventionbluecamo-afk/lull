@@ -40,7 +40,7 @@ Mac checkout: `~/Desktop/lull v.2` · Last updated: **October 12, 2026, by Claud
 
 1. **Screenshots:**
    - iPhone 6.9": done (8 images, `~/Desktop/lull-store/iphone/`);
-   - iPad 13": being re-captured. The first try caught loading screens.
+   - iPad 13": done (8 images, `~/Desktop/lull-store/ipad/`), checked by eye.
      - Raw files: `/private/tmp/claude-502/-Users-User2-Desktop-lull-v-2/*/scratchpad/caps/ipad/`.
      - Compose with `python3 Tools/Store/compose_screenshots.py --captures <dir with iphone/ and ipad/> --out ~/Desktop/lull-store --devices ipad`.
      - The compose script needs Pillow (`pip install pillow` in a venv).

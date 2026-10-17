@@ -247,7 +247,279 @@
         568
       ],
       "measurementNotes": "Native source 1586 x 992 RGBA. Wheel inner arches fitted to the last native-alpha >=128 pixel in source columns 300...520 and 1080...1320; residual RMS 0.448 and 0.630 px. Window bounds and live-face circle measured on the main blue windshield. Alpha threshold is used for measurement only; the source and prepared art are never keyed or erased."
+    },
+    {
+      "kind": "garbageTruck",
+      "imageset": "wash-garbage-truck",
+      "sourceFile": "wash-garbage-truck-source.png",
+      "generatedFile": "exec-e7b9ba7d-3632-4175-b3ab-53586f430017.png",
+      "preparation": "body-baseline",
+      "bodyWidth": 1268,
+      "bodyBottom": 770,
+      "sourceCrop": [
+        37,
+        73,
+        1689,
+        806
+      ],
+      "faceCenter": [
+        1352.0,
+        388.0
+      ],
+      "faceRadius": 70.75999999999999,
+      "windowBounds": [
+        1232,
+        260,
+        1496,
+        504
+      ],
+      "measuredWheelArches": [
+        {
+          "center": [
+            490.8367359803029,
+            802.8236740498548
+          ],
+          "radius": 148.43677653558632
+        },
+        {
+          "center": [
+            1351.3835148692058,
+            781.9749543786542
+          ],
+          "radius": 127.08509898582986
+        }
+      ],
+      "wheelOverlapScale": 1.08,
+      "measurementNotes": "Native-alpha bounding box at threshold 40. Blank window measured from largest blue felt panel; circle uses 29% of smaller panel extent. Inner arch circle fit RMS in source pixels: [0.321, 0.271]. Alpha classification is measurement only; no RGB keying or alpha repaint."
+    },
+    {
+      "kind": "mailTruck",
+      "imageset": "wash-mail-truck",
+      "sourceFile": "wash-mail-truck-source.png",
+      "generatedFile": "exec-9f6b916a-ed8d-4a1c-8d05-03b93bd0c5bd.png",
+      "preparation": "body-baseline",
+      "bodyWidth": 1268,
+      "bodyBottom": 770,
+      "sourceCrop": [
+        50,
+        68,
+        1571,
+        817
+      ],
+      "faceCenter": [
+        1160.0,
+        360.0
+      ],
+      "faceRadius": 81.19999999999999,
+      "windowBounds": [
+        1032,
+        204,
+        1324,
+        484
+      ],
+      "measuredWheelArches": [
+        {
+          "center": [
+            336.6022116350129,
+            816.9134122895207
+          ],
+          "radius": 128.64040233059947
+        },
+        {
+          "center": [
+            1267.1267789605013,
+            816.1022179099651
+          ],
+          "radius": 128.69569421639193
+        }
+      ],
+      "wheelOverlapScale": 1.08,
+      "measurementNotes": "Native-alpha bounding box at threshold 40. Blank window measured from largest blue felt panel; circle uses 29% of smaller panel extent. Inner arch circle fit RMS in source pixels: [0.383, 0.328]. Alpha classification is measurement only; no RGB keying or alpha repaint."
+    },
+    {
+      "kind": "camper",
+      "imageset": "wash-camper",
+      "sourceFile": "wash-camper-source.png",
+      "generatedFile": "exec-848413c6-395d-4294-8a61-4319eb86154b.png",
+      "preparation": "body-baseline",
+      "bodyWidth": 1268,
+      "bodyBottom": 770,
+      "sourceCrop": [
+        11,
+        77,
+        1620,
+        852
+      ],
+      "faceCenter": [
+        1220.0,
+        368.0
+      ],
+      "faceRadius": 64.96,
+      "windowBounds": [
+        1060,
+        264,
+        1436,
+        488
+      ],
+      "measuredWheelArches": [
+        {
+          "center": [
+            405.08707701991653,
+            868.1910198524754
+          ],
+          "radius": 146.14678400503604
+        },
+        {
+          "center": [
+            1232.0474482364402,
+            870.906057330517
+          ],
+          "radius": 148.92807176968782
+        }
+      ],
+      "wheelOverlapScale": 1.08,
+      "measurementNotes": "Native-alpha bounding box at threshold 40. Blank window measured from largest blue felt panel; circle uses 29% of smaller panel extent. Inner arch circle fit RMS in source pixels: [0.298, 0.345]. Alpha classification is measurement only; no RGB keying or alpha repaint."
+    },
+    {
+      "kind": "towTruck",
+      "imageset": "wash-tow-truck",
+      "sourceFile": "wash-tow-truck-source.png",
+      "generatedFile": "exec-27fc65d7-c21a-469a-97cf-d17e17c70382.png",
+      "preparation": "body-baseline",
+      "bodyWidth": 1268,
+      "bodyBottom": 770,
+      "sourceCrop": [
+        16,
+        166,
+        1534,
+        852
+      ],
+      "faceCenter": [
+        1068.0,
+        384.0
+      ],
+      "faceRadius": 77.72,
+      "windowBounds": [
+        920,
+        236,
+        1248,
+        504
+      ],
+      "measuredWheelArches": [
+        {
+          "center": [
+            395.3797788765143,
+            830.783895821708
+          ],
+          "radius": 143.24094080849616
+        },
+        {
+          "center": [
+            1236.2515016781747,
+            824.9991666864524
+          ],
+          "radius": 137.2548478007639
+        }
+      ],
+      "wheelOverlapScale": 1.08,
+      "measurementNotes": "Native-alpha bounding box at threshold 40. Blank window measured from largest blue felt panel; circle uses 29% of smaller panel extent. Inner arch circle fit RMS in source pixels: [0.306, 0.281]. Alpha classification is measurement only; no RGB keying or alpha repaint."
+    },
+    {
+      "kind": "ambulance",
+      "imageset": "wash-ambulance",
+      "sourceFile": "wash-ambulance-source.png",
+      "generatedFile": "exec-866668ad-151c-4067-9d4a-80da017d85b0.png",
+      "preparation": "body-baseline",
+      "bodyWidth": 1268,
+      "bodyBottom": 770,
+      "sourceCrop": [
+        30,
+        55,
+        1510,
+        873
+      ],
+      "faceCenter": [
+        1084.0,
+        368.0
+      ],
+      "faceRadius": 78.88,
+      "windowBounds": [
+        960,
+        212,
+        1264,
+        484
+      ],
+      "measuredWheelArches": [
+        {
+          "center": [
+            377.58148671409145,
+            854.6124508737282
+          ],
+          "radius": 165.7462781692025
+        },
+        {
+          "center": [
+            1185.578324516298,
+            850.9528269893767
+          ],
+          "radius": 162.42456937626454
+        }
+      ],
+      "wheelOverlapScale": 1.08,
+      "measurementNotes": "Native-alpha bounding box at threshold 40. Blank window measured from largest blue felt panel; circle uses 29% of smaller panel extent. Inner arch circle fit RMS in source pixels: [0.29, 0.332]. Alpha classification is measurement only; no RGB keying or alpha repaint."
+    },
+    {
+      "kind": "helicopter",
+      "imageset": "wash-helicopter",
+      "sourceFile": "wash-helicopter-source.png",
+      "generatedFile": "exec-a878a5d2-bd5c-47f6-9e28-0965da9a4384.png",
+      "preparation": "body-baseline",
+      "bodyWidth": 1268,
+      "bodyBottom": 880,
+      "sourceCrop": [
+        16,
+        66,
+        1475,
+        945
+      ],
+      "faceCenter": [
+        1172.0,
+        436.0
+      ],
+      "faceRadius": 97.44,
+      "windowBounds": [
+        988,
+        252,
+        1392,
+        588
+      ],
+      "measuredWheelArches": [],
+      "wheelOverlapScale": 1.08,
+      "measurementNotes": "Native-alpha bounding box at threshold 40. Blank window measured from largest blue felt panel; circle uses 29% of smaller panel extent. Inner arch circle fit RMS in source pixels: []. Alpha classification is measurement only; no RGB keying or alpha repaint.",
+      "rotorCenter": [
+        931.0,
+        79.0
+      ],
+      "rotorWidth": 0.75
     }
   ],
-  "sourceDirectory": "Docs/Art/LittleWash/Source"
+  "sourceDirectory": "Docs/Art/LittleWash/Source",
+  "components": [
+    {
+      "imageset": "wash-helicopter-rotor",
+      "sourceFile": "wash-helicopter-rotor-source.png",
+      "generatedFile": "exec-e500fbe0-1639-45d8-b618-23edec129640.png",
+      "sourceCrop": [
+        58,
+        271,
+        2115,
+        456
+      ],
+      "canvas": [
+        1200,
+        240
+      ],
+      "bodyWidth": 1150
+    }
+  ]
 }

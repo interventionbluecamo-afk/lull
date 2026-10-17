@@ -26,6 +26,15 @@ enum WashVehicleKind: String, CaseIterable {
     case schoolBus
     case digger
     case iceCreamVan
+    case garbageTruck
+    case mailTruck
+    case camper
+    case towTruck
+    case ambulance
+    case helicopter
+
+    var isFlying: Bool { self == .helicopter }
+    static var roadVehicles: [Self] { allCases.filter { !$0.isFlying } }
 
     var imageName: String {
         switch self {
@@ -35,6 +44,12 @@ enum WashVehicleKind: String, CaseIterable {
         case .schoolBus: return "wash-school-bus"
         case .digger: return "wash-digger"
         case .iceCreamVan: return "wash-ice-cream-van"
+        case .garbageTruck: return "wash-garbage-truck"
+        case .mailTruck: return "wash-mail-truck"
+        case .camper: return "wash-camper"
+        case .towTruck: return "wash-tow-truck"
+        case .ambulance: return "wash-ambulance"
+        case .helicopter: return "wash-helicopter"
         }
     }
     var spokenName: String {
@@ -45,6 +60,12 @@ enum WashVehicleKind: String, CaseIterable {
         case .schoolBus: return "school bus"
         case .digger: return "digger"
         case .iceCreamVan: return "ice cream van"
+        case .garbageTruck: return "garbage truck"
+        case .mailTruck: return "mail truck"
+        case .camper: return "camper van"
+        case .towTruck: return "tow truck"
+        case .ambulance: return "ambulance"
+        case .helicopter: return "helicopter"
         }
     }
 }
@@ -188,29 +209,41 @@ struct WashModel {
     }
 }
 
-/// A seeded shuffle bag permits reproducible tests and preserves the cast across rotation.
-/// Six deliveries contain all six kinds; bag boundaries also never repeat a vehicle.
+/// A seeded road-vehicle shuffle bag preserves variety and survives rotation.
+/// The helicopter is an occasional extra visit after four completed washes; it never
+/// displaces a road vehicle from the bag, and it cannot visit twice in a row.
 struct WashCastDeck {
     private var state: UInt64
     private var remaining: [WashVehicleKind] = []
     private var previous: WashVehicleKind?
+    private var previousRoad: WashVehicleKind?
+    private(set) var completedWashes = 0
 
     init(seed: UInt64 = UInt64.random(in: 1...UInt64.max)) {
         state = seed == 0 ? 0x9E3779B97F4A7C15 : seed
     }
 
+    mutating func recordCompletion() {
+        if completedWashes < Int.max { completedWashes += 1 }
+    }
+
     mutating func next() -> WashVehicleKind {
+        if completedWashes >= 4, previous != .helicopter, randomWord() % 6 == 0 {
+            previous = .helicopter
+            return .helicopter
+        }
         if remaining.isEmpty {
-            remaining = WashVehicleKind.allCases
+            remaining = WashVehicleKind.roadVehicles
             for index in stride(from: remaining.count - 1, through: 1, by: -1) {
                 remaining.swapAt(index, Int(randomWord() % UInt64(index + 1)))
             }
-            if remaining.last == previous {
+            if remaining.last == previousRoad {
                 remaining.swapAt(remaining.count - 1, 0)
             }
         }
         let kind = remaining.removeLast()
         previous = kind
+        previousRoad = kind
         return kind
     }
 
@@ -235,6 +268,10 @@ struct WashVehicleRig {
     let wheels: [WashWheelRig]
     /// True for rigs measured from the preserved native artwork.
     let isMeasured: Bool
+    /// Main rotor hub, in the same top-origin canvas coordinates as the face.
+    var rotorCenter: WashPoint? = nil
+    /// Width of the rotor's complete padded canvas as a fraction of vehicle canvas width.
+    var rotorWidth: Double = 0.75
 
     static func forVehicle(_ kind: WashVehicleKind) -> WashVehicleRig {
         switch kind {
@@ -280,6 +317,47 @@ struct WashVehicleRig {
                     WashWheelRig(center: WashPoint(x: 0.29682172, y: 0.75727581), radius: 0.12272419),
                     WashWheelRig(center: WashPoint(x: 0.71206662, y: 0.75755859), radius: 0.12244141),
                 ], isMeasured: true)
+        case .garbageTruck:
+            return WashVehicleRig(
+                faceCenter: WashPoint(x: 0.73458384, y: 0.44894407), faceRadius: 0.05434909,
+                wheels: [
+                    WashWheelRig(center: WashPoint(x: 0.32146526, y: 0.75686835), radius: 0.12313165),
+                    WashWheelRig(center: WashPoint(x: 0.73428810, y: 0.76414213), radius: 0.11585787),
+                ], isMeasured: true)
+        case .mailTruck:
+            return WashVehicleRig(
+                faceCenter: WashPoint(x: 0.68210306, y: 0.38926836), faceRadius: 0.06764860,
+                wheels: [
+                    WashWheelRig(center: WashPoint(x: 0.25308087, y: 0.76425455), radius: 0.11574545),
+                    WashWheelRig(center: WashPoint(x: 0.73792026, y: 0.76420480), radius: 0.11579520),
+                ], isMeasured: true)
+        case .camper:
+            return WashVehicleRig(
+                faceCenter: WashPoint(x: 0.69923322, y: 0.38842065), faceRadius: 0.05121363,
+                wheels: [
+                    WashWheelRig(center: WashPoint(x: 0.29785442, y: 0.75556214), radius: 0.12443786),
+                    WashWheelRig(center: WashPoint(x: 0.70516709, y: 0.75319399), radius: 0.12680601),
+                ], isMeasured: true)
+        case .towTruck:
+            return WashVehicleRig(
+                faceCenter: WashPoint(x: 0.65296607, y: 0.37909038), faceRadius: 0.06491773,
+                wheels: [
+                    WashWheelRig(center: WashPoint(x: 0.30181224, y: 0.75078247), radius: 0.12921753),
+                    WashWheelRig(center: WashPoint(x: 0.74080488, y: 0.75331052), radius: 0.12668948),
+                ], isMeasured: true)
+        case .ambulance:
+            return WashVehicleRig(
+                faceCenter: WashPoint(x: 0.66813851, y: 0.33723105), faceRadius: 0.06759765,
+                wheels: [
+                    WashWheelRig(center: WashPoint(x: 0.28987049, y: 0.72659756), radius: 0.15340244),
+                    WashWheelRig(center: WashPoint(x: 0.72253096, y: 0.72967189), radius: 0.15032811),
+                ], isMeasured: true)
+        case .helicopter:
+            return WashVehicleRig(
+                faceCenter: WashPoint(x: 0.73166638, y: 0.43759272), faceRadius: 0.08469188,
+                wheels: [
+                ], isMeasured: true,
+                rotorCenter: WashPoint(x: 0.60075994, y: 0.12729920), rotorWidth: 0.75000000)
         }
     }
 }

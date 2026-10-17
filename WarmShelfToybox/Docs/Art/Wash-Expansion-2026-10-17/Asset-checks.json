@@ -1,0 +1,65 @@
+[
+  {
+    "name": "wash-garbage-truck.png",
+    "size": [
+      1600,
+      1000
+    ],
+    "mode": "RGBA",
+    "cornersTransparent": true
+  },
+  {
+    "name": "wash-mail-truck.png",
+    "size": [
+      1600,
+      1000
+    ],
+    "mode": "RGBA",
+    "cornersTransparent": true
+  },
+  {
+    "name": "wash-camper.png",
+    "size": [
+      1600,
+      1000
+    ],
+    "mode": "RGBA",
+    "cornersTransparent": true
+  },
+  {
+    "name": "wash-tow-truck.png",
+    "size": [
+      1600,
+      1000
+    ],
+    "mode": "RGBA",
+    "cornersTransparent": true
+  },
+  {
+    "name": "wash-ambulance.png",
+    "size": [
+      1600,
+      1000
+    ],
+    "mode": "RGBA",
+    "cornersTransparent": true
+  },
+  {
+    "name": "wash-helicopter.png",
+    "size": [
+      1600,
+      1000
+    ],
+    "mode": "RGBA",
+    "cornersTransparent": true
+  },
+  {
+    "name": "wash-helicopter-rotor.png",
+    "size": [
+      1200,
+      240
+    ],
+    "mode": "RGBA",
+    "cornersTransparent": true
+  }
+]

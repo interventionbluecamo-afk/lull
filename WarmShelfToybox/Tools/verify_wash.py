@@ -17,11 +17,13 @@ root = source.parents[3]
 rig_path = root / "Docs/LittleWash/Vehicle-rigs.json"
 manifest_path = root / "Docs/LittleWash/Vehicle-art-source.json"
 art_checks = 0
-required_kinds = {"fireTruck", "policeCar", "tractor", "schoolBus", "digger", "iceCreamVan"}
-assert rig_path.is_file() and manifest_path.is_file(), "six measured production rigs required"
+legacy_kinds = {"fireTruck", "policeCar", "tractor", "schoolBus", "digger", "iceCreamVan"}
+new_kinds = {"garbageTruck", "mailTruck", "camper", "towTruck", "ambulance", "helicopter"}
+required_kinds = legacy_kinds | new_kinds
+assert rig_path.is_file() and manifest_path.is_file(), "twelve measured production rigs required"
 rigs = json.loads(rig_path.read_text())
 manifest = json.loads(manifest_path.read_text())
-assert len(manifest["vehicles"]) == 6, "all six delivered vehicles registered"
+assert len(manifest["vehicles"]) == 12, "all twelve delivered vehicles registered"
 assert {entry["kind"] for entry in manifest["vehicles"]} == required_kinds, "complete source manifest cast"
 assert set(rigs) == required_kinds, "complete prepared rig cast"
 assert manifest["canvas"] == [1600, 1000] and manifest["bodyWidth"] == 1280, "canonical body canvas"
@@ -31,7 +33,18 @@ for entry in manifest["vehicles"]:
     rig = rigs[entry["kind"]]
     assert rig["isMeasured"] is True, "every production rig measured from native art"
     assert rig["canvasSize"] == [1600, 1000], "rig uses canonical canvas"
-    assert rig["bodyPlacement"][0] == 160 and rig["bodyPlacement"][2] == 1280, "equal body widths"
+    left, top, width, height = rig["bodyPlacement"]
+    if entry["kind"] in legacy_kinds:
+        assert left == 160 and width == 1280, "original six body widths unchanged"
+    else:
+        assert entry["preparation"] == "body-baseline", "expansion art uses its supplied baseline"
+        bottom = 880 if entry["kind"] == "helicopter" else 770
+        assert entry["bodyBottom"] == bottom and entry["bodyWidth"] == 1268, "expansion preparation specification"
+        assert top >= 20 and top + height == bottom, "body/skids respect their baseline and top margin"
+        assert 0 < width <= 1268 and abs(2 * left + width - 1600) <= 1, "expansion body is centered"
+        assert width == 1268 or top <= 21, "width is reduced only for a tall source"
+        art_checks += 5
+    assert top >= 0 and left >= 0 and left + width <= 1600 and top + height <= 1000, "body fits canvas"
     assert rig["groundLine"] == 0.88, "rig uses canonical ground line"
     art_checks += 4
     imageset = root / "App/Resources/Assets.xcassets" / (entry["imageset"] + ".imageset")
@@ -46,11 +59,21 @@ for entry in manifest["vehicles"]:
     art_checks += 1
     assert png[25] == 6, "native RGBA output retains alpha channel"
     art_checks += 1
-    original = root / manifest["sourceDirectory"] / entry["sourceFile"]
+    original = root / entry.get("sourceDirectory", manifest["sourceDirectory"]) / entry["sourceFile"]
     original_png = original.read_bytes()
     assert hashlib.sha256(original_png).hexdigest() == rig["sourceSHA256"], "preserved original matches measured art"
     assert original_png[25] == 6, "preserved native source is RGBA"
     art_checks += 2
+# The main rotor is a separate animated sprite, never baked into the helicopter body.
+rotor_set = root / "App/Resources/Assets.xcassets/wash-helicopter-rotor.imageset"
+rotor_contents = json.loads((rotor_set / "Contents.json").read_text())
+rotor_filename = next(item["filename"] for item in rotor_contents["images"] if "filename" in item)
+assert rotor_filename == "wash-helicopter-rotor.png", "rotor imageset registration"
+rotor_png = (rotor_set / rotor_filename).read_bytes()
+assert rotor_png[:8] == b"\x89PNG\r\n\x1a\n" and rotor_png[12:16] == b"IHDR", "rotor PNG header"
+assert struct.unpack(">II", rotor_png[16:24]) == (1200, 240), "separate rotor canvas"
+assert rotor_png[25] == 6, "rotor retains native alpha"
+art_checks += 4
 compiler = shutil.which("swiftc")
 if compiler is None:
     raise SystemExit("Swift compiler required (install/select Xcode command-line tools).")
@@ -200,22 +223,53 @@ for count in [1, 3, 4, 17, 48, 60] {
     check(accessible.isComplete, "four accessible activations finish")
 }
 
-// Every bag exposes the complete cast and boundaries never repeat, over 1,200 draws.
+// Eleven road vehicles retain a complete shuffle bag. Flying visits are extra guests,
+// not replacements for a road vehicle, and only actual completed washes unlock them.
+let roadKinds = Set(WashVehicleKind.allCases.filter { $0 != .helicopter })
+check(roadKinds.count == 11 && WashVehicleKind.allCases.count == 12, "complete expanded cast")
 for seed: UInt64 in [0, 1, 2, 42, 987654321] {
+    var unearned = WashCastDeck(seed: seed)
+    for _ in 0..<100 {
+        check(unearned.next() != .helicopter, "drawing without completing cannot unlock flying visits")
+    }
+    for _ in 0..<3 { unearned.recordCompletion() }
+    for _ in 0..<100 {
+        check(unearned.next() != .helicopter, "three completed washes still exclude helicopter")
+    }
+
     var deck = WashCastDeck(seed: seed)
     var twin = WashCastDeck(seed: seed)
     var previous: WashVehicleKind?
-    for _ in 0..<200 {
-        var bag: Set<WashVehicleKind> = []
-        for _ in 0..<6 {
-            let vehicle = deck.next()
-            check(vehicle != previous, "no repeat even at bag boundary")
-            check(vehicle == twin.next(), "seed reproducibility")
-            bag.insert(vehicle)
-            previous = vehicle
+    var previousRoad: WashVehicleKind?
+    var roadBag: Set<WashVehicleKind> = []
+    var roadCount = 0
+    var flights = 0
+    var eligibleVisits = 0
+    for completed in 0..<2400 {
+        let eligible = completed >= 4 && previous != .helicopter
+        if eligible { eligibleVisits += 1 }
+        let vehicle = deck.next()
+        check(vehicle == twin.next(), "expanded cast remains reproducible for the same seed")
+        check(vehicle != previous, "no consecutive repeat including flying visitors")
+        if vehicle == .helicopter {
+            check(eligible, "helicopter only after four completed washes and never back-to-back")
+            flights += 1
+        } else {
+            check(vehicle != previousRoad, "road bag boundaries never repeat even around a flying visit")
+            check(roadBag.insert(vehicle).inserted, "no duplicate within the road shuffle bag")
+            roadCount += 1
+            if roadCount % roadKinds.count == 0 {
+                check(roadBag == roadKinds, "every eleven road deliveries include the whole road cast")
+                roadBag.removeAll()
+            }
+            previousRoad = vehicle
         }
-        check(bag.count == 6, "six draws show all six vehicles")
+        previous = vehicle
+        deck.recordCompletion()
+        twin.recordCompletion()
     }
+    let rareRate = Double(flights) / Double(eligibleVisits)
+    check(rareRate > 0.12 && rareRate < 0.22, "helicopter appears about once per six eligible visits")
 }
 
 var registeredRigs: [String: Any] = [:]
@@ -227,11 +281,18 @@ if CommandLine.arguments.count > 1,
 for kind in WashVehicleKind.allCases {
     let rig = WashVehicleRig.forVehicle(kind)
     check(kind.imageName.hasPrefix("wash-"), "imageset convention")
-    check(rig.isMeasured, "all six production rigs are measured")
+    check(rig.isMeasured, "all twelve production rigs are measured")
     check((0...1).contains(rig.faceCenter.x) && (0...1).contains(rig.faceCenter.y), "face fractions")
     check(rig.faceRadius > 0 && rig.faceRadius < 0.2, "face radius")
     check(rig.faceCenter.y - rig.faceRadius > 0 && rig.faceCenter.y + rig.faceRadius < 1, "face in canvas")
-    check(rig.wheels.count == 2, "two-wheel rig")
+    check(rig.wheels.count == (kind == .helicopter ? 0 : 2), "roads use two wheels; helicopter lands on skids")
+    if kind == .helicopter {
+        guard let rotor = rig.rotorCenter else { fatalError("helicopter needs a measured rotor mast") }
+        check((0...1).contains(rotor.x) && (0...1).contains(rotor.y), "rotor attachment stays within body canvas")
+        check(rig.rotorWidth > 0 && rig.rotorWidth <= 1, "rotor has a useful width within the vehicle canvas")
+    } else {
+        check(rig.rotorCenter == nil, "road vehicles never receive a rotor")
+    }
     if rig.isMeasured {
         guard let measured = registeredRigs[kind.rawValue] as? [String: Any],
               let face = measured["faceCenter"] as? [Double],
@@ -242,6 +303,15 @@ for kind in WashVehicleKind.allCases {
         check(near(face[0], rig.faceCenter.x) && near(face[1], rig.faceCenter.y), "production face matches prepared art")
         check(near(radius, rig.faceRadius), "production face radius matches art")
         check(wheels.count == rig.wheels.count, "production wheel count matches art")
+        if kind == .helicopter {
+            guard let centre = measured["rotorCenter"] as? [Double],
+                  let width = measured["rotorWidth"] as? Double,
+                  let rotor = rig.rotorCenter else {
+                fatalError("Helicopter rotor has no committed measurement record")
+            }
+            check(near(centre[0], rotor.x) && near(centre[1], rotor.y), "production rotor anchor matches measured mast")
+            check(near(width, rig.rotorWidth), "production rotor width matches art record")
+        }
         for (index, record) in wheels.enumerated() {
             let centre = record["center"] as! [Double]
             let radius = record["radius"] as! Double

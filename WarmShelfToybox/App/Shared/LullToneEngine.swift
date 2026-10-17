@@ -595,7 +595,9 @@ enum LullSoundBook {
         "meadow.bloom", "meadow.spring", "meadow.fullspring", "meadow.frost", "meadow.landmark.wake",
         "wash.arrive", "wash.foam", "wash.rinse", "wash.sparkle",
         "wash.toot.fireTruck", "wash.toot.policeCar", "wash.toot.tractor",
-        "wash.toot.schoolBus", "wash.toot.digger", "wash.toot.iceCreamVan"
+        "wash.toot.schoolBus", "wash.toot.digger", "wash.toot.iceCreamVan",
+        "wash.toot.garbageTruck", "wash.toot.mailTruck", "wash.toot.camper",
+        "wash.toot.towTruck", "wash.toot.ambulance", "wash.toot.helicopter"
     ]
 
     /// How many variants each cue renders; plays rotate through them without repeating.
@@ -767,6 +769,30 @@ enum LullSoundBook {
             return (arp([9, 12, 10], step: 0.13, rng: &rng) { f, r in
                 S.softPluck(f, duration: 0.7, decay: 0.22, brightness: 0.12, rng: &r)
             }, .voices, -8)
+
+        case "wash.toot.garbageTruck":
+            return (S.voice(note(3), duration: 0.34, vowel: .oo, breath: 0, attack: 0.05, release: 0.17, rng: &rng), .voices, -10)
+        case "wash.toot.mailTruck":
+            return (arp([7, 10], step: 0.16, rng: &rng) { f, r in
+                S.softPluck(f, duration: 0.45, decay: 0.16, brightness: 0.06, rng: &r)
+            }, .voices, -10)
+        case "wash.toot.camper":
+            return (S.voice(note(5), duration: 0.42, vowel: .oo, breath: 0, attack: 0.07, release: 0.20, rng: &rng), .voices, -10)
+        case "wash.toot.towTruck":
+            var x = S.voice(note(5), duration: 0.24, vowel: .oo, breath: 0, attack: 0.05, release: 0.12, rng: &rng)
+            S.mix(S.voice(note(7), duration: 0.28, vowel: .oo, breath: 0, attack: 0.05, release: 0.14, rng: &rng),
+                  into: &x, at: 0.20, gain: 0.75)
+            return (x, .voices, -10)
+        case "wash.toot.ambulance":
+            // A quiet greeting, never an alarm or a repeating siren.
+            return (arp([9, 7], step: 0.18, rng: &rng) { f, r in
+                S.softPluck(f, duration: 0.48, decay: 0.18, brightness: 0.04, rng: &r)
+            }, .voices, -11)
+        case "wash.toot.helicopter":
+            var x = S.voice(note(3), duration: 0.20, vowel: .oo, breath: 0, attack: 0.055, release: 0.11, rng: &rng)
+            S.mix(S.voice(note(7), duration: 0.32, vowel: .oo, breath: 0, attack: 0.06, release: 0.18, rng: &rng),
+                  into: &x, at: 0.17, gain: 0.65)
+            return (x, .voices, -11)
 
         // — Feed ——————————————————————————————————————————————————
         case "feed.pickup":

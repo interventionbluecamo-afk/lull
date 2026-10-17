@@ -109,7 +109,7 @@ with tempfile.TemporaryDirectory() as directory:
     model = (root / "App/Toys/Wash/WashModel.swift").read_text()
     cast = model.split("enum WashVehicleKind: String, CaseIterable {", 1)[1].split("var imageName:", 1)[0]
     vehicles = re.findall(r'case\s+(\w+)', cast)
-    check(len(vehicles) == 6, "all six Wash vehicles are checked for an outcome cue")
+    check(len(vehicles) == 12, "all twelve Wash vehicles are checked for an outcome cue")
     used |= {"wash.toot." + vehicle for vehicle in vehicles}
     book = {name.split("#")[0] for name in sounds}
     missing = sorted(u for u in used if u not in book)

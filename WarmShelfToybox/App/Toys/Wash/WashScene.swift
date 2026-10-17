@@ -29,6 +29,9 @@ final class WashScene: BaseToyScene {
     private var phase: Phase = .arriving
     private var phaseTime: TimeInterval = 0
     private var sceneTime: TimeInterval = 0
+    /// Kept outside the rebuilt vehicle so rotating the device preserves rotor orientation.
+    private var rotorAngle: Double = 0
+    private var travelDuration: TimeInterval { kind.isFlying ? 1.65 : 1.05 }
     private var lastFrame: TimeInterval = 0
     private var visualAccumulator: TimeInterval = 0
     private var isResting = false
@@ -252,7 +255,7 @@ final class WashScene: BaseToyScene {
         switch phase {
         case .arriving:
             syncPhasePose()
-            if phaseTime >= 1.05 { phase = .washing; phaseTime = 0; vehicle?.position = vehicleHome }
+            if phaseTime >= travelDuration { phase = .washing; phaseTime = 0; vehicle?.position = vehicleHome }
         case .washing:
             model.advanceTime(by: delta)
             // A held hose has real contact time; a stationary sponge/towel never farms taps.
@@ -265,7 +268,7 @@ final class WashScene: BaseToyScene {
             if phaseTime >= 0.95 { phase = .leaving; phaseTime = 0; clearHands() }
         case .leaving:
             syncPhasePose()
-            if phaseTime >= 1.05 {
+            if phaseTime >= travelDuration {
                 phase = .waiting; phaseTime = 0; vehicle?.isHidden = true
             }
         case .waiting:
@@ -273,6 +276,7 @@ final class WashScene: BaseToyScene {
                 kind = Self.cast.next(); startVehicle(playArrival: true)
             }
         }
+        updateRotor(by: delta)
         visualAccumulator += delta
         if visualAccumulator >= 1.0 / 24 {
             visualAccumulator = 0
@@ -299,17 +303,42 @@ final class WashScene: BaseToyScene {
             vehicle.position = vehicleHome; vehicle.alpha = 1; return
         }
         let previousX = vehicle.position.x
-        let progress = min(1, max(0, phaseTime / 1.05))
+        let progress = min(1, max(0, phaseTime / travelDuration))
         if AmbientAnimator.reduceMotion {
             vehicle.position = vehicleHome
             vehicle.alpha = phase == .arriving ? CGFloat(min(1, progress * 5)) : (phase == .leaving ? CGFloat(max(0, 1 - progress * 5)) : 1)
         } else {
             let eased = progress * progress * (3 - 2 * progress)
-            let distance = size.width * 0.5 + bodyCanvas.width * 0.55
-            vehicle.position = CGPoint(x: vehicleHome.x + (phase == .arriving ? -distance * (1 - eased) : distance * eased), y: vehicleHome.y)
+            if kind.isFlying {
+                let distance = max(bodyCanvas.height, size.height - vehicleHome.y + bodyCanvas.height * 0.65)
+                let lift = phase == .arriving ? distance * (1 - eased) : distance * eased
+                vehicle.position = CGPoint(x: vehicleHome.x, y: vehicleHome.y + lift)
+            } else {
+                let distance = size.width * 0.5 + bodyCanvas.width * 0.55
+                vehicle.position = CGPoint(x: vehicleHome.x + (phase == .arriving ? -distance * (1 - eased) : distance * eased), y: vehicleHome.y)
+                vehicle.roll(distance: vehicle.position.x - previousX)
+            }
             vehicle.alpha = 1
-            vehicle.roll(distance: vehicle.position.x - previousX)
         }
+    }
+
+    private func updateRotor(by delta: TimeInterval) {
+        guard kind.isFlying else { return }
+        // A side-on rotor foreshortens gently around its mast; it never becomes a flashing
+        // blur. On the ground it winds down completely, leaving the wash itself calm.
+        let revolutionsPerSecond: Double
+        switch phase {
+        case .arriving: revolutionsPerSecond = 1.15
+        case .washing: revolutionsPerSecond = 1.15 * max(0, 1 - phaseTime / 1.3)
+        case .delighted: revolutionsPerSecond = 0
+        case .leaving: revolutionsPerSecond = 0.35 + 0.8 * min(1, phaseTime / 0.5)
+        case .waiting: revolutionsPerSecond = 0
+        }
+        if !AmbientAnimator.reduceMotion {
+            rotorAngle = (rotorAngle + delta * revolutionsPerSecond * 2 * .pi)
+                .truncatingRemainder(dividingBy: 2 * .pi)
+        }
+        vehicle?.setRotor(angle: rotorAngle)
     }
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -493,6 +522,7 @@ final class WashScene: BaseToyScene {
     private func finishVehicle() {
         guard phase == .washing else { return }
         phase = .delighted; phaseTime = 0; clearHands()
+        Self.cast.recordCompletion()
         vehicle?.setFace(awake: true, clean: 1, look: nil, delighted: true)
         vehicle?.littleReaction(towel: false)
         HapticsManager.shared.impact(style: .soft, intensity: 0.42)
@@ -601,6 +631,7 @@ private final class WashVehicleNode: SKNode {
     private let mouth = SKShapeNode()
     private var wheels: [(node: SKNode, radius: CGFloat)] = []
     private var faceBucket = -1
+    private var rotor: SKNode?
 
     var canvasRect: CGRect { CGRect(x: -canvas.width/2, y: -canvas.height/2, width: canvas.width, height: canvas.height) }
 
@@ -634,6 +665,19 @@ private final class WashVehicleNode: SKNode {
                 node = circle
             }
             node.position = point(wheel.center); node.zPosition = 2; artRoot.addChild(node); wheels.append((node, radius))
+        }
+        if let center = rig.rotorCenter {
+            let width = canvas.width * CGFloat(rig.rotorWidth)
+            let node: SKNode
+            if let art = ToyArt.sprite("wash-helicopter-rotor", fit: CGSize(width: width, height: width / 5)) {
+                node = art
+            } else {
+                let blade = SKShapeNode(rectOf: CGSize(width: width * 0.96, height: max(4, canvas.height * 0.022)), cornerRadius: 4)
+                blade.fillColor = WarmShelfPalette.warmCream; blade.strokeColor = WarmShelfPalette.sand.withAlpha(0.4)
+                node = blade
+            }
+            node.position = point(center); node.zPosition = 8
+            artRoot.addChild(node); rotor = node
         }
         buildFace()
     }
@@ -759,6 +803,10 @@ private final class WashVehicleNode: SKNode {
         for eye in eyes { eye.removeAction(forKey: "wash.blink"); eye.yScale = 1 }
         resetCarePose()
     }
+    func setRotor(angle: Double) {
+        rotor?.xScale = AmbientAnimator.reduceMotion ? 1 : CGFloat(0.3 + 0.7 * abs(cos(angle)))
+    }
+
     func roll(distance: CGFloat) { guard !AmbientAnimator.reduceMotion else { return }; for wheel in wheels { wheel.node.zRotation -= distance / max(1,wheel.radius) } }
 
     private static func fallback(_ kind: WashVehicleKind, rig: WashVehicleRig) -> UIImage {
@@ -771,9 +819,35 @@ private final class WashVehicleNode: SKNode {
         case .tractor: palette = WarmShelfPalette.sage
         case .schoolBus: palette = WarmShelfPalette.butter
         case .digger: palette = UIColor(hex:0xD79B62)
-        case .iceCreamVan: palette = WarmShelfPalette.petal
+        case .iceCreamVan, .towTruck: palette = WarmShelfPalette.petal
+        case .garbageTruck: palette = WarmShelfPalette.sage
+        case .mailTruck: palette = WarmShelfPalette.butter
+        case .camper: palette = WarmShelfPalette.waterBlue
+        case .ambulance: palette = WarmShelfPalette.warmCream
+        case .helicopter: palette = UIColor(hex: 0xB5A4C7)
         }
         return UIGraphicsImageRenderer(size:canvas,format:format).image { _ in
+            if kind.isFlying {
+                palette.setFill()
+                UIBezierPath(roundedRect: CGRect(x: 100, y: 247, width: 365, height: 48), cornerRadius: 24).fill()
+                UIBezierPath(ovalIn: CGRect(x: 330, y: 115, width: 360, height: 275)).fill()
+                let center = CGPoint(x: CGFloat(rig.faceCenter.x) * 800, y: CGFloat(rig.faceCenter.y) * 500)
+                WarmShelfPalette.waterBlue.setFill()
+                UIBezierPath(ovalIn: CGRect(x: center.x - 85, y: center.y - 70, width: 170, height: 140)).fill()
+                WarmShelfPalette.warmCream.setStroke()
+                let skids = UIBezierPath(); skids.lineWidth = 15; skids.lineCapStyle = .round
+                skids.move(to: CGPoint(x: 330, y: 432.5)); skids.addLine(to: CGPoint(x: 670, y: 432.5))
+                for x: CGFloat in [400, 595] {
+                    skids.move(to: CGPoint(x: x, y: 355)); skids.addLine(to: CGPoint(x: x, y: 432.5))
+                }
+                skids.stroke()
+                if let hub = rig.rotorCenter {
+                    let mast = UIBezierPath(); mast.lineWidth = 14; mast.lineCapStyle = .round
+                    mast.move(to: CGPoint(x: CGFloat(hub.x) * 800, y: CGFloat(hub.y) * 500))
+                    mast.addLine(to: CGPoint(x: CGFloat(hub.x) * 800, y: 145)); mast.stroke()
+                }
+                return
+            }
             let main=CGRect(x:80,y:232,width:640,height:148)
             palette.setFill(); UIBezierPath(roundedRect:main,cornerRadius:48).fill()
             let face=CGPoint(x:CGFloat(rig.faceCenter.x)*800,y:CGFloat(rig.faceCenter.y)*500)

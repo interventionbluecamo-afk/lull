@@ -81,3 +81,7 @@ Do not upload a 1.0 build while 1.0 is in review.
 - Site: https://lulltoybox.pages.dev; support: lullios@proton.me.
 - Source and prior verifications are in Git. Never commit signing material, credentials, tax or banking information.
 - Be token-thrifty; founder owns hands-on tests. Keep this file current and push after meaningful progress.
+
+## October 17, 9:15 AM (Claude)
+- **1.1 (15) is uploaded to App Store Connect** (by ChatGPT at 9:08 AM) and processing. It has the six new Wash vehicles and drag-from-tray. Code is committed (`08b20c5`).
+- **Next:** once 1.1 (15) is Ready, the founder adds it to Founder Testing. The 1.0 (14) review is untouched. Submit 1.1 for review only after 1.0 is approved and released.

@@ -1,5 +1,11 @@
 # Lull — CURRENT HANDOFF (read first)
 
+## Latest: marketing artwork — October 17, 2026 (ChatGPT)
+
+- Created one App Store header and three Instagram/Facebook graphics for the play timer, grown-up controls and nine toys. Exports, originals, captions and exact prompts: `Docs/Marketing/2026-10-17/README.md`. Desktop pack: `Lull-Marketing-2026-10-17.zip`. Artwork has not been uploaded or published.
+- Founder explicitly requested no TestFlight notes or Founder Testing verification. Do not pursue Apple sign-in or group checks as follow-up to this task. Build 1.1 (15) upload was already complete.
+
+
 Updated October 12, 2026 by ChatGPT. Branch `claude/modest-bell-cjarqm` in `interventionbluecamo-afk/lull`. Mac checkout: `~/Desktop/lull v.2`.
 
 ## Current state: SUBMITTED TO APPLE

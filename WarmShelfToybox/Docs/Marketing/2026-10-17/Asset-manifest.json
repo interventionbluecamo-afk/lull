@@ -1,0 +1,58 @@
+[
+  {
+    "file": "lull-app-store-header.jpg",
+    "native_size": [
+      1916,
+      821
+    ],
+    "export_size": [
+      3840,
+      1646
+    ],
+    "mode": "RGB",
+    "generator": "built-in image_gen",
+    "source_file": "exec-53480bc9-99f8-4ac6-ac36-3ba132ecb854.png"
+  },
+  {
+    "file": "lull-social-play-then-rest.png",
+    "native_size": [
+      1122,
+      1402
+    ],
+    "export_size": [
+      1080,
+      1350
+    ],
+    "mode": "RGB",
+    "generator": "built-in image_gen",
+    "source_file": "exec-fafb0649-93a5-4338-adaf-143136cd55fb.png"
+  },
+  {
+    "file": "lull-social-grown-up-controls.png",
+    "native_size": [
+      1122,
+      1402
+    ],
+    "export_size": [
+      1080,
+      1350
+    ],
+    "mode": "RGB",
+    "generator": "built-in image_gen",
+    "source_file": "exec-07059bf6-438b-4a1c-aa37-9fa5d81a269f.png"
+  },
+  {
+    "file": "lull-social-nine-toys.png",
+    "native_size": [
+      1122,
+      1402
+    ],
+    "export_size": [
+      1080,
+      1350
+    ],
+    "mode": "RGB",
+    "generator": "built-in image_gen",
+    "source_file": "exec-c271405d-826a-4eb0-9e45-281db320876b.png"
+  }
+]

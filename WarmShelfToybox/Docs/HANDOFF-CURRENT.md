@@ -33,6 +33,45 @@ Updated October 12, 2026 by ChatGPT. Branch `claude/modest-bell-cjarqm` in `inte
 3. After approval, founder chooses when to release. Then run `python3 Tools/Store/build_site.py --launched` from `WarmShelfToybox/` and upload `LandingPageDeploy` to Cloudflare Pages so the site points to the live App Store product.
 4. The founder retained “new toys each season.” Plan the first update without delaying 1.0.
 
+## Next update (1.1) — in progress, October 17 (Claude)
+
+Not part of the 1.0 review. When 1.0 is approved, ship these as **version 1.1** (build 15+).
+Do not upload a 1.0 build while 1.0 is in review.
+
+1. **Done in code (committed, not uploaded): drag tools straight from the Wash tray.** The
+   founder's son drags the sponge and hose from the tray rather than tapping first.
+   - Touching a tool now picks it up: the slot dims, the tool rides 16 pt above the finger at
+     full opacity, and it floats back to its slot on release.
+   - The grab area is the whole slot.
+   - Code: `App/Toys/Wash/WashScene.swift` (`Rub.carried`, `trayArt`, `carryLift`, `release`).
+   - `verify_wash` passes. The founder still needs to try it on a device.
+2. **Waiting on art: six new Wash vehicles** the founder's son asked for: garbage truck, mail
+   truck, camper, tow truck, ambulance, and a **helicopter (special)**.
+   - The founder generates them in ChatGPT with `Docs/Art/Wash-Vehicles-ChatGPT-Prompt.md`.
+     It's also on the founder's Desktop as a PDF and a .txt.
+   - The result arrives as `~/Desktop/lull-wash-vehicles.zip`:
+     - `wash-garbage-truck`, `wash-mail-truck`, `wash-camper`, `wash-tow-truck`,
+       `wash-ambulance` and `wash-helicopter`: each 1600 × 1000, vehicle width 1268 px, body
+       bottom at y = 770 (helicopter skids at y = 880);
+     - `wash-helicopter-rotor`: 1200 × 240.
+   - **To add them:**
+     1. Check each image. Faces must be blank, there must be no wheels or letters, and the
+        background transparent.
+     2. Add the imagesets.
+     3. Add the `WashVehicleKind` cases.
+     4. Measure each rig in `WashModel.swift`: face centre and radius on the windshield,
+        wheel centres and radii from the arches. Wheel bottoms touch at 0.88, like the
+        others.
+     5. Give each vehicle a toot.
+     6. Register the assets in `Tools/verify_wash.py`.
+   - **Helicopter, the special visit:**
+     - no wheels;
+     - it descends from above with `wash-helicopter-rotor` spinning on the mast, lands on
+       its skids, and the rotor slows;
+     - it lifts off upward when clean;
+     - it's rarer than the trucks (like the planned "rare guest", about 1 in 6 after the
+       4th wash).
+
 ## Evidence, assets and context
 
 - `Docs/Launch/Final-Submission-Check-2026-10-12.md`: scoped findings and exact receipt.

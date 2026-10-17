@@ -13,6 +13,10 @@ final class WashScene: BaseToyScene {
         var point: CGPoint
         var timestamp: TimeInterval
         let tool: WashTool
+        /// True when this finger took the tool out of the tray: it rides above the finger and
+        /// floats home on release (founder, October 17: children drag the sponge and hose
+        /// straight from the tray).
+        var carried = false
     }
     private struct Drop {
         let node: SKShapeNode
@@ -47,6 +51,9 @@ final class WashScene: BaseToyScene {
     private var dropIndex = 0
     private var toolHomes: [WashTool: CGPoint] = [:]
     private var toolHighlights: [WashTool: SKShapeNode] = [:]
+    private var trayArt: [WashTool: SKNode] = [:]
+    /// The held tool sits a little above the fingertip so a small hand doesn't hide it.
+    private let carryLift = CGPoint(x: 0, y: 16)
     private var lastFoam: TimeInterval = -10
     private var lastRinse: TimeInterval = -10
     private var lastDrop: TimeInterval = -10
@@ -139,7 +146,7 @@ final class WashScene: BaseToyScene {
             highlight.strokeColor = WarmShelfPalette.sand.withAlpha(0.50); highlight.lineWidth = 2
             highlight.position = home; tools.addChild(highlight); toolHighlights[tool] = highlight
             let art = makeTool(tool, size: toolSide)
-            art.position = home; tools.addChild(art)
+            art.position = home; tools.addChild(art); trayArt[tool] = art
         }
         updateToolHighlight()
         cursor.addChild(makeTool(selectedTool, size: min(86, max(58, bodyCanvas.height * 0.25))))
@@ -312,9 +319,16 @@ final class WashScene: BaseToyScene {
             let point = touch.location(in: self)
             if consumeShelfReturnTouch(at: point) { continue }
             if let tool = toolAt(point) {
+                // Pick the tool up out of its slot: the slot empties, the tool lifts into the hand.
                 selectTool(tool)
-                rubs[touch] = Rub(point: point, timestamp: touch.timestamp, tool: selectedTool)
-                cursor.position = point; cursor.alpha = 0.82
+                rubs[touch] = Rub(point: point, timestamp: touch.timestamp, tool: selectedTool, carried: true)
+                cursor.removeAction(forKey: "wash.toolHome")
+                cursor.position = CGPoint(x: point.x + carryLift.x, y: point.y + carryLift.y); cursor.alpha = 1
+                trayArt[tool]?.alpha = 0.18
+                if !AmbientAnimator.reduceMotion {
+                    cursor.setScale(0.86)
+                    cursor.run(.scale(to: 1.08, duration: 0.12), withKey: "wash.pickUp")
+                }
                 updateTouchFeedback(from: point, to: point, tool: selectedTool)
             } else if phase == .washing, let vehicle,
                       vehicle.canvasRect.insetBy(dx: -20, dy: -20).contains(vehicle.convert(point, from: self)) {
@@ -331,7 +345,8 @@ final class WashScene: BaseToyScene {
         for touch in touches {
             guard var rub = rubs[touch] else { continue }
             let point = touch.location(in: self)
-            cursor.position = point; cursor.alpha = 0.82
+            cursor.position = rub.carried ? CGPoint(x: point.x + carryLift.x, y: point.y + carryLift.y) : point
+            cursor.alpha = rub.carried ? 1 : 0.82
             updateTouchFeedback(from: rub.point, to: point, tool: rub.tool)
             let distance = hypot(point.x - rub.point.x, point.y - rub.point.y)
             let elapsed = min(0.08, max(0, touch.timestamp - rub.timestamp))
@@ -350,11 +365,25 @@ final class WashScene: BaseToyScene {
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) { release(touches) }
 
     private func release(_ touches: Set<UITouch>) {
-        for touch in touches { rubs.removeValue(forKey: touch) }
+        var returning: WashTool?
+        for touch in touches {
+            if let rub = rubs.removeValue(forKey: touch), rub.carried { returning = rub.tool }
+        }
         if rubs.isEmpty {
-            cursor.alpha = 0
             resetCursorPose()
             vehicle?.settleCarePose()
+            if let tool = returning, let home = toolHomes[tool], !AmbientAnimator.reduceMotion {
+                // The tool floats back to its slot, and the slot fills again.
+                let back = SKAction.group([.move(to: home, duration: 0.24), .scale(to: 0.8, duration: 0.24),
+                                           .fadeOut(withDuration: 0.24)])
+                back.timingMode = .easeInEaseOut
+                cursor.run(.sequence([back, .run { [weak self] in
+                    self?.cursor.setScale(1); self?.trayArt[tool]?.alpha = 1
+                }]), withKey: "wash.toolHome")
+            } else {
+                cursor.alpha = 0; cursor.setScale(1)
+                for art in trayArt.values { art.alpha = 1 }
+            }
         }
         if !rubs.values.contains(where: { $0.tool == .hose }) { AudioManager.shared.stopWashRinse() }
     }
@@ -445,7 +474,8 @@ final class WashScene: BaseToyScene {
             guard let home = toolHomes[tool] else { return nil }
             return (tool, hypot(point.x - home.x, point.y - home.y))
         }.min { $0.1 < $1.1 }
-        guard let nearest, nearest.1 <= min(56, max(40, bodyCanvas.height * 0.16)) else { return nil }
+        // The whole slot is grabbable, so a small finger landing near the tool still picks it up.
+        guard let nearest, nearest.1 <= min(76, max(48, bodyCanvas.height * 0.21)) else { return nil }
         return nearest.0
     }
 
@@ -487,7 +517,9 @@ final class WashScene: BaseToyScene {
     }
 
     private func clearHands() {
-        rubs.removeAll(); cursor.alpha = 0; resetCursorPose(); vehicle?.settleCarePose()
+        rubs.removeAll(); cursor.removeAction(forKey: "wash.toolHome"); cursor.alpha = 0; cursor.setScale(1)
+        for art in trayArt.values { art.alpha = 1 }
+        resetCursorPose(); vehicle?.settleCarePose()
         AudioManager.shared.stopWashRinse()
     }
 

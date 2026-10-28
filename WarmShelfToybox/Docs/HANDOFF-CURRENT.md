@@ -1,3 +1,7 @@
+Founder cancelled search-results artwork October 28: leave that slot empty (verified 0 of 1). Existing product-page header remains.
+
+Build 17 upload succeeded October 28, 15:13 CDT; Apple processing. Source/artwork pushed as 9a96e84. Await founder sandbox video before resubmitting.
+
 # Lull — CURRENT HANDOFF (read first)
 
 ## Latest: purchase rejection and build 17 — October 28, 2026

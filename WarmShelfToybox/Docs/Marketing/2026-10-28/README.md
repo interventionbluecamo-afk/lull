@@ -1,3 +1,5 @@
+UNUSED — Founder cancelled search-results artwork on October 28. Leave the App Store Connect Search Results slot empty. Files retained for reference only; apple-search-preview.png shows an earlier preview, not the current draft.
+
 # Lull search-results artwork
 
 Built with the built-in image-generation tool on October 28, 2026, using the existing product-page header as the brand reference. Exact prompt: Prompt.txt.

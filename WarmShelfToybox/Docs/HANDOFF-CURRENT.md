@@ -1,5 +1,9 @@
 # Lull — CURRENT HANDOFF (read first)
 
+## Latest: purchase rejection and build 17 — October 28, 2026
+
+Read `AppReview-2026-10-28/Handoff.md` first. Apple reviewed build16 and now reports only 2.1(b), purchase options not found. Build17 fixes the active-entitlement screen hiding those options. Founder will record real-device sandbox purchases before resubmission. Search artwork added to Apple draft. Earlier submission and version notes below are historical.
+
 ## Latest: marketing artwork — October 17, 2026 (ChatGPT)
 
 - Created one App Store header and three Instagram/Facebook graphics for the play timer, grown-up controls and nine toys. Exports, originals, captions and exact prompts: `Docs/Marketing/2026-10-17/README.md`. Desktop pack: `Lull-Marketing-2026-10-17.zip`. Artwork has not been uploaded or published.

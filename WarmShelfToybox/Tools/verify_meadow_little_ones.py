@@ -38,7 +38,7 @@ def check(ok, what):
 node = source.split("// MARK: - The little ones on screen", 1)[1]
 check("flowerTrail" not in source and "stamp(" not in source, "the little ones never stamp or change her flowers")
 check("if model.allHome, !finaleDone {" in node and "finaleDone = true" in node, "the all-home finale plays once")
-check("littleOnes: littleOnes?.model.snapshot" in scene and "buildLittleOnes(restoring: snap?.littleOnes)" in scene,
+check("littleOnes: littleOnes?.snapshot" in scene and "buildLittleOnes(restoring: snap?.littleOnes)" in scene,
       "a rotation keeps who was found and who is home")
 check("private let littleOnesSeed" in scene, "one seed per visit keeps the hiding places across a rebuild")
 answer = re.search(r"private func answerLittleOnes.*?\n    }\n", scene, re.S).group(0)
@@ -106,6 +106,30 @@ for k in 0..<4 {
 var short = MeadowLittleOnesModel(worldSize: CGSize(width: 2200, height: 2200), homeRadius: 117, avoid: [], seed: 3)
 _ = short.motherMoved(to: CGPoint(x: 0, y: 0)); _ = short.motherMoved(to: CGPoint(x: 10, y: 0))
 check(dist(short.paradePoint(3, mother: CGPoint(x: 10, y: 0)), CGPoint(x: 0, y: 0)) < 0.01, "a short path bunches them at its start")
+
+// Rotation keeps the full path, not just the list of followers.
+let rotated = MeadowLittleOnesModel(restoring: line.snapshot)
+for k in 0..<5 {
+    check(rotated.paradePoint(k, mother: mother) == line.paradePoint(k, mother: mother), "rotation preserves each path target")
+}
+var tablet = MeadowLittleOnesModel(worldSize: CGSize(width: 3000, height: 3000), homeRadius: 246, avoid: [], seed: 3, paradeSpacing: 78)
+for x in stride(from: CGFloat(0), through: 700, by: 7) { _ = tablet.motherMoved(to: CGPoint(x: x, y: -900)) }
+check(abs(tablet.paradePoint(0, mother: CGPoint(x: 700, y: -900)).x - tablet.paradePoint(1, mother: CGPoint(x: 700, y: -900)).x - 78) < 0.01, "tablet babies have room between their bodies")
+var results: [MeadowFollowerMotion] = []
+for fps in [30, 60, 120] {
+    var motion = MeadowFollowerMotion(position: .zero, heading: .pi - 0.05)
+    for frame in 0..<fps * 2 {
+        let before = motion.position
+        motion.step(toward: CGPoint(x: 120 + Double(frame) / Double(fps) * 100, y: 0), hop: 1, dt: 1 / Double(fps))
+        check(dist(before, motion.position) <= 280 / CGFloat(fps) + 0.001, "joining never teleports")
+    }
+    results.append(motion)
+}
+check(dist(results[0].position, results[2].position) < 3, "following looks consistent at 30 and 120 Hz")
+check(abs(results[2].lift - 1) < 0.001, "hop eases to its target")
+var turn = MeadowFollowerMotion(position: .zero, heading: .pi - 0.05)
+turn.step(toward: CGPoint(x: -100, y: -1), hop: 0, dt: 1 / 60)
+check(abs(turn.heading - (.pi - 0.05)) < 0.05, "heading crosses the angle boundary by the short turn")
 
 // Hopping between flowers.
 let flowers = [CGPoint(x: 100, y: 5), CGPoint(x: 126, y: -5)]

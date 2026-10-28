@@ -141,11 +141,12 @@ final class MeadowScene: BaseToyScene {
             bloomFired: bloomMomentFired,
             dandelionPosition: dandelion?.position,
             snailPos: snail?.position ?? .zero,
+            snailHeading: snail?.zRotation ?? 0,
             trail: trailPoints,
             flowerSpots: flowers.compactMap { $0.parent != nil ? $0.position : nil },
             flowerTrail: flowerTrail,
             landmarksAwake: landmarks.map { $0.isAwake },
-            littleOnes: littleOnes?.model.snapshot
+            littleOnes: littleOnes?.snapshot
         )
         rebuild(restoring: snap)
     }
@@ -157,11 +158,12 @@ final class MeadowScene: BaseToyScene {
         let bloomFired: Bool
         let dandelionPosition: CGPoint?
         let snailPos: CGPoint
+        let snailHeading: CGFloat
         let trail: [CGPoint]
         let flowerSpots: [CGPoint]
         let flowerTrail: MeadowFlowerTrail
         let landmarksAwake: [Bool]
-        let littleOnes: MeadowLittleOnesModel.Snapshot?
+        let littleOnes: MeadowLittleOnesNode.Snapshot?
     }
 
     private func rebuild(restoring snap: MeadowSnap? = nil) {
@@ -220,7 +222,7 @@ final class MeadowScene: BaseToyScene {
                 lm.wake(instantly: true)
             }
             snail?.position = snap.snailPos
-            littleOnes?.snapParade(to: snap.snailPos)
+            snail?.zRotation = snap.snailHeading
             if snap.bloomFired {
                 if let puffPosition = snap.dandelionPosition {
                     offerDandelion(at: puffPosition, animated: false)
@@ -495,13 +497,14 @@ final class MeadowScene: BaseToyScene {
     }
 
     /// Five little ones hide around the meadow; the leaf house waits in the home garden.
-    private func buildLittleOnes(restoring snapshot: MeadowLittleOnesModel.Snapshot?) {
-        let homeRadius = min(size.width, size.height) * 0.30   // the home spring's radius
-        let model = snapshot.map(MeadowLittleOnesModel.init(restoring:)) ?? MeadowLittleOnesModel(
+    private func buildLittleOnes(restoring snapshot: MeadowLittleOnesNode.Snapshot?) {
+        let homeRadius = min(size.width, size.height) * 0.30
+        let s = min(size.width, size.height) * 0.05
+        let model = snapshot.map { MeadowLittleOnesModel(restoring: $0.model) } ?? MeadowLittleOnesModel(
             worldSize: worldSize, homeRadius: homeRadius,
-            avoid: landmarks.map { $0.position }, seed: littleOnesSeed)
-        let s = min(size.width, size.height) * 0.05   // her own scale (buildSnail)
-        let node = MeadowLittleOnesNode(model: model, babySize: s * 1.15, houseSize: s * 5.5, night: isNight)
+            avoid: landmarks.map { $0.position }, seed: littleOnesSeed, paradeSpacing: s * 1.9)
+        let node = MeadowLittleOnesNode(model: model, babySize: s * 1.15, houseSize: s * 5.5,
+                                       night: isNight, restoring: snapshot?.followers)
         node.zPosition = 0.8   // above her flower trail, below her
         lifeLayer.addChild(node)
         littleOnes = node

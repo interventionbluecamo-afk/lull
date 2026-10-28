@@ -45,6 +45,8 @@ struct MeadowLittleOnesModel {
         var places: [Place]
         var parade: [Int]
         var house: CGPoint
+        var trail: [CGPoint] = []
+        var paradeSpacing: CGFloat = MeadowLittleOnesModel.paradeGap
     }
 
     private(set) var spots: [CGPoint]
@@ -52,6 +54,7 @@ struct MeadowLittleOnesModel {
     /// Little ones following her, in the order they joined (first = right behind her).
     private(set) var parade: [Int] = []
     let house: CGPoint
+    let paradeSpacing: CGFloat
     /// Her recent path, newest last, long enough for the whole parade.
     private(set) var trail: [CGPoint] = []
 
@@ -59,9 +62,10 @@ struct MeadowLittleOnesModel {
     var allHome: Bool { homeCount == Self.count }
     /// The house appears once the first little one has been found.
     var houseVisible: Bool { places.contains { $0 != .hidden } }
-    var snapshot: Snapshot { Snapshot(spots: spots, places: places, parade: parade, house: house) }
+    var snapshot: Snapshot { Snapshot(spots: spots, places: places, parade: parade, house: house, trail: trail, paradeSpacing: paradeSpacing) }
 
-    init(worldSize: CGSize, homeRadius: CGFloat, avoid: [CGPoint], seed: UInt64) {
+    init(worldSize: CGSize, homeRadius: CGFloat, avoid: [CGPoint], seed: UInt64, paradeSpacing: CGFloat = Self.paradeGap) {
+        self.paradeSpacing = max(Self.paradeGap, paradeSpacing)
         spots = Self.hidingSpots(worldSize: worldSize, homeRadius: homeRadius, avoid: avoid, seed: seed)
         places = Array(repeating: .hidden, count: spots.count)
         house = Self.housePosition(homeRadius: homeRadius)
@@ -72,18 +76,26 @@ struct MeadowLittleOnesModel {
         places = snapshot.places
         parade = snapshot.parade
         house = snapshot.house
+        trail = snapshot.trail
+        paradeSpacing = snapshot.paradeSpacing
     }
 
     /// Called as she walks. Returns the little ones that just joined, and those that just
     /// went into the house (in parade order).
     mutating func motherMoved(to p: CGPoint) -> (found: [Int], arrived: [Int]) {
         guard p.x.isFinite, p.y.isFinite else { return ([], []) }
+        // Sample distance, not frames: equal spacing at 30, 60 and 120 Hz.
+        let capacity = Int(CGFloat(Self.count + 1) * paradeSpacing / Self.trailStep) + 8
         if let last = trail.last {
-            if hypot(p.x - last.x, p.y - last.y) >= Self.trailStep { trail.append(p) }
-        } else {
-            trail.append(p)
-        }
-        let capacity = Int(CGFloat(Self.count + 1) * Self.paradeGap / Self.trailStep) + 8
+            let distance = hypot(p.x - last.x, p.y - last.y)
+            let steps = Int(distance / Self.trailStep)
+            if steps > 0 {
+                for step in max(1, steps - capacity + 1)...steps {
+                    let t = CGFloat(step) * Self.trailStep / distance
+                    trail.append(CGPoint(x: last.x + (p.x - last.x) * t, y: last.y + (p.y - last.y) * t))
+                }
+            }
+        } else { trail.append(p) }
         if trail.count > capacity { trail.removeFirst(trail.count - capacity) }
 
         var found: [Int] = []
@@ -105,7 +117,7 @@ struct MeadowLittleOnesModel {
     /// Where the k-th follower walks: along her own path, `paradeGap` apart. A path shorter
     /// than the parade bunches them gently at its start.
     func paradePoint(_ k: Int, mother: CGPoint) -> CGPoint {
-        let want = CGFloat(k + 1) * Self.paradeGap
+        let want = CGFloat(k + 1) * paradeSpacing
         var travelled: CGFloat = 0
         var previous = mother
         for point in trail.reversed() {
@@ -168,6 +180,28 @@ struct MeadowLittleOnesModel {
     }
 }
 
+/// Frame-rate-independent following, with a speed cap when a new baby joins far away.
+struct MeadowFollowerMotion: Equatable {
+    var position: CGPoint
+    var heading: CGFloat = 0
+    var lift: CGFloat = 0
+
+    mutating func step(toward target: CGPoint, hop: CGFloat, dt: TimeInterval) {
+        guard dt.isFinite, dt > 0, target.x.isFinite, target.y.isFinite else { return }
+        let elapsed = CGFloat(min(dt, 0.05))
+        let dx = target.x - position.x, dy = target.y - position.y
+        let distance = hypot(dx, dy)
+        let fraction = min(1 - exp(-12 * elapsed), 280 * elapsed / max(distance, 0.001))
+        position.x += dx * fraction
+        position.y += dy * fraction
+        if distance > 0.5 {
+            let turn = atan2(sin(atan2(dy, dx) - heading), cos(atan2(dy, dx) - heading))
+            heading += turn * (1 - exp(-8 * elapsed))
+        }
+        lift += (max(0, min(1, hop)) - lift) * (1 - exp(-10 * elapsed))
+    }
+}
+
 // MARK: - The little ones on screen
 
 /// What the scene should answer with sound and touch.
@@ -187,8 +221,18 @@ final class MeadowLittleOnesNode: SKNode {
     private let house = SKNode()
     private var houseGlow: SKNode?
     private var finaleDone: Bool
+    private var motions: [MeadowFollowerMotion] = []
+    struct Snapshot {
+        let model: MeadowLittleOnesModel.Snapshot
+        let followers: [MeadowFollowerMotion]
+    }
+    var snapshot: Snapshot {
+        Snapshot(model: model.snapshot, followers: babies.indices.map {
+            MeadowFollowerMotion(position: babies[$0].position, heading: babies[$0].zRotation, lift: motions[$0].lift)
+        })
+    }
 
-    init(model: MeadowLittleOnesModel, babySize: CGFloat, houseSize: CGFloat, night: Bool) {
+    init(model: MeadowLittleOnesModel, babySize: CGFloat, houseSize: CGFloat, night: Bool, restoring followers: [MeadowFollowerMotion]? = nil) {
         self.model = model
         self.babySize = babySize
         self.night = night
@@ -197,6 +241,11 @@ final class MeadowLittleOnesNode: SKNode {
         buildHouse(size: houseSize)
         for i in 0..<model.spots.count { buildBaby(i) }
         settle()
+        motions = babies.map { MeadowFollowerMotion(position: $0.position, heading: $0.zRotation) }
+        if let followers, followers.count == babies.count {
+            motions = followers
+            for i in model.parade { applyMotion(i) }
+        }
     }
 
     required init?(coder aDecoder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -259,8 +308,10 @@ final class MeadowLittleOnesNode: SKNode {
         let fit = CGSize(width: babySize, height: babySize)
         let body: SKNode
         if let art = ToyArt.sprite("meadow-baby-ladybug", fit: fit) {
+            art.zRotation = -.pi / 2 // Bundled artwork faces up; movement heading zero faces right.
             body = art
         } else if let mother = ToyArt.sprite("meadow-ladybug-top", fit: fit) {
+            mother.zRotation = -.pi / 2
             body = mother   // stand-in: her own felt art, small
         } else {
             let shell = SKShapeNode(circleOfRadius: babySize * 0.42)
@@ -321,9 +372,12 @@ final class MeadowLittleOnesNode: SKNode {
         houseGlow?.alpha = glowLevel
     }
 
-    /// After a rotation rebuild, followers start beside her rather than at the world's centre.
-    func snapParade(to mother: CGPoint) {
-        for i in model.parade { babies[i].position = mother }
+    private func applyMotion(_ i: Int) {
+        babies[i].position = motions[i].position
+        babies[i].zRotation = motions[i].heading
+        let lift = AmbientAnimator.reduceMotion ? 0 : motions[i].lift
+        babyBodies[i].setScale(1 + lift * 0.12)
+        babyBodies[i].position = CGPoint(x: 0, y: lift * babySize * 0.12)
     }
 
     private var glowLevel: CGFloat { CGFloat(model.homeCount) / CGFloat(MeadowLittleOnesModel.count) * 0.9 }
@@ -357,25 +411,12 @@ final class MeadowLittleOnesNode: SKNode {
         if !found.isEmpty, house.isHidden { showHouse() }
 
         // The parade follows her path, easing into place and hopping over the flowers.
-        let reduce = AmbientAnimator.reduceMotion
-        let ease = CGFloat(min(1, dt * 9))
         for (k, i) in model.parade.enumerated() where babies[i].action(forKey: "join") == nil {
             let target = model.paradePoint(k, mother: mother)
-            let hop = MeadowLittleOnesModel.flowerHop(at: target, flowers: flowers)
-            let goal = CGPoint(x: target.x + hop.nudge.dx, y: target.y + hop.nudge.dy)
-            let baby = babies[i]
-            let dx = goal.x - baby.position.x, dy = goal.y - baby.position.y
-            baby.position = CGPoint(x: baby.position.x + dx * ease, y: baby.position.y + dy * ease)
-            if hypot(dx, dy) > 0.5 {
-                var turn = atan2(dy, dx) - baby.zRotation
-                while turn > .pi { turn -= .pi * 2 }
-                while turn < -.pi { turn += .pi * 2 }
-                baby.zRotation += turn * CGFloat(min(1, dt * 8))
-            }
-            // Top-down, a hop reads as rising toward us: a touch larger, the shadow left behind.
-            let lift = reduce ? 0 : hop.lift
-            babyBodies[i].setScale(1 + lift * 0.28)
-            babyBodies[i].position = CGPoint(x: 0, y: lift * babySize * 0.18)
+            let hop = MeadowLittleOnesModel.flowerHop(at: motions[i].position, flowers: flowers)
+            // A vertical hop keeps the path continuous; a radial nudge flips at flower centres.
+            motions[i].step(toward: target, hop: hop.lift, dt: dt)
+            applyMotion(i)
         }
 
         // Peeking ones lean out a little as she comes near.
@@ -404,6 +445,7 @@ final class MeadowLittleOnesNode: SKNode {
         let leaf = leaves[i]
         leaf.removeAction(forKey: "rustle")
         let baby = babies[i]
+        motions[i] = MeadowFollowerMotion(position: baby.position, heading: baby.zRotation)
         if AmbientAnimator.reduceMotion {
             leaf.run(.sequence([.fadeOut(withDuration: 0.3), .hide()]))
             return

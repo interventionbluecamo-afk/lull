@@ -11,7 +11,7 @@ Four coordinated promotional illustrations, made with built-in image generation 
 
 Native generated files are retained in `Originals/`. Exports are resized for their destination; no fabricated app screens are used. These are promotional illustrations, not screenshots of gameplay. Keep the existing real gameplay screenshots for the App Store screenshot slots.
 
-The header has no baked-in text. Its dimensions follow [Apple's creative asset specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/creative-assets-specifications). It has not been uploaded to App Store Connect. The social posts have not been published.
+The header has no baked-in text. Its dimensions follow [Apple's creative asset specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/creative-assets-specifications). The PNG sibling was uploaded to App Store Connect on October 22, 2026. The social posts have not been published.
 
 See `Captions.md` for ready-to-use post text and `Prompts.json` for the exact generation prompts and reference assets.
 

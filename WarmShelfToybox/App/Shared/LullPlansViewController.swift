@@ -240,10 +240,19 @@ final class LullOfferView: UIView {
     private let isLoading: Bool
     private let isBusy: Bool
     private let showsStartButton: Bool
+    private let existingPlanID: String?
+    private var ownsLifetime: Bool { existingPlanID == LullStoreProduct.lifetime }
+    private var ownsSubscription: Bool { existingPlanID.map { LullStoreProduct.subscriptionProductIDs.contains($0) } ?? false }
 
     /// - Parameter showsStartButton: false where the page pins its own start button (the welcome).
-    init(offer: LullPlanOffer, isLoading: Bool, isBusy: Bool, showsStartButton: Bool, actions: Actions) {
-        self.offer = offer
+    init(offer: LullPlanOffer, isLoading: Bool, isBusy: Bool, showsStartButton: Bool, existingPlanID: String? = nil, actions: Actions) {
+        var displayedOffer = offer
+        if existingPlanID != nil {
+            displayedOffer.freeLength = nil
+            displayedOffer.freeDays = nil
+        }
+        self.offer = displayedOffer
+        self.existingPlanID = existingPlanID
         self.actions = actions
         self.isLoading = isLoading
         self.isBusy = isBusy
@@ -270,9 +279,11 @@ final class LullOfferView: UIView {
         ])
 
         // Value before price: the same felt toys the child will find, breathing.
-        stack.addArrangedSubview(PaywallPreviewStrip(toyIDs: ToyRegistry.launchToyIDs,
-                                                     labelColor: WarmShelfPalette.cocoa.withAlphaComponent(0.85),
-                                                     rowHeight: 80))
+        if existingPlanID == nil {
+            stack.addArrangedSubview(PaywallPreviewStrip(toyIDs: ToyRegistry.launchToyIDs,
+                                                         labelColor: WarmShelfPalette.cocoa.withAlphaComponent(0.85),
+                                                         rowHeight: 80))
+        }
         if let price = offer.familyPrice {
             stack.addArrangedSubview(makePlanCard(price: price))
         } else if offer.keepForeverPrice == nil {
@@ -281,7 +292,7 @@ final class LullOfferView: UIView {
         if offer.hasPrices, !canPay {
             stack.addArrangedSubview(makeNote("In-App Purchases are turned off in Screen Time on this device. A grown-up can turn them on in Settings › Screen Time."))
         }
-        stack.addArrangedSubview(makePromisesCard())
+        if existingPlanID == nil { stack.addArrangedSubview(makePromisesCard()) }
         if let keepForeverPrice = offer.keepForeverPrice {
             stack.addArrangedSubview(makeKeepForeverCard(price: keepForeverPrice))
         }
@@ -342,9 +353,10 @@ final class LullOfferView: UIView {
             column.setCustomSpacing(18, after: timeline)
         }
         if showsStartButton, let title = offer.startTitle {
-            let start = makeButton(title: isBusy ? "Waiting for the App Store…" : title, filled: true)
+            let currentTitle = ownsLifetime ? "Already included with Keep Forever" : "Current plan"
+            let start = makeButton(title: existingPlanID != nil ? currentTitle : (isBusy ? "Waiting for the App Store…" : title), filled: true)
             start.accessibilityIdentifier = "plan-family-purchase"
-            start.isEnabled = canPay && !isBusy
+            start.isEnabled = canPay && !isBusy && existingPlanID == nil
             start.alpha = start.isEnabled ? 1 : 0.6
             start.addAction(UIAction { [actions] _ in actions.start() }, for: .touchUpInside)
             column.addArrangedSubview(start)
@@ -528,19 +540,23 @@ final class LullOfferView: UIView {
     private func makeKeepForeverCard(price: String) -> UIView {
         let card = makeCard(highlighted: offer.familyPrice == nil)
         card.accessibilityIdentifier = "offer-keep-forever"
-        let title = makeLabel(offer.familyPrice == nil ? "Keep Forever" : "Rather not subscribe?",
+        let title = makeLabel("Keep Forever",
                               font: .systemFont(ofSize: 16, weight: .bold), style: .headline,
                               color: WarmShelfPalette.clayInk)
         let shared = offer.keepForeverShared ? " Shared with your family." : ""
         let words = makeLabel("Pay \(price) once. All nine toys and every new one, yours for good.\(shared)",
                               font: .systemFont(ofSize: 14.5), style: .subheadline, color: WarmShelfPalette.cocoa)
-        let buy = makeButton(title: isBusy ? "Waiting for the App Store…" : "Buy once · \(price)",
+        let buy = makeButton(title: ownsLifetime ? "Already purchased" : (isBusy ? "Waiting for the App Store…" : "Buy once · \(price)"),
                              filled: offer.familyPrice == nil)
         buy.accessibilityIdentifier = "full-toybox-purchase"
-        buy.isEnabled = canPay && !isBusy
+        buy.isEnabled = canPay && !isBusy && !ownsLifetime
         buy.alpha = buy.isEnabled ? 1 : 0.6
         buy.addAction(UIAction { [actions] _ in actions.keepForever() }, for: .touchUpInside)
-        let column = UIStackView(arrangedSubviews: [title, words, buy])
+        let column = UIStackView(arrangedSubviews: [title, words])
+        if ownsSubscription {
+            column.addArrangedSubview(makeNote("This is a separate one-time purchase. It does not cancel Lull Family. To avoid future subscription charges, turn off renewal with Manage subscription above."))
+        }
+        column.addArrangedSubview(buy)
         column.axis = .vertical
         column.spacing = 4
         column.setCustomSpacing(12, after: words)
@@ -810,17 +826,17 @@ final class LullOfferPauseViewController: UIViewController {
         scroll.translatesAutoresizingMaskIntoConstraints = false
         scroll.alwaysBounceVertical = false
         view.addSubview(scroll)
-        scroll.addSubview(stack)
+        let columnHost = LullReadableColumnView(stack, maxWidth: 460, inset: 28)
+        scroll.addSubview(columnHost)
         NSLayoutConstraint.activate([
+            columnHost.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor),
+            columnHost.centerXAnchor.constraint(equalTo: scroll.frameLayoutGuide.centerXAnchor),
             scroll.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             scroll.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scroll.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scroll.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            stack.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor, constant: 30),
-            stack.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor, constant: -24),
-            stack.centerXAnchor.constraint(equalTo: scroll.frameLayoutGuide.centerXAnchor),
-            stack.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor, constant: -56),
-            stack.widthAnchor.constraint(lessThanOrEqualToConstant: 460)
+            columnHost.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor, constant: 30),
+            columnHost.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor, constant: -24),
         ])
     }
 
@@ -911,16 +927,17 @@ final class LullPlansViewController: UIViewController {
         stack.axis = .vertical
         stack.spacing = 14
         stack.translatesAutoresizingMaskIntoConstraints = false
-        scroll.addSubview(stack)
+        let columnHost = LullReadableColumnView(stack, maxWidth: 640, inset: 22)
+        scroll.addSubview(columnHost)
         NSLayoutConstraint.activate([
+            columnHost.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor),
+            columnHost.centerXAnchor.constraint(equalTo: scroll.frameLayoutGuide.centerXAnchor),
             scroll.topAnchor.constraint(equalTo: view.topAnchor),
             scroll.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scroll.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scroll.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            stack.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor, constant: 22),
-            stack.leadingAnchor.constraint(equalTo: scroll.frameLayoutGuide.leadingAnchor, constant: 22),
-            stack.trailingAnchor.constraint(equalTo: scroll.frameLayoutGuide.trailingAnchor, constant: -22),
-            stack.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor, constant: -28)
+            columnHost.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor, constant: 22),
+            columnHost.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor, constant: -28)
         ])
         loadPurchaseOptions()
         // Ask to Buy approvals, renewals and refunds arrive while the page is open.
@@ -952,11 +969,17 @@ final class LullPlansViewController: UIViewController {
         }
         if state.hasPurchasedFullToybox {
             stack.addArrangedSubview(makeStatusHero())
+            let options = makeBody("Plan options")
+            options.accessibilityTraits = .header
+            stack.addArrangedSubview(options)
         } else {
             stack.addArrangedSubview(makeOfferIntro())
-            stack.addArrangedSubview(LullOfferView(
+        }
+        // Existing subscribers must still be able to find Keep Forever. Preserve the
+        // current entitlement and mark owned products instead of hiding the catalog.
+        stack.addArrangedSubview(LullOfferView(
                 offer: LullPlanOffer.current(), isLoading: isLoadingProducts, isBusy: isPurchaseInProgress,
-                showsStartButton: true,
+                showsStartButton: true, existingPlanID: state.planProductID,
                 actions: .init(
                     start: { [weak self] in self?.purchase(productID: LullStoreProduct.familyYearly) },
                     keepForever: { [weak self] in self?.purchase(productID: LullStoreProduct.lifetime) },
@@ -966,7 +989,6 @@ final class LullPlansViewController: UIViewController {
                     retry: { [weak self] in self?.reloadProducts() }
                 )
             ))
-        }
         if let scroll, let oldOffset {
             view.layoutIfNeeded()
             let maxY = max(-scroll.adjustedContentInset.top,
@@ -1039,7 +1061,7 @@ final class LullPlansViewController: UIViewController {
         title.text = "All nine toys"
         if state.hasKeepForever {
             eyebrow.text = "KEEP FOREVER"
-            body.text = "All nine toys, and every new one, are yours for good. Thank you for supporting Lull."
+            body.text = "All nine toys, and every new one, are yours for good. If you previously subscribed to Lull Family, manage that subscription below to turn off any remaining renewal."
         } else if state.isInFreeWeek {
             let d = state.freeWeekDaysRemaining
             eyebrow.text = "FREE WEEK · \(d) DAY\(d == 1 ? "" : "S") LEFT"
@@ -1076,7 +1098,7 @@ final class LullPlansViewController: UIViewController {
         content.setCustomSpacing(5, after: eyebrow)
         content.setCustomSpacing(14, after: body)
 
-        if state.hasSubscription {
+        if state.hasSubscription || state.hasKeepForever {
             if state.isInFreeWeek, !LullFreeWeekReminder.isScheduled, LullFreeWeekReminder.reminderDate != nil {
                 let remind = makeActionButton(title: "Remind me \(LullFreeWeekReminder.daysBefore) days before it ends", style: .secondary)
                 remind.accessibilityIdentifier = "free-week-reminder"
@@ -1188,7 +1210,9 @@ final class LullPlansViewController: UIViewController {
     /// This page is only ever shown behind the adult check, so a plan's button goes straight to
     /// Apple's own confirmation sheet rather than asking the grown-up a second question.
     private func purchase(productID: String) {
-        guard !isPurchaseInProgress,
+        let state = LullDemoState.shared
+        guard !isPurchaseInProgress, !state.hasKeepForever,
+              !(state.hasSubscription && LullStoreProduct.subscriptionProductIDs.contains(productID)),
               LullPurchaseManager.shared.product(for: productID) != nil else { return }
         isPurchaseInProgress = true
         statusMessage = nil

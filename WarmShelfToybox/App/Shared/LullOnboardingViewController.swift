@@ -140,10 +140,12 @@ final class LullOnboardingViewController: UIViewController {
         ctaCaption.adjustsFontForContentSizeCategory = true
         ctaCaption.textColor = WarmShelfPalette.cocoa.withAlphaComponent(0.78)
         ctaCaption.textAlignment = .center
-        ctaCaption.numberOfLines = 2
+        ctaCaption.numberOfLines = 0
         ctaCaption.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(ctaCaption)
 
+        NSLayoutConstraint.activate(LullReadableLayout.column(primaryButton, in: view.safeAreaLayoutGuide, inset: 28))
+        NSLayoutConstraint.activate(LullReadableLayout.column(ctaCaption, in: view.safeAreaLayoutGuide, inset: 28))
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -160,13 +162,9 @@ final class LullOnboardingViewController: UIViewController {
             pageDots.bottomAnchor.constraint(equalTo: primaryButton.topAnchor, constant: -10),
             pageDots.centerXAnchor.constraint(equalTo: view.centerXAnchor),
 
-            primaryButton.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 28),
-            primaryButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -28),
             primaryButton.bottomAnchor.constraint(equalTo: ctaCaption.topAnchor, constant: -8),
             primaryButton.heightAnchor.constraint(equalToConstant: 58),
 
-            ctaCaption.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 28),
-            ctaCaption.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -28),
             ctaCaption.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -10)
         ])
     }
@@ -800,20 +798,35 @@ final class LullOnboardingViewController: UIViewController {
         let page = UIView()
         let scroll = UIScrollView()
         scroll.translatesAutoresizingMaskIntoConstraints = false
-        scroll.showsVerticalScrollIndicator = false
-        scroll.alwaysBounceVertical = true
+        scroll.showsVerticalScrollIndicator = true
         page.addSubview(scroll)
+        let canvas = UIView()
+        canvas.translatesAutoresizingMaskIntoConstraints = false
+        scroll.addSubview(canvas)
         content.translatesAutoresizingMaskIntoConstraints = false
-        scroll.addSubview(content)
+        let columnHost = LullReadableColumnView(content, inset: 30)
+        canvas.addSubview(columnHost)
+        let fittedHeight = canvas.heightAnchor.constraint(equalTo: scroll.frameLayoutGuide.heightAnchor)
+        fittedHeight.priority = .defaultLow
         NSLayoutConstraint.activate([
             scroll.topAnchor.constraint(equalTo: page.safeAreaLayoutGuide.topAnchor),
             scroll.leadingAnchor.constraint(equalTo: page.leadingAnchor),
             scroll.trailingAnchor.constraint(equalTo: page.trailingAnchor),
             scroll.bottomAnchor.constraint(equalTo: page.bottomAnchor),
-            content.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor, constant: 24),
-            content.leadingAnchor.constraint(equalTo: scroll.frameLayoutGuide.leadingAnchor, constant: 30),
-            content.trailingAnchor.constraint(equalTo: scroll.frameLayoutGuide.trailingAnchor, constant: -30),
-            content.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor, constant: -24)
+            canvas.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor),
+            canvas.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor),
+            canvas.leadingAnchor.constraint(equalTo: scroll.contentLayoutGuide.leadingAnchor),
+            canvas.trailingAnchor.constraint(equalTo: scroll.contentLayoutGuide.trailingAnchor),
+            canvas.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor),
+            canvas.heightAnchor.constraint(greaterThanOrEqualTo: scroll.frameLayoutGuide.heightAnchor),
+            fittedHeight,
+            columnHost.centerYAnchor.constraint(equalTo: canvas.centerYAnchor),
+            columnHost.topAnchor.constraint(greaterThanOrEqualTo: canvas.topAnchor, constant: 24),
+            columnHost.bottomAnchor.constraint(lessThanOrEqualTo: canvas.bottomAnchor, constant: -24)
+        ])
+        NSLayoutConstraint.activate([
+            columnHost.leadingAnchor.constraint(equalTo: canvas.leadingAnchor),
+            columnHost.trailingAnchor.constraint(equalTo: canvas.trailingAnchor)
         ])
         return page
     }

@@ -1,0 +1,19 @@
+Lull build 17 — Apple's requested purchase recording
+
+Install build 1.0 (17) from TestFlight after it is available. Use a US Sandbox Apple Account with no existing Lull purchases for the first flow. A TestFlight build uses Apple's sandbox; do not use a production App Store installation.
+
+If Lull already says Keep Forever or Lull Family is active, stop before recording. Reinstalling alone does not clear Apple purchase history. Use a fresh US Sandbox Apple Account, or clear that test account's purchase history (sandbox history is permanently removed; real customer purchases are unaffected). Ask for help with this if needed. Never put passwords in the recording.
+
+Record continuously on a physical iPhone or iPad running the latest available OS:
+1. Begin on the device Home Screen and launch Lull.
+2. Show Set up Lull / the grown-up check, family setup and the offer. If setup was already completed, use the shelf's grown-up button → Your plan.
+3. Show Lull Family's title, annual price/period, any eligible free-trial terms, and Terms of Use / Privacy Policy links.
+4. Start Lull Family. Show Apple's SANDBOX purchase sheet, confirm it and wait for success. Show the unlocked shelf and briefly play two toys.
+5. Open grown-up area → Your plan. Show the active subscription, scroll to Plan options and Keep Forever. Show its one-time price and the subscription-cancellation explanation. Complete the Keep Forever sandbox purchase and show success / Keep Forever status.
+6. Tap Restore purchases and show the resulting confirmation. Return to a toy.
+
+Send the recording (or a no-login viewing link) and the exact device model and OS version. We will check the evidence, select build 17, attach it to App Review Notes, and resubmit with both purchases. No app login/demo account exists or is needed; Apple's Sandbox Apple Account is separate from app accounts.
+
+Apple references:
+https://developer.apple.com/help/app-store-connect/test-a-beta-version/testing-subscriptions-and-in-app-purchases-in-testflight/
+https://developer.apple.com/help/app-store-connect/test-in-app-purchases/manage-sandbox-apple-account-settings/

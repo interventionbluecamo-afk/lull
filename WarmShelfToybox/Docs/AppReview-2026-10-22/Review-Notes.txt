@@ -1,0 +1,28 @@
+Lull: Quiet Toybox — corrected version 1.0 (16)
+
+REVIEW FIXES
+The parental gate now contains its own numeric keypad: no system keyboard can cover the number-word question. The question, answer and keys stay together; compact landscape uses two columns and larger text can scroll. iPad welcome, family settings, plans and privacy now use bounded readable columns. Meadow followers face their direction of movement, follow smoothly with more room on iPad, and retain their path/positions on rotation.
+
+PURPOSE / ACCESS
+A calm, Montessori-inspired toybox for ages 2–6 (Kids age band: 5 and under). Nine toys: Bubbles, Drop Dots, Hum, Feed, Mix-Up, Meadow, Window, Sleepy Box and Little Wash. No accounts, login credentials, sample files or special hardware are needed. No chat, public user-generated content or social features. Mix-Up creations stay local.
+
+On first launch, tap Set up Lull. Enter the digits matching the three number words using the gate's keypad (e.g. four · seven · two = 472). Choose family settings and a purchase option, or restore a purchase. Both purchases open all nine toys. Tap a shelf toy to play and its home button to return. The shelf's grown-up button → adult check → Your plan provides purchases, Restore Purchases and subscription management. Purchases and external links are behind the adult check.
+
+PURCHASES
+Lull Family (com.lull.family.yearly): auto-renewable annual subscription, US $29.99/year; one-week free introductory offer for eligible subscribers.
+Keep Forever (com.lull.full.lifetime): non-consumable, US $59.99 once, no recurring charge.
+Both include all toys and future additions, support Family Sharing, and accompany the app submission. The offer shows terms, restoration and policy links. Apple determines localized prices and offer eligibility. Initial app availability is US-only; interface is English, with no regional content differences.
+
+GUIDELINE 1.3 / DATA
+1. No third-party analytics SDK or service; no gameplay events, child profiles or device identifiers are transmitted to us or an analytics provider.
+2. No advertising, ad networks, advertising identifiers or tracking.
+3. No children's data is shared with us or third parties. There is no developer backend/cloud database. Apple StoreKit handles purchases, entitlements, restoration and Family Sharing. StoreKit information is used only to determine access/trial/renewal status, not forwarded to another service. We receive no Apple Account credentials or payment-card details. Local app data may be included in the user's own device backups, which we cannot access.
+4. Local storage holds family preferences, chosen toys, timer/wind-down state, shown hints, local toy state/Mix-Up creations, gate retry cooldown and cached purchase access. Motion readings are used transiently for shelf tilt, never recorded or transmitted. The optional trial reminder is a permission-based local notification; no remote push. No camera, microphone, contacts, photo or location access. No runtime AI service.
+
+Adult-initiated support/privacy links open the Cloudflare Pages website. Voluntary support email goes through the adult's mail provider to lullios@proton.me (Proton Mail), solely for support. Gameplay data is not uploaded to these services.
+
+MATERIAL
+Artwork was created for Lull, including AI-assisted illustrations; audio is generated locally. No regulated services, third-party media catalogs or licensed entertainment franchises.
+Terms: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+Privacy: https://lulltoybox.pages.dev/privacy
+Support: https://lulltoybox.pages.dev/support

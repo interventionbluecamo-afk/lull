@@ -1,6 +1,52 @@
 import UIKit
 import StoreKit
 
+/// One readable column on iPad; fills the safe width of small phones and windows.
+enum LullReadableLayout {
+    static func column(_ content: UIView, in guide: UILayoutGuide,
+                       maxWidth: CGFloat = 640, inset: CGFloat = 24) -> [NSLayoutConstraint] {
+        let preferred = content.widthAnchor.constraint(equalTo: guide.widthAnchor, constant: -2 * inset)
+        preferred.priority = UILayoutPriority(998)
+        let readable = content.widthAnchor.constraint(equalToConstant: maxWidth)
+        readable.priority = UILayoutPriority(999)
+        return [content.centerXAnchor.constraint(equalTo: guide.centerXAnchor),
+                content.widthAnchor.constraint(lessThanOrEqualToConstant: maxWidth),
+                content.widthAnchor.constraint(lessThanOrEqualTo: guide.widthAnchor, constant: -2 * inset), readable, preferred]
+    }
+}
+
+/// Give wrapping labels a definite width before they calculate their height.
+/// A width chosen only by optional constraints can collapse a long offer into a narrow strip.
+final class LullReadableColumnView: UIView {
+    private let maximum: CGFloat
+    private let inset: CGFloat
+    private let contentWidth: NSLayoutConstraint
+
+    init(_ content: UIView, maxWidth: CGFloat = 640, inset: CGFloat = 24) {
+        maximum = maxWidth
+        self.inset = inset
+        content.translatesAutoresizingMaskIntoConstraints = false
+        contentWidth = content.widthAnchor.constraint(equalToConstant: maxWidth)
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+        addSubview(content)
+        NSLayoutConstraint.activate([
+            contentWidth,
+            content.centerXAnchor.constraint(equalTo: centerXAnchor),
+            content.topAnchor.constraint(equalTo: topAnchor),
+            content.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func layoutSubviews() {
+        let width = min(maximum, max(1, bounds.width - inset * 2))
+        if contentWidth.constant != width { contentWidth.constant = width }
+        super.layoutSubviews()
+    }
+}
+
 /// Contact and policy destinations, in one place. Keep these identical to the website
 /// (`LandingPageDeploy/`) and App Store Connect (Support URL, Privacy Policy URL).
 enum LullLinks {
@@ -64,7 +110,8 @@ final class ParentInfoViewController: UIViewController {
         stack.axis = .vertical
         stack.spacing = 14
         stack.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(stack)
+        let columnHost = LullReadableColumnView(stack, inset: 22)
+        contentView.addSubview(columnHost)
 
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.topAnchor),
@@ -78,12 +125,14 @@ final class ParentInfoViewController: UIViewController {
             contentView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
             contentView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
 
-            stack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 20),
-            stack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 22),
-            stack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -22),
-            stack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -28)
+            columnHost.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 20),
+            columnHost.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -28)
         ])
 
+        NSLayoutConstraint.activate([
+            columnHost.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            columnHost.trailingAnchor.constraint(equalTo: contentView.trailingAnchor)
+        ])
         render()
     }
 
@@ -199,6 +248,12 @@ final class ParentInfoViewController: UIViewController {
 
         stack.setCustomSpacing(24, after: stack.arrangedSubviews.last!)
         stack.addArrangedSubview(makeCaption("HELP & PRIVACY"))
+
+        stack.addArrangedSubview(makeDisclosureCard(
+            title: "Keep Lull on screen", detail: "Help with accidental swipes", section: 3,
+            content: [makeBody("For a child who swipes out of Lull, turn on Guided Access in Settings → Accessibility and set its passcode. Open Lull, triple-click the side, top, or Home button, choose Guided Access if asked, then tap Start."),
+                      makeBody("To leave, triple-click the same button, authenticate, and tap End. Keep Touch enabled so the toys still respond.")]
+        ))
 
         let welcome = makeActionButton(title: "See the welcome again", style: .text)
         welcome.addTarget(self, action: #selector(resetOnboarding), for: .touchUpInside)
@@ -922,7 +977,8 @@ final class LullPrivacyViewController: UIViewController {
         column.axis = .vertical
         column.spacing = 8
         column.translatesAutoresizingMaskIntoConstraints = false
-        scroll.addSubview(column)
+        let columnHost = LullReadableColumnView(column)
+        scroll.addSubview(columnHost)
 
         let title = UILabel()
         title.text = "Privacy"
@@ -979,10 +1035,10 @@ final class LullPrivacyViewController: UIViewController {
             scroll.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scroll.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scroll.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            column.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor, constant: 28),
-            column.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor, constant: -28),
-            column.leadingAnchor.constraint(equalTo: scroll.frameLayoutGuide.leadingAnchor, constant: 24),
-            column.trailingAnchor.constraint(equalTo: scroll.frameLayoutGuide.trailingAnchor, constant: -24)
+            columnHost.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor, constant: 28),
+            columnHost.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor, constant: -28),
+            columnHost.centerXAnchor.constraint(equalTo: scroll.frameLayoutGuide.centerXAnchor),
+            columnHost.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor)
         ])
     }
 

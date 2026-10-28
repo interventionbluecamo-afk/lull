@@ -1,0 +1,21 @@
+DRAFT — do not send until build 17 is selected and the physical-device recording and successful sandbox transactions are verified. Replace every bracketed field.
+
+Hello App Review,
+
+We addressed the purchase-discoverability issue in Lull: Quiet Toybox 1.0 (17).
+
+Your screenshot showed an existing Lull Family entitlement. Previously, Your plan displayed subscription status instead of the purchase catalog when access was already active. It now displays current status AND both Plan options. Existing subscribers can find Keep Forever, while already-owned options remain visible and are labelled appropriately to prevent duplicate purchases. Manage subscription remains available after a lifetime purchase, with a clear explanation that buying Keep Forever does not automatically cancel an annual subscription.
+
+Navigation: shelf → grown-up button → complete the three-number-word check → Your plan → Plan options. New customers also see purchase options during onboarding after the grown-up check. No app account or login credentials are required.
+
+The existing products remain attached to this submission:
+• Lull Family — com.lull.family.yearly — annual subscription, US $29.99/year, one-week introductory trial for eligible subscribers.
+• Keep Forever — com.lull.full.lifetime — non-consumable, US $59.99 once.
+Both unlock all nine toys and support Family Sharing. Initial sales availability is the United States. Terms of Use, Privacy Policy and Restore purchases are on the offer screen.
+
+Physical-device recording: [PUBLICLY ACCESSIBLE VIDEO LINK]
+Device and OS: [EXACT MODEL AND OS VERSION]
+Verified sandbox results: [RECORD ACTUAL RESULTS; DO NOT CLAIM UNTIL CONFIRMED]
+The recording begins on the Home Screen and shows launching Lull, accessing the purchase flows, completing sandbox purchases and using the unlocked toys.
+
+Thank you.

@@ -1,3 +1,5 @@
+October 28, 3:46 PM CDT: build1.0(17) + both purchases + subscription group RESUBMITTED, all Waiting for Review. Founder video link in review notes/reply. Manual release retained. See Docs/AppReview-2026-10-28/Handoff.md and resubmitted-build17.png. Do not resubmit/remove the queue item again. Search artwork cancelled; brighter screenshot background concept being prepared separately.
+
 Founder cancelled search-results artwork October 28: leave that slot empty (verified 0 of 1). Existing product-page header remains.
 
 Build 17 upload succeeded October 28, 15:13 CDT; Apple processing. Source/artwork pushed as 9a96e84. Await founder sandbox video before resubmitting.

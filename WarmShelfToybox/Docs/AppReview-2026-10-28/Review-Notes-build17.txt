@@ -1,0 +1,29 @@
+Lull: Quiet Toybox — version 1.0 (17)
+
+REVIEW FIXES / PURCHASE ACCESS
+Build 17 fixes the October 27 purchase-discoverability finding. Your plan now shows current access status AND both Plan options, including when an annual subscription or lifetime purchase is already active. Owned options remain visible with duplicate purchases disabled. An annual subscriber can purchase Keep Forever; this does not cancel the annual subscription. Manage subscription remains available after a lifetime purchase.
+
+Navigation: shelf → grown-up button → complete the three-number-word check → Your plan → Plan options. First launch: Set up Lull → grown-up check → family settings → purchase options. Enter the digits matching the three number words on the gate's keypad (e.g. four · seven · two = 472). No app account, login credentials, sample files or special hardware are required.
+
+The prior iPad/gate fixes are retained: the gate has its own numeric keypad so a system keyboard cannot cover the question; compact landscape uses two columns and larger text can scroll. iPad welcome, settings, plans and privacy use bounded readable columns.
+
+PURCHASES
+Lull Family — com.lull.family.yearly — auto-renewable annual subscription, US $29.99/year, one-week free introductory trial for eligible subscribers.
+Keep Forever — com.lull.full.lifetime — non-consumable, US $59.99 once.
+Both unlock all nine toys and future additions, support Family Sharing, and remain attached to this submission. Initial availability is US-only; interface is English. The offer screen includes Restore purchases, Terms of Use and Privacy Policy. Purchases and external links are behind the grown-up check. Tap a shelf toy to play and its home button to return.
+
+PHYSICAL-DEVICE DEMO
+Developer-provided demo: iPhone 17 Pro, build 17 installed. The annual sandbox subscription was already purchased and active before recording.
+https://drive.google.com/file/d/1fqQj2Dat1EfplcrZGr9hwe8hoQ-KMoyn/view
+
+GUIDELINE 1.3 / DATA
+1. No third-party analytics SDK or service. No gameplay events, child profiles or device identifiers are transmitted to us or an analytics provider.
+2. No advertising, ad networks, advertising identifiers or tracking.
+3. No children's data is shared with us or third parties; no developer backend/cloud database. Apple StoreKit handles purchases, access, restoration and Family Sharing. StoreKit information is used only for access/trial/renewal status and is not forwarded to another service. We receive no Apple Account credentials or payment-card details. Local data may be in the user's device backups, which we cannot access.
+4. Local storage holds family preferences, chosen toys, timer/wind-down state, hints, toy state/Mix-Up creations, gate cooldown and cached purchase access. Motion readings are transient, never recorded or transmitted. The optional trial reminder is a permission-based local notification; no remote push. No camera, microphone, contacts, photo or location access. No runtime AI service.
+
+For ages 2–6 (Kids age band: 5 and under). No chat, public user-generated content or social features. Adult-initiated support/privacy links use Cloudflare Pages. Voluntary support email goes through the adult's mail provider to lullios@proton.me (Proton Mail), solely for support; gameplay data is not uploaded. Artwork was created for Lull, including AI-assisted illustrations; audio is generated locally.
+
+Terms: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+Privacy: https://lulltoybox.pages.dev/privacy
+Support: https://lulltoybox.pages.dev/support

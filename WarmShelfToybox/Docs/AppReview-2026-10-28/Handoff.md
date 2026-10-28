@@ -1,3 +1,15 @@
+## Final status — October 28, 2026, 3:46 PM CDT
+Build 1.0 (17), Keep Forever, Lull Family yearly and the subscription group were resubmitted successfully; all four show Waiting for Review. Submission ID remains 6a0fb891-02a0-4692-b70c-e9d49264ad07. Manual release retained. Proof: resubmitted-build17.png.
+
+Founder confirmed installing17 and provided recording https://drive.google.com/file/d/1fqQj2Dat1EfplcrZGr9hwe8hoQ-KMoyn/view . Founder explicitly requested no video inspection and directed submission. Video was NOT watched/verified. We made no independent transaction-verification claim. Exact sent message and saved notes are Reply-build17.txt / Review-Notes-build17.txt. Annual sandbox purchase was already active before recording per founder.
+
+Patrick (dopatrie@icloud.com), already Account Holder/Admin, was added to the existing Fam internal TestFlight group. Earlier he was installing 1.1(15); 1.0(17) is accessed via Previous Builds. No account-role changes.
+
+Search-results art was cancelled by founder; slot remains empty. Existing product header remains. New request: improve flat/"sad" screenshot backgrounds; keep submission in queue and prepare artwork separately.
+
+---
+Historical work log below (superseded by the final status above):
+
 # Lull — October 28 purchase review fix
 
 Branch: claude/modest-bell-cjarqm. Checkout: ~/Desktop/lull v.2.

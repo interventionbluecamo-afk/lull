@@ -1,0 +1,19 @@
+Hello App Review,
+
+We addressed the October 27 purchase-discoverability finding in Lull: Quiet Toybox 1.0 (17).
+
+Your screenshot showed an existing Lull Family entitlement. Previously, Your plan displayed subscription status instead of the purchase catalog when access was already active. Build 17 now displays current status AND both Plan options. Already-owned options remain visible and are labelled appropriately, with duplicate purchases disabled. An annual subscriber can find and purchase Keep Forever. The screen explains that this separate purchase does not cancel the annual subscription, and Manage subscription remains available after a lifetime purchase.
+
+Navigation: shelf → grown-up button → complete the three-number-word check → Your plan → Plan options. New customers also see purchase options during onboarding after the grown-up check. No app account or login credentials are required.
+
+Both existing products remain attached to this submission:
+• Lull Family — com.lull.family.yearly — auto-renewable annual subscription, US $29.99/year, one-week free introductory trial for eligible subscribers.
+• Keep Forever — com.lull.full.lifetime — non-consumable, US $59.99 once.
+Both unlock all nine toys and support Family Sharing. Initial sales availability is the United States. Terms of Use, Privacy Policy and Restore purchases are on the offer screen.
+
+Developer-provided physical-device demo: iPhone 17 Pro, build 17 installed. The annual sandbox subscription was already purchased and active before recording.
+https://drive.google.com/file/d/1fqQj2Dat1EfplcrZGr9hwe8hoQ-KMoyn/view
+
+The previous iPad layout and parental-gate fixes are retained, including the gate's own numeric keypad so the question remains visible.
+
+Thank you.

@@ -1,4 +1,4 @@
-November 3, 2026: Meadow / Sleepy Box / Little Wash / Guided Access update prepared as **1.1 (18)**. Founder authorized TestFlight upload; follow `Docs/Update-2026-11-03/Handoff.md` for latest upload status. **Leave 1.0 in App Review untouched** (still Waiting for Review when checked today). All nine toys retained.
+November 3, 2026: Meadow / Sleepy Box / Little Wash / Guided Access update **1.1 (18) uploaded successfully**, processing in TestFlight. Source `7d7217f` is pushed; follow `Docs/Update-2026-11-03/Handoff.md` for latest status and focused founder checks. **Leave 1.0 in App Review untouched** (still Waiting for Review when checked today). All nine toys retained.
 
 October 28, 3:46 PM CDT: build1.0(17) + both purchases + subscription group RESUBMITTED, all Waiting for Review. Founder video link in review notes/reply. Manual release retained. See Docs/AppReview-2026-10-28/Handoff.md and resubmitted-build17.png. Do not resubmit/remove the queue item again. Search artwork cancelled; brighter screenshot background concept being prepared separately.
 

@@ -4,7 +4,7 @@ Branch: `claude/modest-bell-cjarqm`. App: `com.lull.toybox.a5ct5fk3sy`, team `A5
 
 ## Release status
 
-The founder authorized this update and its TestFlight upload. Source is 1.1 (18). Upload is being completed; see the final status appended below before assuming it is available.
+The founder authorized this update and its TestFlight upload. Source commit `7d7217f` is pushed. The Release archive and export both succeeded; Apple accepted **1.1 (18)** at 5:07 PM Central on November 3 and currently shows **Processing** in TestFlight. No App Review submission changes were made. Apple processing is the only remaining external step; installation availability has not been confirmed. If picking this up while processing has finished, check build 18 itself and add it to the existing Fam group only if it was not automatically assigned. Do not redo a tester/group audit or add What to Test notes.
 
 **Do not withdraw or replace 1.0.** App Store Connect still showed 1.0 / four items Waiting for Review on November 3. This session has made no submission changes. After 1.0 is approved and the founder releases it, wait for Ready for Distribution, create the 1.1 App Store version, select the tested 1.1 build, update release copy/screenshots as needed, and submit that update. The TestFlight upload is separate from this App Review queue item.
 
@@ -18,13 +18,14 @@ The founder authorized this update and its TestFlight upload. Source is 1.1 (18)
 
 ## Verification
 
+- Release device archive and App Store Connect export/upload succeeded.
 - Simulator Debug build succeeded with the installed Xcode / iOS 27.2 SDK, arm64 iPhone 18 Pro simulator (iOS 27.0).
 - `verify_world_interactions.py`: 23,551 checks passed.
 - `verify_meadow_little_ones.py`: 13,250 model checks and six scene checks passed.
 - `verify_sleepy_box_layout.py`: 366 checks passed across phone/iPad portrait and landscape layouts.
 - `verify_wash.py`: 48,700 production-model checks and 159 asset/provenance checks passed.
 - `git diff --check` passed. No broad unrelated audit or repeated nine-toy playthrough.
-- Portrait visual captures in `Previews/`. The overloaded Mac initially captured black launch frames; those were replaced with fully rendered scenes. These are simulator renders, not physical-device gameplay or purchase verification.
+- Portrait visual captures in `Previews/`. Final Meadow day/night, Sleepy Box and portrait Wash renders were inspected. The overloaded Mac initially captured black launch frames; those were replaced with fully rendered scenes. A visible garden seam was corrected to a low-opacity alpha-blended tint over the continuous ground. These are simulator renders, not physical-device gameplay or purchase verification.
 
 First compile caught an unavailable `SafariServices` module in this installed SDK; the new guide now uses the app's existing gated external-browser pattern, removing that dependency. Full physical play, edge swipes, Guided Access, audio and purchase testing remain with the founder as requested.
 

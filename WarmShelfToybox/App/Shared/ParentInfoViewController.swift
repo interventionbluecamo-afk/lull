@@ -194,6 +194,7 @@ final class ParentInfoViewController: UIViewController {
                 action: #selector(windDownPicked(_:))
             )
         ]))
+        stack.addArrangedSubview(makeGuidedAccessCard())
         stack.setCustomSpacing(24, after: stack.arrangedSubviews.last!)
         stack.addArrangedSubview(makeCaption("SOUND & MOTION"))
         stack.addArrangedSubview(makeGroupCard([
@@ -248,12 +249,6 @@ final class ParentInfoViewController: UIViewController {
 
         stack.setCustomSpacing(24, after: stack.arrangedSubviews.last!)
         stack.addArrangedSubview(makeCaption("HELP & PRIVACY"))
-
-        stack.addArrangedSubview(makeDisclosureCard(
-            title: "Keep Lull on screen", detail: "Help with accidental swipes", section: 3,
-            content: [makeBody("For a child who swipes out of Lull, turn on Guided Access in Settings → Accessibility and set its passcode. Open Lull, triple-click the side, top, or Home button, choose Guided Access if asked, then tap Start."),
-                      makeBody("To leave, triple-click the same button, authenticate, and tap End. Keep Touch enabled so the toys still respond.")]
-        ))
 
         let welcome = makeActionButton(title: "See the welcome again", style: .text)
         welcome.addTarget(self, action: #selector(resetOnboarding), for: .touchUpInside)
@@ -319,6 +314,30 @@ final class ParentInfoViewController: UIViewController {
         let palette = [WarmShelfPalette.terracotta, WarmShelfPalette.butter, WarmShelfPalette.sage,
                        WarmShelfPalette.waterBlue, WarmShelfPalette.lavender, WarmShelfPalette.petal]
         return palette[index % palette.count]
+    }
+
+    /// Optional grown-up help; iOS owns the lock and its passcode, not Lull.
+    private func makeGuidedAccessCard() -> UIView {
+        let guide = makeActionButton(title: "Apple’s Guided Access guide", style: .text)
+        guide.accessibilityHint = "Opens Apple’s instructions in your browser"
+        guide.addTarget(self, action: #selector(showGuidedAccessGuide), for: .touchUpInside)
+        let exitClick: String
+        if #available(iOS 26.0, *) { exitClick = "Triple-click" }
+        else { exitClick = "Double-click" }
+        return makeDisclosureCard(
+            title: "Keep Lull on screen", detail: "Prevent accidental exits with Guided Access", section: 3,
+            content: [
+                makeBody("Apple’s Guided Access keeps Lull on screen until a grown-up ends the session."),
+                makeSmallTitle("1. Set up once"),
+                makeBody("Open device Settings → Accessibility → Guided Access. Turn it on and set a passcode."),
+                makeSmallTitle("2. Start before play"),
+                makeBody("Open Lull’s shelf. Triple-click the side, top or Home button, choose Guided Access if asked, then Start. Later sessions may start immediately."),
+                makeSmallTitle("3. Finish with a grown-up"),
+                makeBody("\(exitClick) the same button, use your Guided Access passcode (or Face ID or Touch ID if enabled), then tap End."),
+                makeFootnote("Leave Touch on so the toys respond, and Motion on if you want the screen to rotate. Lull’s play timer still works."),
+                guide
+            ]
+        )
     }
 
     // MARK: - Header
@@ -849,6 +868,19 @@ final class ParentInfoViewController: UIViewController {
         let privacy = LullPrivacyViewController()
         privacy.modalPresentationStyle = .pageSheet
         present(privacy, animated: true)
+    }
+
+    @objc private func showGuidedAccessGuide() {
+        // This external link is only reachable inside the gated grown-up area.
+        guard let url = URL(string: "https://support.apple.com/en-us/111795") else { return }
+        UIApplication.shared.open(url) { [weak self] opened in
+            guard !opened, let self else { return }
+            let alert = UIAlertController(title: "Apple’s Guided Access guide",
+                                          message: "The guide couldn’t open. If Guided Access is running, end the session first, then try again.",
+                                          preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Done", style: .cancel))
+            self.present(alert, animated: true)
+        }
     }
 
     @objc private func toggleSound() {

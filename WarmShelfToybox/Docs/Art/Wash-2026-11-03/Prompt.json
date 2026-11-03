@@ -1,0 +1,9 @@
+{
+  "date": "2026-11-03",
+  "tool": "Built-in imagegen",
+  "transparent_background": false,
+  "referenced_image_paths": [
+    "/Users/User2/Desktop/lull v.2/WarmShelfToybox/App/Resources/Assets.xcassets/wash-bay.imageset/wash-bay.png"
+  ],
+  "prompt": "Use case: precise-object-edit. Asset type: portrait background for Lull's Little Wash children's game. Recompose this SAME handcrafted felt-and-wood car wash bay into a tall portrait 1:2 image, 1024 wide by 2048 high. Keep the exact sage wool wall, warm honey wood boards, soft cream/mustard/terracotta/sage side brushes, wooden overhead shower beam with felt blue showerheads, soft lighting and handmade toy material. Critical gameplay framing: the wall-to-floor baseboard MUST be at 47 percent of the image height measured from top, just ABOVE the vertical midpoint. The wooden floor fills the entire LOWER 53 percent, in convincing perspective with parallel boards receding naturally to the baseboard. The middle is wide and open; a separate game vehicle will occupy x=8–92 percent and y=40–67 percent (do NOT draw a vehicle). Keep brushes slim against the extreme left and right margins, standing on the floor near the back wall, with their wooden feet beside the baseboard. Shower beam across top with THREE small showerheads, enough uncluttered wall below. Include one modest oval brass drain with a small pale blue felt puddle centered at x=20 percent, y=76 percent, fully inside the image, unobstructed, not cropped. Keep bottom 15 percent simply clear wooden floor for a tool tray that code will add later. No tools, no vehicle, no people, no writing, no interface or frame, no extra decorations. Opaque background. IMPORTANT: do not preserve the source's tall wall proportion; this portrait composition must show much more usable floor and the entire drain, with floor starting at 47 percent height."
+}

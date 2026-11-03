@@ -144,16 +144,11 @@ func strokesToClean(_ tool: WashTool) -> Int {
 }
 let spongeCount = strokesToClean(.sponge)
 let hoseCount = strokesToClean(.hose)
-let towelCount = strokesToClean(.towel)
 check(hoseCount < spongeCount, "hose faster than sponge")
-check(towelCount > spongeCount, "towel cleans more slowly")
+check(WashTool.allCases == [.sponge, .hose], "only the useful sponge and hose occupy the tray")
 
-// All tool orders work: no hidden rinse-before-dry prerequisite.
-let orders: [[WashTool]] = [
-    [.sponge, .hose, .towel], [.sponge, .towel, .hose],
-    [.hose, .sponge, .towel], [.hose, .towel, .sponge],
-    [.towel, .sponge, .hose], [.towel, .hose, .sponge]
-]
+// The simpler tray does not introduce a hidden mandatory tool order.
+let orders: [[WashTool]] = [[.sponge, .hose], [.hose, .sponge]]
 for order in orders {
     var model = WashModel(patches: one)
     for tool in order {
@@ -179,9 +174,10 @@ check(!WashModel(patches: []).isComplete, "empty model cannot finish")
 var rinse = WashModel(patches: [WashMudPatch(center: middle, radius: 0.05, dirt: 0, foam: 1, wetness: 1)])
 rinse.applyStroke(at: middle, radius: 0.1, strength: 0.3, tool: .hose)
 check(rinse.foamFraction < 0.2, "hose rinses foam immediately")
-rinse.applyStroke(at: middle, radius: 0.1, strength: 0.3, tool: .towel)
-check(rinse.foamFraction == 0, "towel buffs foam")
-check(rinse.patches[0].wetness < 0.3, "towel removes water")
+rinse.applyStroke(at: middle, radius: 0.1, strength: 0.3, tool: .hose)
+check(rinse.foamFraction == 0, "rinse clears the remaining foam without a towel")
+rinse.settleFinish(by: 0.6)
+check(rinse.patches[0].wetness == 0, "the finish settles water without a third tool")
 
 var horizontal = WashModel(patches: one)
 horizontal.applyStroke(at: WashPoint(x: 0.58, y: 0.5), radius: 0.1)
@@ -348,6 +344,39 @@ for screen in [CGSize(width: 375, height: 667), CGSize(width: 390, height: 844),
     check(abs(natural.height - fill) < 0.5, "at its resting line the bay isn't zoomed at all")
 }
 check(WashBayFit.floorContactFy > 0.645 && WashBayFit.floorContactFy < 0.95, "contact sits on the painted floor, below the 0.61 wall seam")
+
+// Real scene geometry: tools stay reachable, the road-body/rotor extents stay visible,
+// and turning a phone never stretches a vehicle to fill the room.
+let portraitArt = CGSize(width: 887, height: 1774)
+for screen in [CGSize(width: 375, height: 667), CGSize(width: 402, height: 874), CGSize(width: 440, height: 956),
+               CGSize(width: 667, height: 375), CGSize(width: 874, height: 402), CGSize(width: 956, height: 440),
+               CGSize(width: 820, height: 1180), CGSize(width: 1180, height: 820), CGSize(width: 1032, height: 1376)] {
+    let play = CGRect(x: 28, y: 34, width: screen.width - 56, height: screen.height - 124)
+    let layout = WashLayout(screen: screen, play: play)
+    check(abs(layout.canvas.width / layout.canvas.height - 1.6) < 0.0001, "vehicle canvas keeps its authored aspect")
+    check(layout.toolCenters.count == WashTool.allCases.count, "each live tool has exactly one slot")
+    check(layout.toolSide >= 44, "tool artwork stays at least a fingertip wide")
+    for center in layout.toolCenters {
+        let slot = CGRect(x: center.x - 22, y: center.y - 22, width: 44, height: 44)
+        check(layout.tray.contains(slot), "a complete touch target sits inside the tray")
+    }
+    let home = layout.vehicleHome, canvas = layout.canvas
+    check(home.x - canvas.width * 0.4 > play.minX && home.x + canvas.width * 0.4 < play.maxX, "road art stays within the safe play width")
+    let rotor = WashVehicleRig.forVehicle(.helicopter)
+    let rotorRight = home.x + canvas.width * CGFloat(rotor.rotorCenter!.x - 0.5 + rotor.rotorWidth / 2)
+    check(rotorRight <= screen.width, "helicopter rotor stays visible in portrait too")
+    check(home.y + canvas.height / 2 <= play.maxY + 0.5, "top of vehicle clears shared navigation")
+    if screen.height > screen.width {
+        let ground = home.y - canvas.height * (WashBayFit.wheelGroundFy - 0.5)
+        check(ground >= layout.tray.maxY + 19.5, "wheels and skids clear the two-tool tray")
+        check(ground >= screen.height * 0.30, "portrait vehicle is not pushed to the bottom by the old wall")
+        let frame = WashBayFit.frame(screen: screen, art: portraitArt, ground: ground, contactFy: WashBayFit.portraitContactFy)
+        check(frame.minX <= 0.5 && frame.maxX >= screen.width - 0.5 && frame.minY <= 0.5 && frame.maxY >= screen.height - 0.5, "portrait bay covers the screen")
+        check(abs(frame.maxY - frame.height * WashBayFit.portraitContactFy - ground) < 0.5, "portrait wheels meet their own painted contact line")
+        let drain = CGPoint(x: frame.minX + frame.width * 0.19, y: frame.maxY - frame.height * 0.75)
+        check(drain.x > 0 && drain.x < screen.width && drain.y > layout.tray.maxY, "portrait drain remains visible above the tools")
+    }
+}
 
 print("Little Wash: \(checks) production-model checks passed; sponge-only completion in \(passes) full-vehicle passes. Device play and listening review remain with the founder.")
 '''

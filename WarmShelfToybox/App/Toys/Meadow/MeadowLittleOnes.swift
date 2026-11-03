@@ -3,8 +3,9 @@ import SpriteKit
 // Find the little ones (founder, October 11). Five baby ladybugs hide around the meadow,
 // peeking from under leaves. When she walks near one, it pops out and joins a little parade
 // that follows in her steps, hopping between her flowers (never squashing or re-blooming
-// them). She leads them home to a leaf house in the home garden; each one hops in and the
-// house glows warmer. No counter, no timer, no way to fail. New hiding places each visit.
+// them). A leaf house is visible in the home garden from the start; she leads them home,
+// each one hops in, and the house glows warmer. No counter, no timer, no way to fail.
+// New hiding places each visit.
 
 // MARK: - The model (no SpriteKit, so it can be checked off-device)
 
@@ -60,8 +61,8 @@ struct MeadowLittleOnesModel {
 
     var homeCount: Int { places.filter { $0 == .home }.count }
     var allHome: Bool { homeCount == Self.count }
-    /// The house appears once the first little one has been found.
-    var houseVisible: Bool { places.contains { $0 != .hidden } }
+    /// Home is a quiet landmark from the start, even before anyone has been found.
+    var houseVisible: Bool { true }
     var snapshot: Snapshot { Snapshot(spots: spots, places: places, parade: parade, house: house, trail: trail, paradeSpacing: paradeSpacing) }
 
     init(worldSize: CGSize, homeRadius: CGFloat, avoid: [CGPoint], seed: UInt64, paradeSpacing: CGFloat = Self.paradeGap) {
@@ -408,7 +409,6 @@ final class MeadowLittleOnesNode: SKNode {
         let (found, arrived) = model.motherMoved(to: mother)
         for i in found { join(i, delay: 0) }
         events.found = found.count
-        if !found.isEmpty, house.isHidden { showHouse() }
 
         // The parade follows her path, easing into place and hopping over the flowers.
         for (k, i) in model.parade.enumerated() where babies[i].action(forKey: "join") == nil {
@@ -459,14 +459,6 @@ final class MeadowLittleOnesNode: SKNode {
         let body = babyBodies[i]
         body.run(.sequence([.scale(to: 1.35, duration: 0.14), .scale(to: 0.95, duration: 0.12), .scale(to: 1, duration: 0.1)]))
         baby.run(.wait(forDuration: 0.36 + delay), withKey: "join")
-    }
-
-    private func showHouse() {
-        house.isHidden = false
-        guard !AmbientAnimator.reduceMotion else { return }
-        house.setScale(0.3)
-        house.alpha = 0
-        house.run(.group([.fadeIn(withDuration: 0.6), .sequence([.scale(to: 1.06, duration: 0.5), .scale(to: 1, duration: 0.3)])]))
     }
 
     private func goHome(_ i: Int, delay: TimeInterval) {

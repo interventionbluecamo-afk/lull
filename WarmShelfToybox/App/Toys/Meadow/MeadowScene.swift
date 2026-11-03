@@ -27,13 +27,8 @@ final class MeadowScene: BaseToyScene {
     private let snailLayer = SKNode()
     private let goldenVeil = SKSpriteNode()
     private var worldSize = CGSize.zero
-    // Spring is ONE moss surface laid over the whole world and revealed only where the
-    // ladybug has been: soft stamps form the reveal mask, and a feathered moss-coloured
-    // edge sits under it. One texture scale everywhere (each old disc re-stretched the
-    // moss into its own circle and wore a translucent ring, so the garden read as
-    // overlapping stickers) and a bounded node count.
-    private let springReveal = SKCropNode()
-    private let springMask = SKNode()
+    // Spring softly tints the existing felt instead of cutting out a second texture.
+    // Low-opacity colour leaves the felt fibres visible beneath the soft brush marks.
     private let springFringe = SKNode()
     /// Honest coverage: coarse world cells the spring has actually reached. Also the
     /// de-dupe that stops a child circling one spot from piling up thousands of nodes.
@@ -43,7 +38,8 @@ final class MeadowScene: BaseToyScene {
     /// summed every overlapping stamp, so it fired after ~45s of leading; true coverage
     /// of 0.10 keeps that pacing.
     private let bloomCoverage: CGFloat = 0.10
-    private var springEdgeColor: UIColor { isNight ? UIColor(hex: 0x3B5671) : UIColor(hex: 0x909947) }
+    private var springEdgeColor: UIColor { isNight ? UIColor(hex: 0x92C2C8) : UIColor(hex: 0xB8D2A4) }
+    private var springTintAlpha: CGFloat { isNight ? 0.20 : 0.32 }
 
     // MARK: - Snail
     private var snail: SKNode?
@@ -91,11 +87,10 @@ final class MeadowScene: BaseToyScene {
     private var littleOnes: MeadowLittleOnesNode?
     /// One seed per visit, so a rotation rebuild hides them in the same places.
     private let littleOnesSeed = UInt64.random(in: 1...UInt64.max)
-    private let springColor = UIColor(hex: 0x8FBE74)
-    // Dormant != dead: late-winter sage-straw, already secretly green, so painted spring
-    // reads as awakening rather than a hard cliff (founder daytime-contrast note).
-    private let winterColor = UIColor(hex: 0xB4B889)
-    private let winterNightColor = UIColor(hex: 0x263952)
+    // One quiet felt material changes colour as it wakes; the creatures and flowers
+    // carry the detail. At night it becomes blue-green rather than grey.
+    private let winterColor = UIColor(hex: 0xBFC7B2)
+    private let winterNightColor = UIColor(hex: 0x263D54)
 
     /// The meadow keeps the household's hours, like the Window and the Shelf Room.
     private var isNight: Bool {
@@ -276,17 +271,18 @@ final class MeadowScene: BaseToyScene {
     // MARK: - The dormant world
 
     private func buildWinterGround() {
-        // Authored winter ground when it lands (night variant after dark); pale
-        // sleeping felt otherwise — deep blue moonlight when the household sleeps.
+        // Fine, low-contrast wool replaces the busy grass/pebble plate. The same
+        // material under spring keeps painted paths part of the ground, not stickers.
         let night = isNight
         let slot = night ? "meadow-winter-ground-night" : "meadow-winter-ground"
         let base = night ? winterNightColor : winterColor
-        let groundArt = ToyArt.texture(slot) ?? (night ? ToyArt.texture("meadow-winter-ground") : nil)
+        let groundArt = ToyArt.texture("meadow-felt-ground") ?? ToyArt.texture(slot)
+            ?? (night ? ToyArt.texture("meadow-winter-ground") : nil)
         if let tex = groundArt {
             // Tiled at the art's own size (mirrored so every seam meets itself) instead of
             // one plate stretched over the whole world — that was a ~5x upscale that turned
             // the felt into blur next to the crisp creatures.
-            addTiles(of: tex, to: groundLayer, tint: night ? winterNightColor : nil, tintFactor: 0.72)
+            addTiles(of: tex, to: groundLayer, tint: base, tintFactor: night ? 0.82 : 0.28)
         } else {
             let extent = MeadowWorldGeometry.groundSize(worldSize: worldSize)
             let ground = SKShapeNode(rectOf: extent)
@@ -353,55 +349,24 @@ final class MeadowScene: BaseToyScene {
         }
     }
 
-    /// The one spring surface: world-aligned moss (muted toward the felt palette — the raw
-    /// texture is acid lime next to the straw winter and the clay creatures), shown only
-    /// through the stamps in `springMask`, over a feathered edge in `springFringe`.
+    /// Spring is a soft colour wash over one continuous felt surface.
     private func buildSpringSurface() {
         springFringe.removeFromParent()
-        springReveal.removeFromParent()
-        springReveal.removeAllChildren()
-        springMask.removeAllChildren()
         springFringe.removeAllChildren()
-        springReveal.removeAllActions(); springFringe.removeAllActions()
-        springReveal.alpha = 1
+        springFringe.removeAllActions()
         springFringe.alpha = 1
-        springReveal.maskNode = springMask
         springFringe.zPosition = 0
-        springReveal.zPosition = 1
         springLayer.addChild(springFringe)
-        springLayer.addChild(springReveal)
-
-        let night = isNight
-        if let moss = ToyArt.texture("meadow-spring-moss") {
-            addTiles(of: moss, to: springReveal, tint: night ? UIColor(hex: 0x466882) : nil, tintFactor: 1)
-        } else {
-            springReveal.addChild(SKSpriteNode(color: night ? UIColor(hex: 0x3D5D74) : springColor, size: worldSize))
-        }
-        let veil = SKSpriteNode(color: night ? UIColor(hex: 0x20364F) : UIColor(hex: 0xB8B48E), size: worldSize)
-        veil.alpha = night ? 0.25 : 0.30
-        veil.zPosition = 1
-        springReveal.addChild(veil)
     }
 
-    /// A solid disc with an anti-aliased rim: one stamp of the spring reveal mask.
-    private static let stampTexture: SKTexture = {
-        let side: CGFloat = 128
-        let img = UIGraphicsImageRenderer(size: CGSize(width: side, height: side)).image { ctx in
-            UIColor.white.setFill()
-            ctx.cgContext.fillEllipse(in: CGRect(x: 1, y: 1, width: side - 2, height: side - 2))
-        }
-        return SKTexture(image: img)
-    }()
-
-    /// Solid to 70% of its radius, then feathering to nothing: the soft felt edge where
-    /// spring meets winter.
+    /// A gradual fade across the whole brush avoids a visible circular rim.
     private static let featherTexture: SKTexture = {
         let side: CGFloat = 128
         let img = UIGraphicsImageRenderer(size: CGSize(width: side, height: side)).image { ctx in
-            let colors = [UIColor.white.cgColor, UIColor.white.cgColor,
+            let colors = [UIColor.white.cgColor, UIColor.white.withAlphaComponent(0.65).cgColor,
                           UIColor.white.withAlphaComponent(0).cgColor] as CFArray
             guard let grad = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
-                                        colors: colors, locations: [0, 0.7, 1]) else { return }
+                                        colors: colors, locations: [0, 0.45, 1]) else { return }
             let c = CGPoint(x: side / 2, y: side / 2)
             ctx.cgContext.drawRadialGradient(grad, startCenter: c, startRadius: 0,
                                              endCenter: c, endRadius: side / 2, options: [])
@@ -479,6 +444,21 @@ final class MeadowScene: BaseToyScene {
         }
 
         #if DEBUG
+        // A short render check for the two authored reactions; never part of release play.
+        if ProcessInfo.processInfo.environment["LULL_DEBUG_MEADOW_REACTIONS"] == "1" {
+            let unit = min(size.width, size.height)
+            let visitors: [MeadowLandmark] = [MeadowLandmark.Kind.hedgehog, .pond].enumerated().map { index, kind in
+                let visitor = MeadowLandmark(kind: kind, night: night)
+                visitor.position = CGPoint(x: unit * (index == 0 ? -0.23 : 0.23), y: unit * 0.58)
+                visitor.zPosition = 1
+                lifeLayer.addChild(visitor)
+                landmarks.append(visitor)
+                return visitor
+            }
+            run(.sequence([.wait(forDuration: 1), .run { visitors.forEach { $0.wake() } },
+                           .wait(forDuration: 3.5), .run { visitors.forEach { $0.delight() } }]),
+                withKey: "meadowReactionPreview")
+        }
         // LULL_DEBUG_MEADOW_LANDMARK=1 parks a rock + stump beside home and wakes
         // them after 6s — art/state inspection without the long walk.
         if ProcessInfo.processInfo.environment["LULL_DEBUG_MEADOW_LANDMARK"] == "1" {
@@ -1020,8 +1000,7 @@ final class MeadowScene: BaseToyScene {
         trailHalo?.path = MeadowScene.smoothOpenPath(trailPoints)
     }
 
-    /// A soft mossy bloom of spring, laid down where she is led — the brush the aura paints
-    /// with. Each stamp opens the one moss surface a little wider (see `springReveal`).
+    /// A soft sage brush mark, laid directly over the felt where she is led.
     private func paintSpringStamp(at p: CGPoint, animated: Bool = true, record: Bool = true) {
         let r = paintRadius
         let fresh = markCovered(center: p, radius: r)
@@ -1029,26 +1008,22 @@ final class MeadowScene: BaseToyScene {
         // means "you made new spring". (Restores always lay their stamp.)
         if record, fresh == 0 { return }
 
-        let stamp = SKSpriteNode(texture: MeadowScene.stampTexture)
-        stamp.size = CGSize(width: r * 2, height: r * 2)
-        stamp.position = p
-        springMask.addChild(stamp)
         let edge = SKSpriteNode(texture: MeadowScene.featherTexture)
         edge.size = CGSize(width: r * 2.4, height: r * 2.4)
         edge.position = p
         edge.color = springEdgeColor
         edge.colorBlendFactor = 1
-        edge.alpha = 0.5
+        edge.blendMode = .alpha
+        edge.alpha = springTintAlpha
         springFringe.addChild(edge)
         if record { paintedSpringPoints.append(p) }
         springArea = CGFloat(paintedCells.count) * coverCell * coverCell
 
         if animated, !AmbientAnimator.reduceMotion {
-            stamp.setScale(0.45)
-            let grow = SKAction.scale(to: 1, duration: 0.34); grow.timingMode = .easeOut
-            stamp.run(grow)
+            edge.setScale(0.45)
             edge.alpha = 0
-            edge.run(.fadeAlpha(to: 0.5, duration: 0.4))
+            let grow = SKAction.scale(to: 1, duration: 0.34); grow.timingMode = .easeOut
+            edge.run(.group([grow, .fadeAlpha(to: springTintAlpha, duration: 0.4)]))
         }
         // The garden's confetti — a wildflower opens now and then in her wake.
         if animated, Int.random(in: 0..<7) == 0 {
@@ -1112,21 +1087,17 @@ final class MeadowScene: BaseToyScene {
         ]))
     }
 
-    /// Spring base patches, used for the home garden and restored saved shapes: the shape
-    /// opens the moss surface, with the same feathered felt edge as her painted path.
+    /// The home garden and restored patches use the same soft tint as her painted path.
+    /// Their original paths still determine coverage and flower placement.
     private func addSpringPolygon(_ path: CGPath, area: CGFloat, sprinkle: Int, animated: Bool) {
-        let shape = SKShapeNode(path: path)
-        shape.fillColor = .white
-        shape.strokeColor = .clear
-        shape.lineWidth = 0
-        springMask.addChild(shape)
         let box = path.boundingBox
         let edge = SKSpriteNode(texture: MeadowScene.featherTexture)
-        edge.size = CGSize(width: box.width * 1.14, height: box.height * 1.14)
+        edge.size = CGSize(width: box.width * 1.3, height: box.height * 1.3)
         edge.position = CGPoint(x: box.midX, y: box.midY)
         edge.color = springEdgeColor
         edge.colorBlendFactor = 1
-        edge.alpha = 0.5
+        edge.blendMode = .alpha
+        edge.alpha = springTintAlpha
         springFringe.addChild(edge)
         springPaths.append(path)
 
@@ -1157,11 +1128,10 @@ final class MeadowScene: BaseToyScene {
 
         if animated {
             if !AmbientAnimator.reduceMotion {
-                shape.setScale(0.7)
-                let grow = SKAction.scale(to: 1, duration: 0.4); grow.timingMode = .easeOut
-                shape.run(grow)
+                edge.setScale(0.7)
                 edge.alpha = 0
-                edge.run(.fadeAlpha(to: 0.5, duration: 0.5))
+                let grow = SKAction.scale(to: 1, duration: 0.4); grow.timingMode = .easeOut
+                edge.run(.group([grow, .fadeAlpha(to: springTintAlpha, duration: 0.5)]))
             }
             tone("meadow.spring", minInterval: 0.3)
             HapticsManager.shared.impact(style: .soft, intensity: 0.3)
@@ -1381,16 +1351,13 @@ final class MeadowScene: BaseToyScene {
         // Winter tucks the spring surface back in as one, then the slate is wiped clean
         // (coverage too, so ground painted during the fade can be painted again).
         let tuck = SKAction.sequence([.wait(forDuration: 0.4), .fadeOut(withDuration: 2.0)])
-        springFringe.run(tuck)
-        springReveal.run(.sequence([tuck, .run { [weak self] in
+        springFringe.run(.sequence([tuck, .run { [weak self] in
             guard let self else { return }
-            self.springMask.removeAllChildren()
             self.springFringe.removeAllChildren()
             self.paintedCells.removeAll()
             self.paintedSpringPoints.removeAll()
             self.lastPaintPoint = nil
             self.springArea = 0
-            self.springReveal.alpha = 1
             self.springFringe.alpha = 1
         }]))
         springPaths.removeAll()
@@ -1578,15 +1545,23 @@ private final class MeadowLandmark: SKNode {
     let kind: Kind
     private(set) var isAwake = false
 
+    // Reactions belong to the body, so they never overwrite the world's authored scale
+    // or rotation. A single keyed performance also bounds repeated little-finger taps.
+    private let body = SKNode()
     private let sleepFace = SKNode()   // rock: closed lichen lids. stump: bare rings.
     private let wakeFace = SKNode()    // rock: open eyes + moss. stump: the sprout.
     private var artSprite: SKSpriteNode?
+    private var curledSprite: SKSpriteNode?
+    private let rippleLayer = SKNode()
+    private var pondRipples: [SKShapeNode] = []
     private var hasAuthoredFaces = false   // rock with both painted plates: faces live in the art
 
     init(kind: Kind, night: Bool) {
         self.kind = kind
         super.init()
+        addChild(body)
         build(night: night)
+        buildQuietReaction(night: night)
     }
     required init?(coder: NSCoder) { fatalError("MeadowLandmark is code-built") }
 
@@ -1610,7 +1585,7 @@ private final class MeadowLandmark: SKNode {
         // emergency understudies only.
         if let art = ToyArt.sprite(kind.slot, fit: kind.fit) {
             if night { art.color = UIColor(hex: 0x2A2E4A); art.colorBlendFactor = 0.35 }
-            addChild(art)
+            body.addChild(art)
             artSprite = art
             hasAuthoredFaces = ToyArt.texture("\(kind.slot)-awake") != nil
             if hasAuthoredFaces { return }   // faces live in the paint; nothing procedural to add
@@ -1623,7 +1598,7 @@ private final class MeadowLandmark: SKNode {
                 body.fillColor = night ? UIColor(hex: 0x83869A) : UIColor(hex: 0x9AA08B)
                 body.strokeColor = (night ? UIColor(hex: 0x6E7188) : UIColor(hex: 0x84876F)).withAlpha(0.7)
                 body.lineWidth = 2
-                addChild(body)
+                self.body.addChild(body)
                 for (dx, dy, w, h) in [(-24.0, 13.0, 26.0, 13.0), (18.0, -11.0, 20.0, 11.0)] {
                     let fleck = SKShapeNode(ellipseOf: CGSize(width: w, height: h))
                     fleck.fillColor = (night ? UIColor(hex: 0x9295A8) : UIColor(hex: 0xAAB096)).withAlpha(0.8)
@@ -1677,12 +1652,12 @@ private final class MeadowLandmark: SKNode {
                 let bark = SKShapeNode(circleOfRadius: 47)
                 bark.fillColor = night ? UIColor(hex: 0x6B5A50) : UIColor(hex: 0x8A6E50)
                 bark.strokeColor = .clear
-                addChild(bark)
+                body.addChild(bark)
                 let top = SKShapeNode(circleOfRadius: 40)
                 top.fillColor = night ? UIColor(hex: 0x8B7A6C) : UIColor(hex: 0xB59578)
                 top.strokeColor = .clear
                 top.zPosition = 0.1
-                addChild(top)
+                body.addChild(top)
                 for r in [27.0, 16.0, 7.0] {
                     let ring = SKShapeNode(circleOfRadius: r)
                     ring.fillColor = .clear
@@ -1716,7 +1691,7 @@ private final class MeadowLandmark: SKNode {
                 blob.fillColor = night ? kind.fallbackTint.withAlpha(0.7) : kind.fallbackTint
                 blob.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.2)
                 blob.lineWidth = 1.5
-                addChild(blob)
+                body.addChild(blob)
             }
             let ink2 = WarmShelfPalette.cocoa.withAlpha(night ? 0.45 : 0.4)
             for sx in [-1.0, 1.0] {
@@ -1762,12 +1737,46 @@ private final class MeadowLandmark: SKNode {
         wakeFace.zPosition = 2
         wakeFace.alpha = 0
         wakeFace.setScale(kind == .stump ? 0.05 : 0.9)
-        addChild(sleepFace)
-        addChild(wakeFace)
+        body.addChild(sleepFace)
+        body.addChild(wakeFace)
+    }
+
+    private func buildQuietReaction(night: Bool) {
+        if kind == .hedgehog, let art = artSprite,
+           let texture = ToyArt.texture("meadow-hedgehog-curled") {
+            let curled = SKSpriteNode(texture: texture)
+            // Matching plates share the normal art's fit, including ToyArt's scale.
+            curled.size = art.size
+            curled.xScale = art.xScale
+            curled.yScale = art.yScale
+            curled.position = art.position
+            curled.color = art.color
+            curled.colorBlendFactor = art.colorBlendFactor
+            curled.zPosition = art.zPosition + 0.1
+            curled.alpha = 0
+            body.addChild(curled)
+            curledSprite = curled
+        }
+        guard kind == .pond else { return }
+        rippleLayer.zPosition = 3
+        body.addChild(rippleLayer)
+        // The painted pond's clear water above its eyes; these never reach the stones,
+        // flower or face, even at the end of the spread.
+        for _ in 0..<2 {
+            let ripple = SKShapeNode(ellipseOf: CGSize(width: 22, height: 12))
+            ripple.position = CGPoint(x: 0, y: 22)
+            ripple.strokeColor = UIColor(hex: night ? 0xB8D4DB : 0xE4F0DF)
+            ripple.fillColor = .clear
+            ripple.lineWidth = 0.8
+            ripple.alpha = 0
+            rippleLayer.addChild(ripple)
+            pondRipples.append(ripple)
+        }
     }
 
     func wake(instantly: Bool = false) {
         guard !isAwake else { return }
+        settleReaction()
         isAwake = true
         // Authored sleeper: the waking is painted — crossfade to the open-eyed plate.
         if hasAuthoredFaces, let art = artSprite, let awakeTex = ToyArt.texture("\(kind.slot)-awake") {
@@ -1787,6 +1796,13 @@ private final class MeadowLandmark: SKNode {
             wakeFace.setScale(1)
             return
         }
+        if kind == .hedgehog || kind == .pond {
+            sleepFace.alpha = 0
+            wakeFace.alpha = 1
+            wakeFace.setScale(1)
+            quietReaction(firstWake: true)
+            return
+        }
         sleepFace.run(.fadeOut(withDuration: 0.5))
         if AmbientAnimator.reduceMotion {
             wakeFace.setScale(1)
@@ -1797,14 +1813,15 @@ private final class MeadowLandmark: SKNode {
         grow.timingMode = .easeOut
         wakeFace.run(.group([.fadeIn(withDuration: 0.5), grow]))
         // One slow breath — alive now.
-        run(.sequence([
+        body.run(.sequence([
             .scale(to: 1.04, duration: 0.55),
             .scale(to: 1.0, duration: 0.7)
-        ]))
+        ]), withKey: "wakeBreath")
     }
 
     func sleep() {
         guard isAwake else { return }
+        settleReaction()
         isAwake = false
         if let overlay = artSprite?.childNode(withName: "awakeOverlay") {
             overlay.run(.sequence([.fadeOut(withDuration: 1.6), .removeFromParent()]))
@@ -1814,32 +1831,118 @@ private final class MeadowLandmark: SKNode {
         sleepFace.run(.sequence([.wait(forDuration: 0.8), .fadeIn(withDuration: 1.2)]))
     }
 
-    /// An awake landmark, poked: one happy squash-and-stretch. Recognition both ways.
+    /// The two small encounters answer in their own way. Tapping again during an answer
+    /// lets it finish; it cannot build up animations or stretch the landmark out of shape.
     func delight() {
         guard isAwake else { return }
-        removeAction(forKey: "delight")
-        if AmbientAnimator.reduceMotion {
-            run(.sequence([.scale(to: 1.03, duration: 0.2), .scale(to: 1.0, duration: 0.3)]), withKey: "delight")
+        if kind == .hedgehog || kind == .pond {
+            quietReaction()
             return
         }
-        run(.sequence([
+        body.removeAction(forKey: "wakeBreath")
+        body.removeAction(forKey: "delight")
+        body.setScale(1)
+        if AmbientAnimator.reduceMotion {
+            body.run(.sequence([.fadeAlpha(to: 0.9, duration: 0.2), .fadeAlpha(to: 1, duration: 0.3)]), withKey: "delight")
+            return
+        }
+        body.run(.sequence([
             .group([.scaleX(to: 1.06, duration: 0.1), .scaleY(to: 0.95, duration: 0.1)]),
             .group([.scaleX(to: 0.97, duration: 0.12), .scaleY(to: 1.05, duration: 0.12)]),
             .group([.scaleX(to: 1.0, duration: 0.22), .scaleY(to: 1.0, duration: 0.22)])
         ]), withKey: "delight")
-        wakeFace.run(.sequence([.scale(to: 1.12, duration: 0.12), .scale(to: 1.0, duration: 0.26)]))
+        wakeFace.run(.sequence([.scale(to: 1.12, duration: 0.12), .scale(to: 1.0, duration: 0.26)]), withKey: "delight")
+    }
+
+    private func quietReaction(firstWake: Bool = false) {
+        guard body.action(forKey: "recognition") == nil else { return }
+        if AmbientAnimator.reduceMotion {
+            if kind == .pond {
+                // The water answers in place: no expanding ring or bobbing pond.
+                pondRipples.first?.run(.sequence([
+                    .fadeAlpha(to: 0.28, duration: 0.35), .fadeOut(withDuration: 0.7)
+                ]))
+                body.run(.wait(forDuration: 1.05), withKey: "recognition")
+            } else {
+                body.run(.sequence([
+                    .fadeAlpha(to: 0.92, duration: 0.3), .fadeAlpha(to: 1, duration: 0.5)
+                ]), withKey: "recognition")
+            }
+            return
+        }
+        if kind == .hedgehog {
+            // A real tucked plate replaces the face, then slowly opens to a curious peek.
+            // Both plates stay under one transform; the soft contact shadow stays put.
+            let pose: (CGFloat) -> Void = { [weak self] tucked in
+                guard let self else { return }
+                self.body.xScale = 1 - tucked * 0.025
+                self.body.yScale = 1 - tucked * 0.055
+                self.wakeFace.alpha = 1 - tucked
+                if let curled = self.curledSprite {
+                    curled.alpha = tucked
+                    self.artSprite?.alpha = 1 - tucked
+                }
+            }
+            let tuck = SKAction.customAction(withDuration: 0.4) { _, elapsed in
+                let t = min(1, elapsed / 0.4)
+                pose(t * t * (3 - 2 * t))
+            }
+            let peek = SKAction.customAction(withDuration: 0.75) { _, elapsed in
+                let t = min(1, elapsed / 0.75)
+                pose(1 - t * t * (3 - 2 * t))
+            }
+            body.run(.sequence([
+                firstWake ? .run { pose(1) } : tuck,
+                .wait(forDuration: 0.35), peek, .run { pose(0) }
+            ]), withKey: "recognition")
+        } else if kind == .pond {
+            for (index, ripple) in pondRipples.enumerated() {
+                ripple.alpha = 0
+                ripple.setScale(0.65)
+                let spread = SKAction.customAction(withDuration: 1.35) { node, elapsed in
+                    let t = min(1, elapsed / 1.35)
+                    node.setScale(0.65 + t * 0.9)
+                    node.alpha = sin(t * .pi) * 0.34
+                }
+                ripple.run(.sequence([
+                    .wait(forDuration: Double(index) * 0.32), spread,
+                    .run { [weak ripple] in ripple?.alpha = 0; ripple?.setScale(1) }
+                ]))
+            }
+            body.run(.wait(forDuration: 1.7), withKey: "recognition")
+        }
+    }
+
+    /// Frost and rebuilds must not leave half-hidden eyes, a curled plate, or old ripples.
+    private func settleReaction() {
+        body.removeAllActions()
+        body.setScale(1)
+        body.zRotation = 0
+        body.alpha = 1
+        artSprite?.alpha = 1
+        curledSprite?.alpha = 0
+        wakeFace.removeAllActions()
+        sleepFace.removeAllActions()
+        wakeFace.alpha = isAwake ? 1 : 0
+        wakeFace.setScale(isAwake ? 1 : (kind == .stump ? 0.05 : 0.9))
+        sleepFace.alpha = isAwake ? 0 : 1
+        for ripple in pondRipples {
+            ripple.removeAllActions()
+            ripple.alpha = 0
+            ripple.setScale(1)
+        }
     }
 
     /// A sleeping landmark, poked: it stirs in its sleep and settles deeper.
     func stir() {
         guard !isAwake else { return }
-        removeAction(forKey: "delight")
+        body.removeAction(forKey: "delight")
         guard !AmbientAnimator.reduceMotion else { return }
-        let home = zRotation
-        run(.sequence([
+        body.zRotation = 0
+        body.run(.sequence([
             .rotate(byAngle: 0.03, duration: 0.12),
             .rotate(byAngle: -0.05, duration: 0.16),
-            .rotate(toAngle: home, duration: 0.22)
+            .rotate(toAngle: 0, duration: 0.22)
         ]), withKey: "delight")
     }
 }

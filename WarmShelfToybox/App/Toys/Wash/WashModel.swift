@@ -8,13 +8,12 @@ struct WashPoint: Equatable {
 }
 
 enum WashTool: String, CaseIterable {
-    case sponge, hose, towel
+    case sponge, hose
 
     var mudMultiplier: Double {
         switch self {
         case .sponge: return 1
         case .hose: return 1.6
-        case .towel: return 0.4
         }
     }
 }
@@ -159,9 +158,6 @@ struct WashModel {
             case .hose:
                 patches[index].foam = max(0, beforeFoam - amount * 2.8)
                 patches[index].wetness = Self.unit(patches[index].wetness + amount * 0.65)
-            case .towel:
-                patches[index].foam = max(0, beforeFoam - amount * 1.8)
-                patches[index].wetness = max(0, patches[index].wetness - amount * 2.5)
             }
             added += max(0, patches[index].foam - beforeFoam)
         }
@@ -362,25 +358,72 @@ struct WashVehicleRig {
     }
 }
 
+/// A wide vehicle stays wide in either orientation. Portrait moves the wash into the middle
+/// of the floor instead of letting the landscape background push it down beside the tools.
+struct WashLayout {
+    let tray: CGRect
+    let canvas: CGSize
+    let vehicleHome: CGPoint
+    let toolCenters: [CGPoint]
+    let toolSide: CGFloat
+
+    init(screen: CGSize, play: CGRect) {
+        let landscape = screen.width > screen.height
+        let trayHeight = min(112, max(74, play.height * 0.18))
+        let trayWidth = landscape ? min(104, play.width * 0.18) : min(play.width * 0.76, 360)
+        let traySize = landscape
+            ? CGSize(width: trayWidth, height: min(play.height * 0.83, 236))
+            : CGSize(width: trayWidth, height: trayHeight)
+        let trayCenter = landscape
+            ? CGPoint(x: play.maxX - trayWidth / 2, y: play.midY)
+            : CGPoint(x: play.midX, y: play.minY + trayHeight / 2 + 5)
+        tray = CGRect(x: trayCenter.x - traySize.width / 2, y: trayCenter.y - traySize.height / 2,
+                      width: traySize.width, height: traySize.height)
+        let availableHeight = landscape ? play.height * 0.96 : max(90, play.maxY - tray.maxY - 20)
+        let availableWidth = landscape ? max(100, play.width - trayWidth - 25) : play.width
+        // The authored road bodies use the middle 80% of their transparent canvas. Even
+        // the helicopter's wider rotor remains onscreen with this small portrait increase.
+        let width = min(availableWidth * (landscape ? 0.96 : 1.10), availableHeight * 1.6,
+                        landscape ? 830 : 900)
+        canvas = CGSize(width: width, height: width / 1.6)
+        if landscape {
+            vehicleHome = CGPoint(x: play.minX + availableWidth / 2, y: play.midY)
+        } else {
+            let lowest = tray.maxY + 20
+            let highest = max(lowest, play.maxY - canvas.height * WashBayFit.wheelGroundFy)
+            let ground = min(highest, max(lowest, screen.height * 0.34))
+            vehicleHome = CGPoint(x: play.midX, y: ground + canvas.height * (WashBayFit.wheelGroundFy - 0.5))
+        }
+        toolSide = min(traySize.width, trayHeight) * 0.76
+        toolCenters = [CGFloat(-0.24), CGFloat(0.24)].map { offset in
+            landscape ? CGPoint(x: trayCenter.x, y: trayCenter.y - offset * traySize.height)
+                : CGPoint(x: trayCenter.x + offset * traySize.width, y: trayCenter.y)
+        }
+    }
+}
+
 /// Where the painted bay stands so a vehicle's wheels rest on its floor (founder, October 11:
 /// vehicles floated above the ground, a lot in portrait and a little in landscape). Measured on
 /// wash-bay.png: the wall meets the floor at 0.61 of the picture's height, and a vehicle standing
 /// mid-bay touches the floor at 0.79. Scene coordinates, y up.
 enum WashBayFit {
     static let floorContactFy: CGFloat = 0.79
+    /// The portrait composition gives the lower half to the floor, with its drain inside
+    /// the phone crop. Both fractions are measured down from the source picture's top.
+    static let portraitContactFy: CGFloat = 0.66
     /// Every measured rig's wheels touch the ground at 0.88 of the vehicle canvas (verify_wash).
     static let wheelGroundFy: CGFloat = 0.88
 
     /// The floor contact line when the bay simply fills the screen, centred.
-    static func restingGround(screen: CGSize, art: CGSize) -> CGFloat {
-        screen.height / 2 + fillHeight(screen: screen, art: art) * (0.5 - floorContactFy)
+    static func restingGround(screen: CGSize, art: CGSize, contactFy: CGFloat = floorContactFy) -> CGFloat {
+        screen.height / 2 + fillHeight(screen: screen, art: art) * (0.5 - contactFy)
     }
 
     /// The bay's frame that still covers the whole screen and puts its floor contact line at
     /// `ground`, zooming in only as much as that needs.
-    static func frame(screen: CGSize, art: CGSize, ground: CGFloat) -> CGRect {
+    static func frame(screen: CGSize, art: CGSize, ground: CGFloat, contactFy: CGFloat = floorContactFy) -> CGRect {
         let aspect = art.width / max(1, art.height)
-        let c = floorContactFy
+        let c = min(0.99, max(0.01, contactFy))
         let g = min(max(ground, 0), screen.height)
         let height = max(fillHeight(screen: screen, art: art), g / (1 - c), (screen.height - g) / c)
         let width = height * aspect

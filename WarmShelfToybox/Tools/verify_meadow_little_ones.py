@@ -87,12 +87,16 @@ for canvas in [CGSize(width: 390, height: 844), CGSize(width: 820, height: 1180)
 
 // Finding, following, going home.
 var m = MeadowLittleOnesModel(worldSize: CGSize(width: 2200, height: 2200), homeRadius: 117, avoid: [], seed: 42)
-check(!m.houseVisible && m.homeCount == 0, "the house waits until the first little one is found")
+check(m.houseVisible && m.homeCount == 0 && m.places.allSatisfy { $0 == .hidden },
+      "home is visible before any little ones are found")
+let unopenedVisit = MeadowLittleOnesModel(restoring: m.snapshot)
+check(unopenedVisit.houseVisible && unopenedVisit.snapshot == m.snapshot,
+      "rotation keeps home visible while all five are still hiding")
 let first = m.spots[0]
 _ = m.motherMoved(to: CGPoint(x: first.x + 200, y: first.y))
 check(m.parade.isEmpty, "passing far away finds no one")
 let r1 = m.motherMoved(to: CGPoint(x: first.x + MeadowLittleOnesModel.findRadius - 4, y: first.y))
-check(r1.found == [0] && m.parade == [0] && m.houseVisible, "walking near one: it joins, and the house appears")
+check(r1.found == [0] && m.parade == [0] && m.houseVisible, "walking near one: it joins, and home remains visible")
 
 // Walk a straight line: follower k sits (k+1) gaps behind her along her path.
 var line = MeadowLittleOnesModel(worldSize: CGSize(width: 2200, height: 2200), homeRadius: 117, avoid: [], seed: 3)
@@ -155,7 +159,7 @@ _ = home.motherMoved(to: home.house)
 check(home.allHome && home.homeCount == 5, "all five home")
 let snap = home.snapshot
 let restored = MeadowLittleOnesModel(restoring: snap)
-check(restored.snapshot == snap && restored.allHome, "a rotation restores everyone where they were")
+check(restored.snapshot == snap && restored.allHome && restored.houseVisible, "a rotation restores everyone where they were, with home visible")
 check(dist(MeadowLittleOnesModel.housePosition(homeRadius: 117), .zero) < 117 && dist(MeadowLittleOnesModel.housePosition(homeRadius: 117), .zero) > 40,
       "the house stands in the home garden, beside her starting place")
 

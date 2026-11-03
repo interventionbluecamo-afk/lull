@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-03",
+  "tool": "Built-in imagegen",
+  "assets": [
+    {
+      "key": "meadowGround",
+      "args": {
+        "transparent_background": false,
+        "prompt": "Use case: stylized-concept. Asset type: seamless square terrain material for Lull, a quiet handcrafted felt children's game viewed straight overhead. Create a single perfectly flat seamless tile of soft, finely needle-felted wool in a light muted celadon/sage green, roughly #BCC7AD. Subtle natural fine wool fibers, softly compressed felt, very gentle organic mottling with tiny differences of lightness; low contrast, calm, premium tactile quality. Entire square filled with exactly the same material, evenly lit edge to edge, no directional shadows, no vignette, no center focus, no horizon or perspective. The app places separately illustrated felt ladybugs, flowers and a leaf house on this surface. This material must remain visually quiet underneath those characters, with NO grass blades, leaves, pebbles, flowers, decorations, objects, shapes, seams, borders, writing, or obvious blobs. It must tile invisibly on all four edges, no repeating distinctive landmarks. Make it look like a beautiful soft felt play mat, not photoreal turf, gravel, shag carpet, noisy speckling, or a blurred photograph. Output a square 1024 by 1024 texture. Opaque background."
+      }
+    },
+    {
+      "key": "meadowCurl",
+      "args": {
+        "transparent_background": true,
+        "referenced_image_paths": [
+          "/Users/User2/Desktop/lull v.2/WarmShelfToybox/App/Resources/Assets.xcassets/meadow-hedgehog.imageset/meadow-hedgehog.png"
+        ],
+        "prompt": "Use case: precise-object-edit. Asset type: alternate animation pose for an existing Lull game hedgehog sprite. Edit this exact top-down felt hedgehog into a gently curled-up pose. Preserve the original copper/chestnut needle-felt quills, handmade material, soft upper-left lighting, overall body silhouette, size within the square canvas, centered placement and overhead camera. Change only the lower/front area: the cream face, ears and little nose are now tucked fully underneath the same round hedgehog body, replaced by matching overlapping soft felt quills continuing naturally down to the bottom edge. The result is a shy sleeping hedgehog curled into a softly rounded bundle of quills, with NO visible face or eyes or limbs, ready to crossfade back into the supplied pose. Keep the whole body at the same scale and ground position as the reference, filling about 95 percent of the square. No new shadow outside silhouette, no other objects, no background, no floor, no text. True transparent alpha background. Square image."
+      }
+    }
+  ]
+}

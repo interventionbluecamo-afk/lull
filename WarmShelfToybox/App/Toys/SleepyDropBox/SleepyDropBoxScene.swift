@@ -121,7 +121,7 @@ final class SleepyDropBoxScene: BaseToyScene {
         }
         for saved in savedOutside {
             guard let piece = treasures.first(where: { $0.kind == saved.kind }) else { continue }
-            let inset = pieceRadius * 1.25
+            let inset = pieceRadius * 1.35
             piece.position = CGPoint(
                 x: (saved.position.x * size.width).clamped(to: inset...(size.width - inset)),
                 y: (saved.position.y * size.height).clamped(to: inset...(size.height - inset))
@@ -219,9 +219,9 @@ final class SleepyDropBoxScene: BaseToyScene {
         // rather than the requested bounding box to size every physical part.
         boxW = shell.size.width
         boxH = shell.size.height
-        // Holes sized so two rows fit on the front face, below the lid (founder, October 11:
-        // the top holes ran up onto the lid and looked pasted on).
-        pieceRadius = min(pieceRadius, boxW * 0.105, boxH * SleepyBoxShellLayout.maxPieceRadius)
+        // The shell keeps its authored camera angle and aspect ratio. A larger shared
+        // radius uses more of its front face; holes and loose pieces grow together.
+        pieceRadius = SleepyBoxShellLayout.pieceRadius(boxSize: shell.size, canvasWidth: size.width)
         faceScale = 0.78
         panelCenter = CGPoint(x: boxCenter.x, y: boxCenter.y + boxH * (0.5 - SleepyBoxShellLayout.holeBandCenter))
         buildOpenings()
@@ -230,7 +230,7 @@ final class SleepyDropBoxScene: BaseToyScene {
         faceAnchor.position = CGPoint(x: boxCenter.x, y: boxCenter.y + boxH * (0.5 - SleepyBoxShellLayout.faceFy))
         faceAnchor.zPosition = 0.5
         frontLayer.addChild(faceAnchor)
-        buildFace(on: faceAnchor, faceH: boxH * 0.20)
+        buildFace(on: faceAnchor, faceH: boxH * SleepyBoxShellLayout.faceHeightFraction)
         buildDrawer()
     }
 
@@ -908,7 +908,7 @@ final class SleepyDropBoxScene: BaseToyScene {
             if touch == drawerTouch {
                 drawerTargetY = (drawerDragStartY + p.y - drawerTouchStartY).clamped(to: drawerOpenY...drawerClosedY)
             } else if touch == dragTouch {
-                let inset = pieceRadius * 1.25
+                let inset = pieceRadius * 1.35
                 dragTarget = CGPoint(
                     x: (p.x + dragOffset.x).clamped(to: inset...size.width - inset),
                     y: (p.y + dragOffset.y + 6).clamped(to: inset...size.height - inset)
@@ -1495,23 +1495,30 @@ enum SleepyBoxShellLayout {
     static let frontFaceTop: CGFloat = 0.095
     static let drawerRecessTop: CGFloat = 0.75
     /// The band the two socket rows share, and the face's own band below it.
-    static let holeBandTop: CGFloat = 0.125
-    static let holeBandBottom: CGFloat = 0.565
+    static let holeBandTop: CGFloat = 0.11
+    static let holeBandBottom: CGFloat = 0.667
     static var holeBandCenter: CGFloat { (holeBandTop + holeBandBottom) / 2 }
-    static let faceFy: CGFloat = 0.655
+    static let faceFy: CGFloat = 0.716
+    static let faceHeightFraction: CGFloat = 0.12
     static let columnFx: [CGFloat] = [0.30, 0.70]
-    /// Row centres, a quarter and three quarters of the way down the hole band.
-    static var rowFy: [CGFloat] {
-        let pitch = (holeBandBottom - holeBandTop) / 2
-        return [holeBandTop + pitch / 2, holeBandTop + pitch * 1.5]
-    }
+    /// Measured front-plane positions leave wood below the lid and between both rows,
+    /// including the star's wide bevel and its downward cast shadow.
+    static let rowFy: [CGFloat] = [0.244, 0.529]
     /// Round, triangle, square, star: the same order as the scene's socket specs.
     static var holeCenters: [(fx: CGFloat, fy: CGFloat)] {
         [(columnFx[0], rowFy[0]), (columnFx[1], rowFy[0]), (columnFx[0], rowFy[1]), (columnFx[1], rowFy[1])]
     }
-    /// A treasure's radius as a fraction of the plate's height, so a socket with its bevel
-    /// (about 2.65 radii across) stays inside its row.
-    static let maxPieceRadius: CGFloat = 0.076
-    /// A socket's widest extent, bevel included, in piece radii (round: 2r × 1.14 × 1.16).
-    static let socketSpanInRadii: CGFloat = 2.65
+    /// About 21% larger than the previous 0.076 cap. The box is never stretched to
+    /// achieve this: its face, top plane, and drawer retain their physical perspective.
+    static let maxPieceRadius: CGFloat = 0.092
+    /// Worst-case silhouettes include the rounded star, 14% posting clearance,
+    /// carved bevel, highlighted top lip, and the downward bevel shadow.
+    static let socketSpanInRadii: CGFloat = 2.80
+    static let socketTopInRadii: CGFloat = 1.44
+    static let socketBottomInRadii: CGFloat = 1.48
+
+    static func pieceRadius(boxSize: CGSize, canvasWidth: CGFloat) -> CGFloat {
+        min(boxSize.width * 0.105, canvasWidth * 0.10, 62,
+            boxSize.height * maxPieceRadius)
+    }
 }

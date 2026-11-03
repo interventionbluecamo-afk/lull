@@ -108,7 +108,7 @@ need no attribution).
 > • Hum: touch the singers to make gentle music, alone or in chords.
 > • Window: turn the day into evening and see who visits.
 > • Sleepy Box: post each shape into its hole and open the drawer.
-> • Little Wash: scrub muddy trucks clean with a sponge, a hose and a towel.
+> • Little Wash: scrub and rinse muddy vehicles with a sponge and a hose.
 > • Drop Dots: sort twelve felt dots into their colour homes, find rainbows, and pour them out again.
 > • Bubbles: pop soft bubbles and find the little treasures some carry.
 >

@@ -42,6 +42,7 @@ final class WashScene: BaseToyScene {
     private var bodyCanvas = CGSize.zero
     private let bay = SKNode()
     private let world = SKNode()
+    private let contactShadow = SKSpriteNode()
     private let tools = SKNode()
     private let cursor = SKNode()
     private let dropsLayer = SKNode()
@@ -93,36 +94,24 @@ final class WashScene: BaseToyScene {
         guard size.width > 160, size.height > 160 else { return }
         bay.removeAllChildren(); tools.removeAllChildren(); cursor.removeAllChildren()
         dropsLayer.removeAllChildren(); dropPool.removeAll(); toolHomes.removeAll(); toolHighlights.removeAll()
+        trayArt.removeAll()
         let play = safePlayRect()
         let landscape = size.width > size.height
-        let trayHeight: CGFloat = min(112, max(74, play.height * 0.18))
-        let trayY = play.minY + trayHeight / 2 + 5
-        let trayW = landscape ? min(104, play.width * 0.18) : min(play.width * 0.91, 570)
-        let traySize = landscape ? CGSize(width: trayW, height: min(play.height * 0.91, 330)) : CGSize(width: trayW, height: trayHeight)
-        let trayCenter = landscape ? CGPoint(x: play.maxX - trayW / 2, y: play.midY) : CGPoint(x: play.midX, y: trayY)
-        let availableH = landscape ? play.height * 0.96 : max(90, play.maxY - (trayY + trayHeight / 2 + 20))
-        let availableW = landscape ? max(100, play.width - trayW - 25) : play.width
-        let width = min(availableW * 0.96, availableH * 1.6, landscape ? 830 : 760)
-        bodyCanvas = CGSize(width: width, height: width / 1.6)
-        vehicleHome = landscape ? CGPoint(x: play.minX + availableW / 2, y: play.midY)
-            : CGPoint(x: play.midX, y: trayY + trayHeight / 2 + 18 + availableH * 0.47)
-        if !landscape {
-            vehicleHome.y = min(play.maxY - bodyCanvas.height / 2, max(trayY + trayHeight / 2 + 12 + bodyCanvas.height / 2, vehicleHome.y))
-        }
+        let layout = WashLayout(screen: size, play: play)
+        let traySize = layout.tray.size
+        let trayCenter = CGPoint(x: layout.tray.midX, y: layout.tray.midY)
+        bodyCanvas = layout.canvas
+        vehicleHome = layout.vehicleHome
 
-        if let art = ToyArt.sprite("wash-bay", fit: size), let artSize = art.texture?.size() {
-            // Wheels on the painted floor (founder, October 11). Portrait sets the vehicle down
-            // where the floor is, just above the tools; landscape keeps the vehicle centred and
-            // moves the bay so its floor meets the wheels. The bay always covers the screen.
+        let portraitBay = !landscape && ToyArt.texture("wash-bay-portrait") != nil
+        let baySlot = portraitBay ? "wash-bay-portrait" : "wash-bay"
+        if let art = ToyArt.sprite(baySlot, fit: size), let artSize = art.texture?.size() {
+            // The room follows the vehicle's ground line, rather than lowering the vehicle
+            // to suit an enlarged landscape wall. Each orientation keeps the art's aspect.
             let wheelDrop = bodyCanvas.height * (WashBayFit.wheelGroundFy - 0.5)
-            var ground = vehicleHome.y - wheelDrop
-            if !landscape {
-                let lowest = trayY + trayHeight / 2 + 10
-                let highest = max(lowest, play.maxY - bodyCanvas.height * WashBayFit.wheelGroundFy)
-                ground = min(max(WashBayFit.restingGround(screen: size, art: artSize), lowest), highest)
-                vehicleHome.y = ground + wheelDrop
-            }
-            let frame = WashBayFit.frame(screen: size, art: artSize, ground: ground)
+            let ground = vehicleHome.y - wheelDrop
+            let contactFy = portraitBay ? WashBayFit.portraitContactFy : WashBayFit.floorContactFy
+            let frame = WashBayFit.frame(screen: size, art: artSize, ground: ground, contactFy: contactFy)
             art.size = frame.size
             art.position = CGPoint(x: frame.midX, y: frame.midY)
             bay.addChild(art)
@@ -139,12 +128,12 @@ final class WashScene: BaseToyScene {
         let tray = SKShapeNode(rectOf: traySize, cornerRadius: min(traySize.width, traySize.height) * 0.25)
         tray.fillColor = WarmShelfPalette.warmCream; tray.strokeColor = WarmShelfPalette.sand.withAlpha(0.35)
         tray.position = trayCenter; tools.addChild(tray)
-        let toolSide = min(traySize.width, trayHeight) * 0.76
+        let toolSide = layout.toolSide
+        let highlightSide = toolSide / 0.76
         for (index, tool) in WashTool.allCases.enumerated() {
-            let home = landscape ? CGPoint(x: trayCenter.x, y: trayCenter.y - CGFloat(index - 1) * traySize.height * 0.29)
-                : CGPoint(x: play.midX + CGFloat(index - 1) * trayW * 0.29, y: trayY)
+            let home = layout.toolCenters[index]
             toolHomes[tool] = home
-            let highlight = SKShapeNode(ellipseOf: CGSize(width: trayHeight * 0.92, height: trayHeight * 0.82))
+            let highlight = SKShapeNode(ellipseOf: CGSize(width: highlightSide * 0.92, height: highlightSide * 0.82))
             highlight.fillColor = WarmShelfPalette.butter.withAlpha(0.16)
             highlight.strokeColor = WarmShelfPalette.sand.withAlpha(0.50); highlight.lineWidth = 2
             highlight.position = home; tools.addChild(highlight); toolHighlights[tool] = highlight
@@ -164,7 +153,7 @@ final class WashScene: BaseToyScene {
     private func makeTool(_ tool: WashTool, size side: CGFloat) -> SKNode {
         if let art = ToyArt.sprite("wash-tool-" + tool.rawValue, fit: CGSize(width: side, height: side)) { return art }
         let node = SKNode()
-        let color: UIColor = tool == .sponge ? WarmShelfPalette.butter : (tool == .hose ? WarmShelfPalette.terracotta : WarmShelfPalette.waterBlue)
+        let color: UIColor = tool == .sponge ? WarmShelfPalette.butter : WarmShelfPalette.terracotta
         let shape = SKShapeNode(rectOf: CGSize(width: side * 0.83, height: side * (tool == .hose ? 0.28 : 0.56)), cornerRadius: side * 0.16)
         shape.fillColor = color; shape.strokeColor = color.withAlpha(0.45); shape.lineWidth = 2
         ProceduralTexture.applyClayFill(to: shape, base: color, size: CGSize(width: side, height: side))
@@ -173,10 +162,6 @@ final class WashScene: BaseToyScene {
             let nozzle = SKShapeNode(rectOf: CGSize(width: side * 0.35, height: side * 0.23), cornerRadius: side * 0.1)
             nozzle.fillColor = WarmShelfPalette.paperHighlight; nozzle.strokeColor = .clear
             nozzle.position = CGPoint(x: side * 0.29, y: side * 0.10); nozzle.zRotation = -0.3; node.addChild(nozzle)
-        } else if tool == .towel {
-            let stripe = SKShapeNode(rectOf: CGSize(width: side * 0.73, height: side * 0.05), cornerRadius: side * 0.02)
-            stripe.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.75); stripe.strokeColor = .clear
-            stripe.position.y = side * 0.12; node.addChild(stripe)
         }
         return node
     }
@@ -195,6 +180,11 @@ final class WashScene: BaseToyScene {
     private func rebuildVehicle() {
         mudCrop.removeFromParent(); foamCrop.removeFromParent(); sparkleCrop.removeFromParent()
         world.removeAllChildren()
+        let shadowSize = CGSize(width: bodyCanvas.width * 0.77, height: max(12, bodyCanvas.height * 0.075))
+        contactShadow.texture = ProceduralTexture.softClayShadow(size: shadowSize)
+        contactShadow.size = shadowSize
+        contactShadow.zPosition = -1
+        world.addChild(contactShadow)
         let node = WashVehicleNode(kind: kind, canvas: bodyCanvas)
         vehicle = node; world.addChild(node)
         node.position = vehicleHome
@@ -258,7 +248,7 @@ final class WashScene: BaseToyScene {
             if phaseTime >= travelDuration { phase = .washing; phaseTime = 0; vehicle?.position = vehicleHome }
         case .washing:
             model.advanceTime(by: delta)
-            // A held hose has real contact time; a stationary sponge/towel never farms taps.
+            // A held hose has real contact time; a stationary sponge never farms taps.
             if let rub = rubs.values.first(where: { $0.tool == .hose }) {
                 applyStroke(from: rub.point, to: rub.point, strength: delta * 0.75, tool: .hose)
             }
@@ -277,6 +267,7 @@ final class WashScene: BaseToyScene {
             }
         }
         updateRotor(by: delta)
+        syncContactShadow()
         visualAccumulator += delta
         if visualAccumulator >= 1.0 / 24 {
             visualAccumulator = 0
@@ -298,6 +289,7 @@ final class WashScene: BaseToyScene {
 
     private func syncPhasePose() {
         guard let vehicle else { return }
+        defer { syncContactShadow() }
         vehicle.isHidden = phase == .waiting
         guard phase == .arriving || phase == .leaving else {
             vehicle.position = vehicleHome; vehicle.alpha = 1; return
@@ -320,6 +312,15 @@ final class WashScene: BaseToyScene {
             }
             vehicle.alpha = 1
         }
+    }
+
+    private func syncContactShadow() {
+        guard let vehicle else { return }
+        contactShadow.position = CGPoint(x: vehicle.position.x,
+            y: vehicleHome.y - bodyCanvas.height * (WashBayFit.wheelGroundFy - 0.5) + 1)
+        contactShadow.isHidden = vehicle.isHidden
+        let lift = kind.isFlying ? max(0, vehicle.position.y - vehicleHome.y) / max(1, bodyCanvas.height) : 0
+        contactShadow.alpha = vehicle.alpha * max(0, 0.85 - lift * 0.7)
     }
 
     private func updateRotor(by delta: TimeInterval) {
@@ -483,7 +484,7 @@ final class WashScene: BaseToyScene {
         }
         let local = vehicle.convert(end, from: self)
         if sceneTime - lastReaction > 5.5, vehicle.nearWheel(local) || vehicle.nearFace(local) && model.foamFraction > 0.16 {
-            lastReaction = sceneTime; vehicle.littleReaction(towel: tool == .towel)
+            lastReaction = sceneTime; vehicle.littleReaction()
         }
     }
 
@@ -524,7 +525,7 @@ final class WashScene: BaseToyScene {
         phase = .delighted; phaseTime = 0; clearHands()
         Self.cast.recordCompletion()
         vehicle?.setFace(awake: true, clean: 1, look: nil, delighted: true)
-        vehicle?.littleReaction(towel: false)
+        vehicle?.littleReaction()
         HapticsManager.shared.impact(style: .soft, intensity: 0.42)
         AudioManager.shared.play(cue: "wash.sparkle")
         AudioManager.shared.play(cue: "wash.toot." + kind.rawValue)
@@ -571,7 +572,7 @@ final class WashScene: BaseToyScene {
         var elements = super.accessibilityElements(in: view)
         for tool in WashTool.allCases {
             guard let home = toolHomes[tool] else { continue }
-            let name = tool == .sponge ? "Sponge" : (tool == .hose ? "Hose" : "Towel")
+            let name = tool == .sponge ? "Sponge" : "Hose"
             elements.append(makeActivatableAccessibilityElement(in: view, label: name,
                 scenePosition: home, size: CGSize(width: 80, height: 80),
                 traits: tool == selectedTool ? [.button, .selected] : .button) { [weak self] in self?.selectTool(tool) })
@@ -581,7 +582,7 @@ final class WashScene: BaseToyScene {
                 label: "Muddy \(kind.spokenName). Rub to wash it.", scenePosition: vehicleHome, size: bodyCanvas) { [weak self] in
                 guard let self, !self.isResting, self.phase == .washing else { return }
                 self.model.cleanQuarter(); self.didTouchVehicle = true; self.faceAwakeUntil = self.sceneTime + 1
-                self.syncSurface(); self.vehicle?.littleReaction(towel: true)
+                self.syncSurface(); self.vehicle?.littleReaction()
                 HapticsManager.shared.impact(style: .soft, intensity: 0.25)
                 if self.model.isComplete { self.finishVehicle() }
             })
@@ -701,7 +702,7 @@ private final class WashVehicleNode: SKNode {
 
     func setCarePose(at local: CGPoint, drag: CGVector, tool: WashTool) {
         guard !AmbientAnimator.reduceMotion else { resetCarePose(); return }
-        let pressure: CGFloat = tool == .hose ? 0.003 : (tool == .towel ? 0.006 : 0.009)
+        let pressure: CGFloat = tool == .hose ? 0.003 : 0.009
         let lean = min(0.016, max(-0.016, -local.x / max(1, canvas.width) * 0.014 + drag.dx / max(1, canvas.width) * 0.12))
         let follow = CGPoint(x: min(3, max(-3, drag.dx * 0.06)), y: -canvas.height * pressure * 0.4)
         artRoot.run(.group([.move(to: follow, duration: 0.12), .rotate(toAngle: lean, duration: 0.12),
@@ -791,10 +792,10 @@ private final class WashVehicleNode: SKNode {
         }
     }
 
-    func littleReaction(towel: Bool) {
+    func littleReaction() {
         guard !AmbientAnimator.reduceMotion else { return }
         face.removeAction(forKey:"wash.react")
-        let lift = SKAction.group([.rotate(toAngle:towel ? 0.06 : -0.04,duration:0.14),.scale(to:1.07,duration:0.14)])
+        let lift = SKAction.group([.rotate(toAngle:-0.04,duration:0.14),.scale(to:1.07,duration:0.14)])
         let settle = SKAction.group([.rotate(toAngle:0,duration:0.38),.scale(to:1,duration:0.38)])
         face.run(.sequence([lift,settle]),withKey:"wash.react")
     }

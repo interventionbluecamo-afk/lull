@@ -163,9 +163,10 @@ final class ToyViewController: UIViewController {
     }
 
     override var prefersStatusBarHidden: Bool { true }
-    override var prefersHomeIndicatorAutoHidden: Bool { true }
-    // An intentional second edge swipe still leaves the app. Guided Access is the full lock.
-    override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge { [.top, .bottom] }
+    // Prefer deferred edge gestures to the passive, auto-hidden Home indicator mode.
+    // A deliberate repeat swipe can still leave Lull; only Guided Access locks the app.
+    override var prefersHomeIndicatorAutoHidden: Bool { false }
+    override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge { .all }
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
         UIDevice.current.userInterfaceIdiom == .pad ? .all : .allButUpsideDown
     }

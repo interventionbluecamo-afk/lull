@@ -98,11 +98,11 @@ struct MeadowLittleOnesModel {
     }
 
     init(restoring snapshot: Snapshot) {
-        spots = snapshot.spots
+        spots = snapshot.spots.map { MeadowBeachGeometry.landPosition($0, worldSize: snapshot.worldSize) }
         places = snapshot.places
         parade = snapshot.parade
         house = snapshot.house
-        trail = snapshot.trail
+        trail = snapshot.trail.map { MeadowBeachGeometry.landPosition($0, worldSize: snapshot.worldSize) }
         paradeSpacing = snapshot.paradeSpacing
         worldSize = snapshot.worldSize
         homeRadius = snapshot.homeRadius
@@ -175,7 +175,8 @@ struct MeadowLittleOnesModel {
                 let angle = random.unit() * .pi * 2
                 let radius = inner + (outer - inner) * random.unit().squareRoot()
                 let point = CGPoint(x: cos(angle) * radius, y: sin(angle) * radius)
-                guard !hiddenFromView.contains(point),
+                guard MeadowBeachGeometry.isLand(point, worldSize: worldSize),
+                      !hiddenFromView.contains(point),
                       hypot(point.x - mother.x, point.y - mother.y) >= Self.findRadius * 3,
                       hypot(point.x - spots[i].x, point.y - spots[i].y) >= max(120, half * 0.18),
                       avoid.allSatisfy({ hypot($0.x - point.x, $0.y - point.y) >= 110 }),
@@ -193,6 +194,10 @@ struct MeadowLittleOnesModel {
             replenished.append(i)
         }
         return replenished
+    }
+
+    func landPosition(_ point: CGPoint) -> CGPoint {
+        MeadowBeachGeometry.landPosition(point, worldSize: worldSize)
     }
 
     /// Where the k-th follower walks: along her own path, `paradeGap` apart. A path shorter
@@ -247,6 +252,8 @@ struct MeadowLittleOnesModel {
             let angle = random.unit() * .pi * 2
             let radius = inner + (outer - inner) * random.unit().squareRoot()
             let p = CGPoint(x: cos(angle) * radius, y: sin(angle) * radius)
+            // Water exclusion is never relaxed by the crowded-world fallback below.
+            guard MeadowBeachGeometry.isLand(p, worldSize: worldSize) else { continue }
             let clearOfLandmarks = avoid.allSatisfy { hypot($0.x - p.x, $0.y - p.y) >= 110 }
             let apart = spots.allSatisfy { hypot($0.x - p.x, $0.y - p.y) >= minApart }
             guard attempts > 20_000 || (clearOfLandmarks && (apart || attempts > 6000)) else { continue }
@@ -282,7 +289,10 @@ enum MeadowGroundDetails {
                                     y: (CGFloat(y) + (random.unit() - 0.5) * 0.28) * step)
                 let style = Int(random.next() % 3)
                 let turn = (random.unit() - 0.5) * .pi * 1.3
-                guard hypot(point.x, point.y) > homeRadius * 1.4 + 30,
+                let onSurface = style == 1
+                    ? MeadowBeachGeometry.isLand(point, worldSize: worldSize, clearance: 18)
+                    : MeadowBeachGeometry.isGrass(point, worldSize: worldSize, clearance: 28)
+                guard onSurface, hypot(point.x, point.y) > homeRadius * 1.4 + 30,
                       avoid.allSatisfy({ hypot($0.x - point.x, $0.y - point.y) > 125 }) else { continue }
                 result.append(Cluster(position: point, style: style, turn: turn))
             }
@@ -359,7 +369,9 @@ final class MeadowLittleOnesNode: SKNode {
         settle()
         motions = babies.map { MeadowFollowerMotion(position: $0.position, heading: $0.zRotation) }
         if let followers, followers.count == babies.count {
-            motions = followers
+            motions = followers.map {
+                MeadowFollowerMotion(position: model.landPosition($0.position), heading: $0.heading, lift: $0.lift)
+            }
             for i in model.parade { applyMotion(i) }
         }
     }
@@ -558,7 +570,8 @@ final class MeadowLittleOnesNode: SKNode {
             let target = model.paradePoint(k, mother: mother)
             let hop = MeadowLittleOnesModel.flowerHop(at: motions[i].position, flowers: flowers)
             // A vertical hop keeps the path continuous; a radial nudge flips at flower centres.
-            motions[i].step(toward: target, hop: hop.lift, dt: dt)
+            motions[i].step(toward: model.landPosition(target), hop: hop.lift, dt: dt)
+            motions[i].position = model.landPosition(motions[i].position)
             applyMotion(i)
         }
 

@@ -36,6 +36,11 @@ prefers the registered `meadow-leaf-house-base` and `meadow-leaf-house-roof` pai
 the one-piece `meadow-leaf-house` as fallback. Prompts and exact asset hashes are under
 `Docs/Art/Materials-Motion-2026-11-03/`.
 
+November 4 beach: `meadow-beach-starfish` and `meadow-beach-shell` are overhead,
+neutral-light transparent art. `MeadowBeach.swift` draws the shoreline and underwater
+life as separate animated layers, reusing `meadow-felt-ground` for material continuity.
+Prompts and original/production hashes: `Docs/Art/Meadow-Beach-2026-11-04/`.
+
 Regenerate the inventory with `python3 Tools/Art/inventory_assets.py` from
 `WarmShelfToybox/`. It records PNG dimensions, file sizes, SHA-256 hashes, missing declared
 files and duplicate groups without changing artwork. Exact-byte reference matches and

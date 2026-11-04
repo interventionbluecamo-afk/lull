@@ -28,6 +28,7 @@ production = "\n".join([
     "enum DropDotsScene { enum DropDotToken { static let felts = [0, 1, 2, 3] } }",
     block("App/Toys/DropDots/DropDotsScene.swift", "enum DropDotsHand"),
     block("App/Toys/DropDots/DropDotsScene.swift", "private enum BoardArt").replace("private ", "", 1),
+    block("App/Toys/Meadow/MeadowBeach.swift", "enum MeadowBeachGeometry"),
     block("App/Toys/Meadow/MeadowScene.swift", "enum MeadowDandelionGeometry"),
     block("App/Toys/Meadow/MeadowScene.swift", "enum MeadowWorldGeometry"),
     block("App/Toys/Meadow/MeadowScene.swift", "struct MeadowFlowerTrail"),
@@ -91,6 +92,7 @@ for canvas in [CGSize(width: 375, height: 812), CGSize(width: 812, height: 375),
     let world = CGSize(width: side, height: side)
     for preferred in [CGPoint.zero, CGPoint(x: side, y: side), CGPoint(x: -side, y: -side), CGPoint(x: side / 2 + 140, y: 90)] {
         let point = MeadowDandelionGeometry.position(preferred: preferred, worldSize: world)
+        check(MeadowBeachGeometry.isGrass(point, worldSize: world, clearance: 42), "The dandelion stays wholly on grass")
         check(abs(point.x) <= side / 2 - 64, "Puff remains horizontally reachable")
         check(abs(point.y) <= side / 2 - 64, "Puff remains vertically reachable")
         check(MeadowDandelionGeometry.position(preferred: point, worldSize: world) == point, "Restoring a legal puff does not move it")
@@ -108,6 +110,7 @@ for canvas in [CGSize(width: 375, height: 667), CGSize(width: 667, height: 375),
     for value: CGFloat in [-100000, -side, -side * 0.4, 0, side * 0.4, side, 100000] {
         let preferred = CGPoint(x: value, y: -value)
         let target = MeadowWorldGeometry.leadTarget(preferred, worldSize: world)
+        check(MeadowBeachGeometry.isLand(target, worldSize: world), "A lead toward the water stops on dry land")
         check(abs(target.x) <= side / 2 - 50 && abs(target.y) <= side / 2 - 50, "A lead stays inside invisible bounds")
         check(MeadowWorldGeometry.position(target, worldSize: world) == target, "A softened target needs no hard stop")
         let offset = MeadowWorldGeometry.cameraOffset(CGPoint(x: canvas.width / 2 - target.x, y: canvas.height / 2 - target.y), worldSize: world, canvas: canvas)
@@ -134,6 +137,33 @@ check(restoredTrail.positions == savedTrail.positions && restoredTrail.nextSlot 
 check(restoredTrail.stamp(behind: savedTrail.lastWalkPoint!, heading: 0) == nil, "Rotation cannot double-plant the last step")
 restoredTrail = MeadowFlowerTrail()
 check(restoredTrail.positions.isEmpty && restoredTrail.nextSlot == 0 && restoredTrail.lastWalkPoint == nil, "Frost resets every pooled slot and spacing anchor")
+
+// A beach step never consumes a flower slot or changes the last valid planting point.
+let shoreWorld = CGSize(width: 2200, height: 2200)
+var grassTrail = MeadowFlowerTrail()
+for index in 0..<64 {
+    let point = CGPoint(x: -960 + CGFloat(index) * 30, y: -600)
+    check(grassTrail.stamp(behind: point, heading: 0, worldSize: shoreWorld) != nil,
+          "valid grass walking still fills the existing flower pool")
+}
+let beforeBeach = grassTrail
+for index in 0..<80 {
+    check(grassTrail.stamp(behind: CGPoint(x: CGFloat(index) * 10, y: -890), heading: .pi / 2, worldSize: shoreWorld) == nil,
+          "sand and sea cannot receive trail flowers")
+}
+check(grassTrail.positions == beforeBeach.positions && grassTrail.nextSlot == beforeBeach.nextSlot
+      && grassTrail.lastWalkPoint == beforeBeach.lastWalkPoint, "beach walking leaves every valid slot unchanged")
+grassTrail.retainGrass(in: shoreWorld)
+check(grassTrail.positions == beforeBeach.positions && grassTrail.nextSlot == beforeBeach.nextSlot
+      && grassTrail.lastWalkPoint == beforeBeach.lastWalkPoint, "rotation preserves the exact valid flower pool")
+for x: CGFloat in [-1000, -500, 0, 500, 1000] {
+    let edge = MeadowBeachGeometry.grassEdge(atX: x, worldSize: shoreWorld)
+    let sea = MeadowBeachGeometry.shoreline(atX: x, worldSize: shoreWorld)
+    check(edge > MeadowBeachGeometry.landMinimum(worldSize: shoreWorld) && sea < MeadowBeachGeometry.landMinimum(worldSize: shoreWorld),
+          "the conservative creature boundary lies on sand between grass and sea")
+    check(!MeadowBeachGeometry.isGrass(CGPoint(x: x, y: edge - 1), worldSize: shoreWorld), "grass eligibility follows the actual drawn edge")
+}
+
 // Complete rounds always retain four unique slots and visibly change the last order.
 var order = [0, 1, 2, 3]
 for _ in 0..<100 {

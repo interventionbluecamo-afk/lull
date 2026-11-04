@@ -38,6 +38,8 @@ final class MeadowScene: BaseToyScene {
     private let groundDetailLayer = SKNode()
     private let springLayer = SKNode()    // painted spring patches
     private let trailLayer = SKNode()
+    private let beachLayer = SKNode()
+    private var beach: MeadowBeachNode?
     private let lifeLayer = SKNode()      // flowers, butterflies
     private let snailLayer = SKNode()
     private let goldenVeil = SKSpriteNode()
@@ -131,6 +133,7 @@ final class MeadowScene: BaseToyScene {
         springLayer.zPosition = 2;  worldNode.addChild(springLayer)
         groundDetailLayer.zPosition = 3; worldNode.addChild(groundDetailLayer)
         trailLayer.zPosition = 4;   worldNode.addChild(trailLayer)
+        beachLayer.zPosition = 5;   worldNode.addChild(beachLayer)
         lifeLayer.zPosition = 6;    worldNode.addChild(lifeLayer)
         snailLayer.zPosition = 9;   worldNode.addChild(snailLayer)
         goldenVeil.zPosition = 30
@@ -143,6 +146,7 @@ final class MeadowScene: BaseToyScene {
         leadTouch = nil
         snailTarget = nil
         littleOnes?.resetTransientFeedback()
+        beach?.resetTransientFeedback()
     }
 
     override func didChangeSize(_ oldSize: CGSize) {
@@ -152,7 +156,7 @@ final class MeadowScene: BaseToyScene {
         // A rotation must NEVER cost the child their garden (founder, June 12).
         // World coordinates are rotation-stable (worldSize keys off max(w,h)), so
         // every painted patch, flower, woken landmark and the wanderer herself carry over.
-        let snap: MeadowSnap? = springPaths.isEmpty && paintedSpringPoints.isEmpty && flowerTrail.positions.isEmpty ? nil : MeadowSnap(
+        let snap: MeadowSnap? = snail == nil ? nil : MeadowSnap(
             paths: springPaths,
             paintStamps: paintedSpringPoints,
             area: springArea,
@@ -164,7 +168,8 @@ final class MeadowScene: BaseToyScene {
             flowerSpots: flowers.compactMap { $0.parent != nil ? $0.position : nil },
             flowerTrail: flowerTrail,
             landmarksAwake: landmarks.map { $0.isAwake },
-            littleOnes: littleOnes?.snapshot
+            littleOnes: littleOnes?.snapshot,
+            beachTime: beach?.motionTime ?? 0
         )
         rebuild(restoring: snap)
     }
@@ -182,13 +187,14 @@ final class MeadowScene: BaseToyScene {
         let flowerTrail: MeadowFlowerTrail
         let landmarksAwake: [Bool]
         let littleOnes: MeadowLittleOnesNode.Snapshot?
+        let beachTime: CGFloat
     }
 
     private func rebuild(restoring snap: MeadowSnap? = nil) {
         guard size.width > 160, size.height > 160 else { return }
         lastBuiltSize = size
         removeAction(forKey: "meadow.dandelionOffer")
-        [groundLayer, groundDetailLayer, springLayer, trailLayer, lifeLayer, snailLayer].forEach { $0.removeAllChildren() }
+        [groundLayer, groundDetailLayer, springLayer, trailLayer, beachLayer, lifeLayer, snailLayer].forEach { $0.removeAllChildren() }
         flowers.removeAll(); butterflies.removeAll(); landmarks.removeAll()
         springPaths.removeAll(); trailPoints.removeAll(); trailNode = nil
         trailHalo = nil; petalBudget = 0
@@ -206,6 +212,9 @@ final class MeadowScene: BaseToyScene {
                            height: max(size.width, size.height) * 2.6)
 
         buildWinterGround()
+        let coast = MeadowBeachNode(worldSize: worldSize, night: isNight, motionTime: snap?.beachTime ?? 0)
+        beachLayer.addChild(coast)
+        beach = coast
         buildSpringSurface()
         if snap == nil { buildHomeSpring() }   // a restored garden brings its own home
         buildLandmarks()
@@ -227,12 +236,13 @@ final class MeadowScene: BaseToyScene {
             for p in snap.paintStamps {
                 paintSpringStamp(at: p, animated: false, record: false)
             }
-            paintedSpringPoints = snap.paintStamps
-            springArea = snap.area
+            paintedSpringPoints = snap.paintStamps.filter { MeadowBeachGeometry.isGrass($0, worldSize: worldSize) }
+            springArea = CGFloat(paintedCells.count) * coverCell * coverCell
             bloomMomentFired = snap.bloomFired
             updateSpringGlow(allowMoment: false)
             for p in snap.flowerSpots { bloomRosette(at: p, silent: true) }
             flowerTrail = snap.flowerTrail
+            flowerTrail.retainGrass(in: worldSize)
             for (slot, position) in flowerTrail.positions.enumerated() {
                 flowerTrailNodes[slot].position = position
                 flowerTrailNodes[slot].isHidden = false
@@ -240,7 +250,7 @@ final class MeadowScene: BaseToyScene {
             for (lm, awake) in zip(landmarks, snap.landmarksAwake) where awake {
                 lm.wake(instantly: true)
             }
-            snail?.position = snap.snailPos
+            snail?.position = clampToWorld(snap.snailPos)
             snail?.zRotation = snap.snailHeading
             if snap.bloomFired {
                 if let puffPosition = snap.dandelionPosition {
@@ -249,12 +259,17 @@ final class MeadowScene: BaseToyScene {
                     scheduleDandelionOffer()
                 }
             }
-            trailPoints = snap.trail
+            trailPoints = snap.trail.map { MeadowBeachGeometry.landPosition($0, worldSize: worldSize) }
             redrawTrail()
         }
         centerCamera(animated: false)
 
         #if DEBUG
+        if snap == nil, ProcessInfo.processInfo.environment["LULL_DEBUG_MEADOW_BEACH"] == "1" {
+            snail?.position = CGPoint(x: 0, y: -worldSize.height * 0.395)
+            centerCamera(animated: false)
+            return // inspection starts on dry sand and never runs the introductory wander
+        }
         // LULL_DEBUG_MEADOW_DEMO=1 leads the snail out of home and back (QA / store shots).
         if snap == nil, ProcessInfo.processInfo.environment["LULL_DEBUG_MEADOW_DEMO"] == "1" {
             runMeadowDemo()
@@ -361,7 +376,14 @@ final class MeadowScene: BaseToyScene {
             let root = SKNode()
             root.position = cluster.position
             root.zRotation = cluster.turn
-            groundDetailLayer.addChild(root)
+            // Pebble-only clusters can rest on dry sand above its opaque beach layer.
+            // Plants remain above the grass edge and below the child's flower trail.
+            if cluster.style == 1, !MeadowBeachGeometry.isGrass(cluster.position, worldSize: worldSize, clearance: 28) {
+                root.zPosition = 0.1
+                beachLayer.addChild(root)
+            } else {
+                groundDetailLayer.addChild(root)
+            }
             if cluster.style != 1 {
                 for index in 0..<2 {
                     if let leaf = ToyArt.sprite("meadow-hide-leaf", fit: CGSize(width: 25, height: 25)) {
@@ -453,7 +475,9 @@ final class MeadowScene: BaseToyScene {
         for ix in x0...x1 {
             for iy in y0...y1 {
                 let cx = (CGFloat(ix) + 0.5) * c, cy = (CGFloat(iy) + 0.5) * c
-                guard hypot(cx - p.x, cy - p.y) <= r else { continue }
+                guard hypot(cx - p.x, cy - p.y) <= r,
+                      MeadowBeachGeometry.isGrass(CGPoint(x: cx, y: cy), worldSize: worldSize, clearance: c * 0.5)
+                else { continue }
                 if paintedCells.insert(coverKey(ix, iy)).inserted { fresh += 1 }
             }
         }
@@ -500,7 +524,8 @@ final class MeadowScene: BaseToyScene {
         ]
         for (fx, fy, kind) in spots {
             let lm = MeadowLandmark(kind: kind, night: night)
-            lm.position = CGPoint(x: worldSize.width * fx, y: worldSize.height * fy)
+            lm.position = MeadowBeachGeometry.landPosition(
+                CGPoint(x: worldSize.width * fx, y: worldSize.height * fy), worldSize: worldSize)
             lm.zPosition = 1
             lm.setScale(.random(in: 0.92...1.08))
             // Only art drawn from straight above can be turned; a side-view mushroom or
@@ -762,6 +787,7 @@ final class MeadowScene: BaseToyScene {
                 HapticsManager.shared.impact(style: .soft, intensity: 0.14)
                 continue
             }
+            if beach?.react(at: p, reduceMotion: AmbientAnimator.reduceMotion) == true { continue }
             if leadTouch == nil {
                 leadTouch = touch
                 removeAction(forKey: "watchme")
@@ -861,6 +887,7 @@ final class MeadowScene: BaseToyScene {
         let dt = lastUpdateTime == 0 ? 0 : min(0.05, currentTime - lastUpdateTime)
         lastUpdateTime = currentTime
         guard let snail, dt > 0 else { return }
+        beach?.advance(deltaTime: dt, reduceMotion: AmbientAnimator.reduceMotion)
         // currentTime is absolute uptime — anchor the idle clocks to the first frame.
         if lastMeadowTouchTime == 0 { lastMeadowTouchTime = currentTime; lastInviteTime = currentTime }
 
@@ -1014,7 +1041,7 @@ final class MeadowScene: BaseToyScene {
     }
 
     private func stampTrailFlower(behind point: CGPoint) {
-        guard let slot = flowerTrail.stamp(behind: point, heading: snail?.zRotation ?? 0) else { return }
+        guard let slot = flowerTrail.stamp(behind: point, heading: snail?.zRotation ?? 0, worldSize: worldSize) else { return }
         let flower = flowerTrailNodes[slot]
         flower.removeAllActions()
         flower.position = flowerTrail.positions[slot]
@@ -1070,6 +1097,7 @@ final class MeadowScene: BaseToyScene {
 
     /// A soft sage brush mark, laid directly over the felt where she is led.
     private func paintSpringStamp(at p: CGPoint, animated: Bool = true, record: Bool = true) {
+        guard MeadowBeachGeometry.isGrass(p, worldSize: worldSize) else { return }
         let r = paintRadius
         let fresh = markCovered(center: p, radius: r)
         // Ground that is already spring gets nothing new — no node, no chime. The chime
@@ -1175,7 +1203,9 @@ final class MeadowScene: BaseToyScene {
             for ix in Int(floor(box.minX / c))...Int(floor(box.maxX / c)) {
                 for iy in Int(floor(box.minY / c))...Int(floor(box.maxY / c)) {
                     let centre = CGPoint(x: (CGFloat(ix) + 0.5) * c, y: (CGFloat(iy) + 0.5) * c)
-                    if path.contains(centre) { paintedCells.insert(coverKey(ix, iy)) }
+                    if path.contains(centre), MeadowBeachGeometry.isGrass(centre, worldSize: worldSize, clearance: c * 0.5) {
+                        paintedCells.insert(coverKey(ix, iy))
+                    }
                 }
             }
         }
@@ -1187,7 +1217,7 @@ final class MeadowScene: BaseToyScene {
             attempts += 1
             let candidate = CGPoint(x: .random(in: box.minX...box.maxX),
                                     y: .random(in: box.minY...box.maxY))
-            guard path.contains(candidate) else { continue }
+            guard path.contains(candidate), MeadowBeachGeometry.isGrass(candidate, worldSize: worldSize, clearance: 16) else { continue }
             placed += 1
             let delay = animated ? Double(placed) * 0.06 : 0
             run(.sequence([.wait(forDuration: delay),
@@ -1210,7 +1240,7 @@ final class MeadowScene: BaseToyScene {
     /// A wildflower seen from above: a ring of petals around a bright heart.
     /// `silent` restores a flower without pop, tone, or haptic (rotation rebuilds).
     private func bloomRosette(at p: CGPoint, silent: Bool = false) {
-        guard flowers.count < 260 else { return }
+        guard flowers.count < 260, MeadowBeachGeometry.isGrass(p, worldSize: worldSize, clearance: 16) else { return }
         let palette = [WarmShelfPalette.petal, WarmShelfPalette.butter,
                        WarmShelfPalette.lavender, WarmShelfPalette.waterBlue, WarmShelfPalette.rhubarb]
         let color = palette[flowers.count % palette.count]
@@ -1535,6 +1565,23 @@ final class MeadowScene: BaseToyScene {
                 self.snailTarget = CGPoint(x: .random(in: -r...r), y: .random(in: -r...r))
                 self.setSnailAwake(true)
             })
+        }
+        if let beach, beach.parent === beachLayer {
+            let viewport = CGRect(origin: .zero, size: size)
+            for find in beach.accessibilityFinds {
+                let point = worldNode.convert(find.position, to: self)
+                guard viewport.contains(point) else { continue }
+                elements.append(makeActivatableAccessibilityElement(
+                    in: view, label: "\(find.label) — tap to touch gently",
+                    scenePosition: point, size: CGSize(width: 60, height: 60), traits: .button
+                ) { [weak self, weak beach, weak view] in
+                    guard let self, let beach, let view,
+                          view.scene === self, self.view === view,
+                          !self.isPaused, !view.isPaused,
+                          self.beach === beach, beach.parent === self.beachLayer else { return }
+                    _ = beach.react(at: find.position, reduceMotion: AmbientAnimator.reduceMotion)
+                })
+            }
         }
         return elements
     }
@@ -2026,8 +2073,9 @@ enum MeadowWorldGeometry {
     static func position(_ point: CGPoint, worldSize: CGSize) -> CGPoint {
         let limitX = max(0, worldSize.width / 2 - 50)
         let limitY = max(0, worldSize.height / 2 - 50)
-        return CGPoint(x: min(max(point.x, -limitX), limitX),
-                       y: min(max(point.y, -limitY), limitY))
+        return MeadowBeachGeometry.landPosition(
+            CGPoint(x: min(max(point.x, -limitX), limitX), y: min(max(point.y, -limitY), limitY)),
+            worldSize: worldSize)
     }
 
     static func leadTarget(_ point: CGPoint, worldSize: CGSize) -> CGPoint {
@@ -2042,8 +2090,9 @@ enum MeadowWorldGeometry {
             let eased = start + band * (1 - exp(-(distance - start) / band))
             return value < 0 ? -eased : eased
         }
-        return CGPoint(x: soften(point.x, extent: worldSize.width),
-                       y: soften(point.y, extent: worldSize.height))
+        return MeadowBeachGeometry.landPosition(
+            CGPoint(x: soften(point.x, extent: worldSize.width), y: soften(point.y, extent: worldSize.height)),
+            worldSize: worldSize)
     }
 
     static func cameraOffset(_ point: CGPoint, worldSize: CGSize, canvas: CGSize) -> CGPoint {
@@ -2062,18 +2111,28 @@ struct MeadowFlowerTrail {
     private(set) var nextSlot = 0
     private(set) var lastWalkPoint: CGPoint?
 
-    mutating func stamp(behind point: CGPoint, heading: CGFloat) -> Int? {
+    mutating func stamp(behind point: CGPoint, heading: CGFloat, worldSize: CGSize? = nil) -> Int? {
         guard point.x.isFinite, point.y.isFinite, heading.isFinite else { return nil }
         if let lastWalkPoint,
            hypot(point.x - lastWalkPoint.x, point.y - lastWalkPoint.y) < Self.spacing { return nil }
-        lastWalkPoint = point
         let slot = nextSlot
         let side: CGFloat = slot.isMultiple(of: 2) ? 5 : -5
         let bloom = CGPoint(x: point.x - cos(heading) * 22 - sin(heading) * side,
                             y: point.y - sin(heading) * 22 + cos(heading) * side)
+        if let worldSize, !MeadowBeachGeometry.isGrass(bloom, worldSize: worldSize, clearance: 12) { return nil }
+        lastWalkPoint = point
         if positions.count < Self.capacity { positions.append(bloom) } else { positions[slot] = bloom }
         nextSlot = (slot + 1) % Self.capacity
         return slot
+    }
+
+    /// Legal stored blooms retain their slots through rotation. A legacy/resize snapshot
+    /// can discard only off-grass flowers, never the baby's independent progress.
+    mutating func retainGrass(in worldSize: CGSize) {
+        let valid = positions.filter { MeadowBeachGeometry.isGrass($0, worldSize: worldSize, clearance: 12) }
+        guard valid.count != positions.count else { return }
+        positions = valid
+        nextSlot = positions.count % Self.capacity
     }
 }
 
@@ -2082,8 +2141,9 @@ enum MeadowDandelionGeometry {
         let margin = min(64, min(worldSize.width, worldSize.height) * 0.25)
         let limitX = max(0, worldSize.width / 2 - margin)
         let limitY = max(0, worldSize.height / 2 - margin)
-        return CGPoint(x: min(max(preferred.x, -limitX), limitX),
-                       y: min(max(preferred.y, -limitY), limitY))
+        let x = min(max(preferred.x, -limitX), limitX)
+        let grassMinimum = MeadowBeachGeometry.grassEdge(atX: x, worldSize: worldSize) + 48
+        return CGPoint(x: x, y: min(max(preferred.y, max(-limitY, grassMinimum)), limitY))
     }
 }
 

@@ -24,7 +24,19 @@ import CoreGraphics
 struct CGVector: Equatable { var dx: CGFloat; var dy: CGFloat; static let zero = CGVector(dx: 0, dy: 0) }
 #endif
 """
-model = "import Foundation\n" + VECTOR + source.split("// MARK: - The little ones on screen", 1)[0].replace("import SpriteKit\n", "")
+def source_block(text, needle):
+    start = text.index(needle)
+    opening = text.index("{", start)
+    depth, end = 1, opening + 1
+    while depth:
+        depth += (text[end] == "{") - (text[end] == "}")
+        end += 1
+    return text[start:end]
+
+
+beach = (root / "App/Toys/Meadow/MeadowBeach.swift").read_text()
+beach_geometry = source_block(beach, "enum MeadowBeachGeometry")
+model = "import Foundation\n" + VECTOR + beach_geometry + "\n" + source.split("// MARK: - The little ones on screen", 1)[0].replace("import SpriteKit\n", "")
 passed = 0
 
 
@@ -76,6 +88,7 @@ for canvas in [CGSize(width: 390, height: 844), CGSize(width: 820, height: 1180)
         let spots = MeadowLittleOnesModel.hidingSpots(worldSize: world, homeRadius: homeRadius, avoid: landmarks, seed: seed)
         check(spots.count == 5, "five little ones")
         for (i, p) in spots.enumerated() {
+            check(MeadowBeachGeometry.isLand(p, worldSize: world), "every initial hiding place stays on dry land")
             check(abs(p.x) <= side / 2 - 50 && abs(p.y) <= side / 2 - 50, "every hiding place is reachable")
             check(dist(p, .zero) > watchMe + MeadowLittleOnesModel.findRadius, "her first-visit wander doesn't find one by itself")
             check(dist(p, .zero) > homeRadius * 1.5, "none hide in the home garden")
@@ -220,6 +233,8 @@ for _ in 0..<100 {
           "recurrence keeps fixed slot storage")
     check(recurring.parade.isEmpty && recurring.trail.count <= 53, "parade and sampled trail remain bounded")
     check(recurring.warmthCount == 5, "later visits do not escalate the welcome")
+    check(recurring.spots.allSatisfy { MeadowBeachGeometry.isLand($0, worldSize: CGSize(width: 2200, height: 2200)) },
+          "all recurring slots remain reachable on land")
 }
 
 // Scenery density and material placement are deterministic and sparse across routes.
@@ -236,10 +251,29 @@ for seed in UInt64(1)...20 {
         check(dist(cluster.position, .zero) > 117 * 1.4 + 30, "home remains uncluttered")
         check(avoid.allSatisfy { dist(cluster.position, $0) > 125 }, "detail leaves landmarks clear")
         check((0..<3).contains(cluster.style), "only the three restrained material groups are used")
+        check(cluster.style == 1
+              ? MeadowBeachGeometry.isLand(cluster.position, worldSize: worldSize, clearance: 18)
+              : MeadowBeachGeometry.isGrass(cluster.position, worldSize: worldSize, clearance: 28),
+              "pebbles may rest on sand; flower and leaf clusters stay wholly on grass")
         check(clusters[(i + 1)...].allSatisfy { dist(cluster.position, $0.position) > 150 },
               "clusters retain clear walking space between them")
     }
 }
+
+
+// Repair old off-land coordinates without deleting a recurring slot or its progress.
+var legacy = home.snapshot
+legacy.spots[0] = CGPoint(x: 100, y: -1100)
+legacy.trail = [CGPoint(x: 100, y: -1100), CGPoint(x: 120, y: -900)]
+let landed = MeadowLittleOnesModel(restoring: legacy)
+check(landed.places == legacy.places && landed.warmthCount == legacy.warmthCount,
+      "shore restoration retains each baby's place and completed warmth")
+check(landed.restRemaining == legacy.restRemaining && landed.snapshot.replenishmentSeed == legacy.replenishmentSeed,
+      "shore restoration keeps cooldowns and next hiding sequence")
+check(landed.spots.count == 5 && MeadowBeachGeometry.isLand(landed.spots[0], worldSize: legacy.worldSize),
+      "an old off-land hiding coordinate is moved safely, never deleted")
+check(landed.trail.allSatisfy { MeadowBeachGeometry.isLand($0, worldSize: legacy.worldSize) },
+      "restored follower path stays on land")
 
 print("PASS: \(passed) model checks")
 '''

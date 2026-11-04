@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at_utc": "2026-11-04T19:09:02+00:00",
+  "generated_at_utc": "2026-11-04T20:43:53+00:00",
   "catalog": "App/Resources/Assets.xcassets",
   "scope": "Files declared by Contents.json in the production asset catalog; bundled does not mean runtime-active.",
   "limitations": [
@@ -11,10 +11,10 @@
     "Only PNG dimensions are read; other file types still have size and SHA-256 metadata."
   ],
   "summary": {
-    "asset_entries": 288,
-    "declared_files": 304,
-    "readable_files": 304,
-    "bundled_bytes": 264474907,
+    "asset_entries": 290,
+    "declared_files": 306,
+    "readable_files": 306,
+    "bundled_bytes": 267157328,
     "assets_by_category": {
       "Bubbles": 5,
       "Drop Dots": 7,
@@ -22,7 +22,7 @@
       "Hum": 3,
       "Legacy or unclassified": 4,
       "Little Wash": 26,
-      "Meadow": 29,
+      "Meadow": 31,
       "Mix-Up": 85,
       "Shared": 34,
       "Sleepy Box": 9,
@@ -31,7 +31,7 @@
     "missing_files": 0,
     "errors": 0,
     "duplicate_hash_groups": 18,
-    "reference_files_indexed": 544,
+    "reference_files_indexed": 556,
     "reference_files_hashed": 24
   },
   "assets": [
@@ -2658,6 +2658,48 @@
           "filename_candidates_not_verified": [
             "Docs/Art/Build10/Source/meadow-baby-ladybug.png"
           ]
+        }
+      ]
+    },
+    {
+      "name": "meadow-beach-shell",
+      "category": "Meadow",
+      "kind": "imageset",
+      "contents": "App/Resources/Assets.xcassets/meadow-beach-shell.imageset/Contents.json",
+      "files": [
+        {
+          "filename": "meadow-beach-shell.png",
+          "path": "App/Resources/Assets.xcassets/meadow-beach-shell.imageset/meadow-beach-shell.png",
+          "exists": true,
+          "bytes": 1438990,
+          "sha256": "6507aa39b38bde9d40002e8bc1f3b3e5ce7c510caf06153562e69b7dc4c16d19",
+          "png_dimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "byte_identical_reference_files": [],
+          "filename_candidates_not_verified": []
+        }
+      ]
+    },
+    {
+      "name": "meadow-beach-starfish",
+      "category": "Meadow",
+      "kind": "imageset",
+      "contents": "App/Resources/Assets.xcassets/meadow-beach-starfish.imageset/Contents.json",
+      "files": [
+        {
+          "filename": "meadow-beach-starfish.png",
+          "path": "App/Resources/Assets.xcassets/meadow-beach-starfish.imageset/meadow-beach-starfish.png",
+          "exists": true,
+          "bytes": 1243431,
+          "sha256": "09f9ad9ae37487a4c773968cf0fab14440f3328a1a76c48812e98249f70280d2",
+          "png_dimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "byte_identical_reference_files": [],
+          "filename_candidates_not_verified": []
         }
       ]
     },

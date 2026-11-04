@@ -1,0 +1,26 @@
+[
+  {
+    "slot": "meadow-beach-starfish",
+    "source": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-16b4ac88-16a7-4fbd-a4f2-f981659435db.png",
+    "production": "App/Resources/Assets.xcassets/meadow-beach-starfish.imageset/meadow-beach-starfish.png",
+    "dimensions": [
+      1254,
+      1254
+    ],
+    "sha256": "09f9ad9ae37487a4c773968cf0fab14440f3328a1a76c48812e98249f70280d2",
+    "unmodified": true,
+    "pngColorType": "RGBA"
+  },
+  {
+    "slot": "meadow-beach-shell",
+    "source": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-5ca5d4c3-1aca-4531-bdb8-a25baf5613d7.png",
+    "production": "App/Resources/Assets.xcassets/meadow-beach-shell.imageset/meadow-beach-shell.png",
+    "dimensions": [
+      1254,
+      1254
+    ],
+    "sha256": "6507aa39b38bde9d40002e8bc1f3b3e5ce7c510caf06153562e69b7dc4c16d19",
+    "unmodified": true,
+    "pngColorType": "RGBA"
+  }
+]

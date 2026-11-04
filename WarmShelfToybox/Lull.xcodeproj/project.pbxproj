@@ -85,6 +85,7 @@
 		F6B25CE4AA7DB14C9EA09BF8 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B74FDD070EBB63916565E6F /* AudioManager.swift */; };
 		F7301A400BB95CE7F0C55CD8 /* SleepyDropBoxScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71007717634DFC15F919643D /* SleepyDropBoxScene.swift */; };
 		FAA16EFC07FAA05D95886AE1 /* HostPreviewScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93C5DAC08D377211FE13A999 /* HostPreviewScene.swift */; };
+		C2F13E517F1B4DEE8BAC384B /* MeadowBeach.swift in Sources */ = {isa = PBXBuildFile; fileRef = C98A28201CED45608642045F /* MeadowBeach.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -168,6 +169,7 @@
 		EF0E10435AAAEE7F271154A0 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		F2B942D594A2F160FF3006FE /* DropDotsScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropDotsScene.swift; sourceTree = "<group>"; };
 		F7753DDA6167C450EA936373 /* StackScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StackScene.swift; sourceTree = "<group>"; };
+		C98A28201CED45608642045F /* MeadowBeach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeadowBeach.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -204,6 +206,7 @@
 		0DB3AA04F0F891ADDD36CA16 /* Meadow */ = {
 			isa = PBXGroup;
 			children = (
+				C98A28201CED45608642045F /* MeadowBeach.swift */,
 				1A41608927FF86FCEF51DC8C /* MeadowLittleOnes.swift */,
 				A69D78C33FF7AEE923D4E1F8 /* MeadowScene.swift */,
 			);
@@ -620,6 +623,7 @@
 				574673DC3DBD28E1B943F94C /* LullHostNode.swift in Sources */,
 				0C785FA5C83000D952E9092D /* LullOnboardingViewController.swift in Sources */,
 				4678222AD3993CA4F37C4E41 /* LullToneEngine.swift in Sources */,
+				C2F13E517F1B4DEE8BAC384B /* MeadowBeach.swift in Sources */,
 				68A29800673F91E31A774B10 /* MeadowLittleOnes.swift in Sources */,
 				D61B2174011152786A8516B6 /* MeadowScene.swift in Sources */,
 				49C4352487D4B266BEA5B9C4 /* MixUpPart.swift in Sources */,
@@ -659,7 +663,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 20;
+				CURRENT_PROJECT_VERSION = 21;
 				DEVELOPMENT_TEAM = A5CT5FK3SY;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Info.plist;
@@ -805,7 +809,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 20;
+				CURRENT_PROJECT_VERSION = 21;
 				DEVELOPMENT_TEAM = A5CT5FK3SY;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Info.plist;

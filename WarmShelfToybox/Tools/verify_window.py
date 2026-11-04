@@ -35,6 +35,7 @@ def function(marker):
 SWIFT_TEMPLATE = r'''
 import Foundation
 import CoreGraphics
+__CURTAIN_GEOMETRY__
 struct UIEdgeInsets { var top:CGFloat; var left:CGFloat; var bottom:CGFloat; var right:CGFloat }
 enum AmbientAnimator { static var reduceMotion = false }
 struct SKAction {
@@ -142,7 +143,37 @@ check(wrap.dayPhase==0,"night tap did not wrap")
 let releaseOnly=scene();let rc=releaseOnly.dialCenter
 releaseOnly.begin(at:rc);releaseOnly.end(cancelled:false,at:CGPoint(x:rc.x+40,y:rc.y))
 check(releaseOnly.dayPhase==0.2,"missing finalmove event became tap")
-print("PASS \(checks) native checks: safe control bounds, tap/jitter/cancel, hub exit, angular cap, drag ownership, night wrap")
+// Test the production cloth mesh at phone portrait, phone landscape and iPad
+// widths. A held/released hem stays bounded under reversal; the top stays on the rod.
+for width: CGFloat in [366.6, 523.28, 760] {
+ let closed = width * 0.16, open = width * 0.52
+ for opening: CGFloat in [0, 0.15, 0.5, 0.85, 1] {
+  let x = closed + (open - closed) * opening
+  check(abs(WindowCurtainFabric.opening(offset: x, closedOffset: closed, openOffset: open) - opening) < 0.000001, "first drag event jumped openness")
+  for hem: CGFloat in [0, 0.5, 1] {
+   let mesh = WindowCurtainFabric.destinations(open: opening, hem: hem, travelOverWidth: (open - closed) / (width * 0.46))
+   check(mesh.count == 275, "cloth mesh topology changed")
+   let header = Array(mesh.suffix(25))
+   check(header.allSatisfy { abs($0.y - 1) < 0.000001 }, "header detached from rod")
+   for row in 0...10 {
+    for col in 1...24 { check(mesh[row*25+col].x > mesh[row*25+col-1].x, "fold inverted or self-crossed") }
+   }
+   check(mesh.allSatisfy { $0.x.isFinite && $0.y.isFinite && $0.y >= 0 && $0.y <= 1 }, "cloth outside vertical frame")
+  }
+ }
+}
+var hem: CGFloat = 1
+for step in 0..<1000 {
+ let target: CGFloat = step.isMultiple(of: 2) ? 0 : 1
+ hem = WindowCurtainFabric.settledHem(current: hem, target: target, deltaTime: 1.0 / 60, held: true, reduceMotion: false)
+ check((0...1).contains(hem), "rapid reversal escaped opening bounds")
+}
+for _ in 0..<180 { hem = WindowCurtainFabric.settledHem(current: hem, target: 0.4, deltaTime: 1.0 / 60, held: false, reduceMotion: false) }
+check(hem == 0.4, "released curtain never reached rest")
+check(WindowCurtainFabric.settledHem(current: 0, target: 1, deltaTime: 0, held: false, reduceMotion: true) == 1, "Reduce Motion retained lag")
+let pleated = WindowCurtainFabric.destinations(open: 1, hem: 1, travelOverWidth: 0.36 / 0.46)
+check(pleated[1].y > 0.008, "hem folds sampled away")
+print("PASS \(checks) native checks: safe control bounds, tap/jitter/cancel, hub exit, angular cap, drag ownership, night wrap, curtain anchor/folds/reversal/settle")
 
 '''
 
@@ -158,6 +189,7 @@ layout_end += len("        floorTopY = size.height * 0.24")
 radius_line = next(line for line in rebuild.splitlines() if "dialRadius = min(size.width" in line)
 layout = rebuild[layout_start:layout_end] + "\n" + radius_line
 replacements = {
+    "__CURTAIN_GEOMETRY__": "enum WindowCurtainFabric {" + body("enum WindowCurtainFabric") + "}",
     "__GEOMETRY_HELPERS__": helpers,
     "__WINDOW_LAYOUT__": layout,
     "__DIAL_BEGIN__": body("if hypot(pr.x - dialCenter.x, pr.y - dialCenter.y) < dialRadius * 1.35"),

@@ -10,11 +10,14 @@ final class BubbleNode: SKNode {
     let cargo: BubbleCargo?
     var hasPopped = false
     var onPopped: (() -> Void)?
+    var onBirdReleased: ((BubbleBirdNode) -> Void)?
+    private(set) var passenger: BubbleBirdNode?
+    var carriesBird: Bool { passenger != nil }
     var isRare: Bool { style.isRare }
     var isMotherBubble: Bool { style.isMother }
     private let shellLayer = SKNode()
 
-    init(radius: CGFloat, style: BubbleStyle = .pearl, cargo: BubbleCargo? = nil) {
+    init(radius: CGFloat, style: BubbleStyle = .pearl, cargo: BubbleCargo? = nil, carriesBird: Bool = false) {
         self.radius = radius
         self.style = style
         self.cargo = cargo
@@ -22,6 +25,13 @@ final class BubbleNode: SKNode {
         name = "bubble"
         isUserInteractionEnabled = false
         buildBubble()
+        if carriesBird, !style.isMother {
+            let bird = BubbleBirdNode(width: min(57.2, radius * 0.88))
+            bird.zPosition = 2.5 // visible through the film, under its highlights
+            bird.position.y = -radius * 0.06
+            addChild(bird)
+            passenger = bird
+        }
     }
 
     convenience init(radius: CGFloat, isRare: Bool) {
@@ -195,6 +205,16 @@ final class BubbleNode: SKNode {
         // The actual pop visuals, fired after the squash frame.
         let fireVisuals = { [weak self, weak scene] in
             guard let self, let scene else { return }
+            // Move this exact visible node out of its bubble before removing the shell.
+            // There is no random post-pop bird creation, including pressure-wave pops.
+            if let bird = self.passenger {
+                let point = bird.convert(CGPoint.zero, to: scene)
+                bird.removeFromParent()
+                bird.position = point
+                self.passenger = nil
+                self.onBirdReleased?(bird)
+            }
+            self.onBirdReleased = nil
             self.alpha = 0
             TouchFeedbackAnimator.bubblePopRing(in: scene, at: popPoint, radius: self.radius, color: self.style.popColor)
             ParticleManager.bubblePop(
@@ -234,4 +254,50 @@ final class BubbleNode: SKNode {
         }
         return true
     }
+}
+
+/// The same felt bird is carried and released. Wing frames change only its pose;
+/// no complete-body squash is used to suggest flapping.
+final class BubbleBirdNode: SKNode {
+    let flapper = SKNode()
+    let art: SKSpriteNode?
+    let wing: SKNode?
+
+    init(width: CGFloat) {
+        let s = width / 5.2
+        let authoredBird = ToyArt.sprite("bubble-bird", fit: CGSize(width: width, height: width))
+        art = authoredBird
+        if authoredBird != nil {
+            wing = nil
+        } else {
+            let wingNode = SKShapeNode(ellipseOf: CGSize(width: s * 1.2, height: s * 0.8))
+            wingNode.fillColor = UIColor(hex: 0xB06A55)
+            wingNode.strokeColor = .clear
+            wingNode.position = CGPoint(x: -s * 0.25, y: s * 0.15)
+            wing = wingNode
+        }
+        super.init()
+        addChild(flapper)
+        if let art {
+            flapper.addChild(art)
+        } else {
+            let body = SKShapeNode(ellipseOf: CGSize(width: s * 2.2, height: s * 1.6))
+            body.fillColor = UIColor(hex: 0xC9836B)
+            body.strokeColor = .clear
+            flapper.addChild(body)
+            let belly = SKShapeNode(ellipseOf: CGSize(width: s * 1.2, height: s * 0.9))
+            belly.fillColor = UIColor(hex: 0xF2E0C8)
+            belly.strokeColor = .clear
+            belly.position = CGPoint(x: s * 0.2, y: -s * 0.3)
+            flapper.addChild(belly)
+            let eye = SKShapeNode(circleOfRadius: s * 0.13)
+            eye.fillColor = WarmShelfPalette.cocoa.withAlpha(0.85)
+            eye.strokeColor = .clear
+            eye.position = CGPoint(x: s * 0.75, y: s * 0.25)
+            flapper.addChild(eye)
+            if let wing { flapper.addChild(wing) }
+        }
+    }
+
+    required init?(coder aDecoder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 }

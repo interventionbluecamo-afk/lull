@@ -44,6 +44,7 @@ final class HumObjectNode: SKNode {
     private let heldGlowKey = "hum.heldGlow"
     private let barRipple = SKShapeNode(rect: CGRect(x: -25, y: -77, width: 50, height: 154), cornerRadius: 20)
     private var heldIntensity: CGFloat = 1
+    private var strikeMallet: SKSpriteNode?
 
     init(kind: ObjectKind, pitchIndex: Int, sizeScale: CGFloat = 1.0, widthScale: CGFloat? = nil, tint: UIColor? = nil) {
         self.kind = kind
@@ -90,6 +91,17 @@ final class HumObjectNode: SKNode {
             sizeRoot.addChild(barRipple)
         }
         buildFace()
+        if kind == .bar, let mallet = ToyArt.sprite("hum-mallet", fit: CGSize(width: 42, height: 42)) {
+            // The existing felt head is at (150, 145) on its 968×743 canvas, y down.
+            // Anchor contact there, keeping its rigid shaft outside the key's face.
+            mallet.anchorPoint = CGPoint(x: 0.155, y: 0.805)
+            mallet.position = CGPoint(x: 0, y: 44)
+            mallet.xScale = sizeRoot.yScale / sizeRoot.xScale
+            mallet.zPosition = 20
+            mallet.alpha = 0
+            sizeRoot.addChild(mallet)
+            strikeMallet = mallet
+        }
         startResting()
     }
 
@@ -345,14 +357,15 @@ final class HumObjectNode: SKNode {
     }
 
     private func showEyes(open: Bool, duration: TimeInterval) {
-        let duration = AmbientAnimator.reduceMotion ? 0 : duration
+        let reduced = AmbientAnimator.reduceMotion
+        let duration = reduced ? min(duration, 0.3) : duration
         for eye in sleepyEyes {
             eye.removeAction(forKey: "hum.eye.sleepy")
             eye.run(.fadeAlpha(to: open ? 0 : 1, duration: duration), withKey: "hum.eye.sleepy")
         }
         for eye in openEyes {
             eye.removeAction(forKey: "hum.eye.open")
-            let scale = SKAction.scaleY(to: open ? 1 : 0.01, duration: duration)
+            let scale = SKAction.scaleY(to: reduced ? 1 : (open ? 1 : 0.01), duration: duration)
             scale.timingMode = open ? .easeOut : .easeInEaseOut
             let fade = SKAction.fadeAlpha(to: open ? 1 : 0, duration: duration)
             eye.run(.group([scale, fade]), withKey: "hum.eye.open")
@@ -405,11 +418,12 @@ final class HumObjectNode: SKNode {
 
     private func showMouth(singing: Bool, duration: TimeInterval) {
         if singing { configureAwakeExpression() }
-        let duration = AmbientAnimator.reduceMotion ? 0 : duration
+        let reduced = AmbientAnimator.reduceMotion
+        let duration = reduced ? min(duration, 0.3) : duration
         mouthRest?.removeAction(forKey: "hum.mouth.rest")
         mouthOpen?.removeAction(forKey: "hum.mouth.open")
         mouthRest?.run(.fadeAlpha(to: singing ? 0 : 1, duration: duration), withKey: "hum.mouth.rest")
-        let openScale = SKAction.scale(to: singing ? 1 : 0.12, duration: duration)
+        let openScale = SKAction.scale(to: reduced ? 1 : (singing ? 1 : 0.12), duration: duration)
         openScale.timingMode = singing ? .easeOut : .easeInEaseOut
         let openFade = SKAction.fadeAlpha(to: singing ? 1 : 0, duration: duration)
         mouthOpen?.run(.group([openScale, openFade]), withKey: "hum.mouth.open")
@@ -500,6 +514,8 @@ final class HumObjectNode: SKNode {
         heldIntensity = HumStrikeExpression.clampedIntensity(intensity)
         removeAction(forKey: breatheKey)
         bodyNode.removeAction(forKey: breatheKey)
+        bodyNode.removeAction(forKey: bodyPulseKey)
+        if kind == .bar { bodyNode.setScale(1) }
         removeAction(forKey: restRestartKey)
         removeAction(forKey: sighKey)
         removeAction(forKey: "returnHome")
@@ -521,7 +537,12 @@ final class HumObjectNode: SKNode {
                 .rotate(toAngle: 0, duration: motion.duration)
             ])
             press.timingMode = .easeOut
-            artRoot.run(press, withKey: barMotionKey)
+            // Cancel/reuse one articulated response; another touch never queues a wobble.
+            let recover = SKAction.group([.move(to: .zero, duration: 0.72),
+                                           .scale(to: 1, duration: 0.72)])
+            recover.timingMode = .easeInEaseOut
+            artRoot.run(.sequence([press, recover]), withKey: barMotionKey)
+            playMalletStrike(depth: motion.depth, contactDuration: motion.duration)
             startHeldGlow()
         } else {
             glowNode.run(.fadeAlpha(to: 1, duration: 0.18), withKey: heldGlowKey)
@@ -544,12 +565,16 @@ final class HumObjectNode: SKNode {
         glowNode.removeAction(forKey: heldGlowKey)
         stopShimmer(resetFace: false)
         removeAction(forKey: faceRestKey)
-        run(.sequence([.wait(forDuration: 0.32), .run { [weak self] in
+        // The held note uses toneDecay on release; its face exhales through that
+        // same tail. Quick taps remain readable before the slower fade to rest.
+        let decay = HumStrikeExpression.settleDuration(toneDecay: toneDecay)
+        let noticeHold: TimeInterval = 0.18
+        run(.sequence([.wait(forDuration: noticeHold), .run { [weak self] in
             guard let self, !self.isHeld else { return }
-            self.showEyes(open: false, duration: 0.28)
-            self.showMouth(singing: false, duration: 0.34)
+            self.showEyes(open: false, duration: decay - noticeHold)
+            self.showMouth(singing: false, duration: decay - noticeHold)
         }]), withKey: faceRestKey)
-        glowNode.run(.fadeOut(withDuration: 0.42), withKey: heldGlowKey)
+        glowNode.run(.fadeOut(withDuration: decay), withKey: heldGlowKey)
 
         if kind == .bar {
             artRoot.removeAction(forKey: idleKey)
@@ -561,19 +586,17 @@ final class HumObjectNode: SKNode {
                 artRoot.setScale(1)
                 bodyNode.setScale(1)
             } else {
-                let lift = SKAction.group([
-                    .move(to: CGPoint(x: 0, y: 2 + heldIntensity), duration: 0.16),
-                    .scaleX(to: 0.99, y: 1.025, duration: 0.16)
-                ])
+                // Release has no extra bounce: the tiny strike already supplied the
+                // deflection. Return from its current pose without widening the key.
                 let settle = SKAction.group([
-                    .move(to: .zero, duration: 0.24),
-                    .scale(to: 1, duration: 0.24)
+                    .move(to: .zero, duration: 0.72),
+                    .scale(to: 1, duration: 0.72),
+                    .rotate(toAngle: 0, duration: 0.72)
                 ])
-                lift.timingMode = .easeOut
                 settle.timingMode = .easeInEaseOut
-                artRoot.run(.sequence([lift, settle]), withKey: barMotionKey)
+                artRoot.run(settle, withKey: barMotionKey)
             }
-            run(.sequence([.wait(forDuration: 0.48), .run { [weak self] in
+            run(.sequence([.wait(forDuration: decay), .run { [weak self] in
                 self?.startResting()
             }]), withKey: restRestartKey)
             return
@@ -589,6 +612,23 @@ final class HumObjectNode: SKNode {
         run(.sequence([.wait(forDuration: 1), .run { [weak self] in
             self?.startResting()
         }]), withKey: restRestartKey)
+    }
+
+    private func playMalletStrike(depth: CGFloat, contactDuration: TimeInterval) {
+        guard let mallet = strikeMallet else { return }
+        mallet.removeAllActions()
+        mallet.alpha = 1
+        mallet.position = CGPoint(x: 0, y: 44)
+        mallet.zRotation = 0
+        if AmbientAnimator.reduceMotion {
+            mallet.run(.sequence([.wait(forDuration: 0.12), .fadeOut(withDuration: 0.24)]), withKey: "strike")
+            return
+        }
+        let contact = SKAction.moveTo(y: 44 - depth, duration: contactDuration)
+        contact.timingMode = .easeOut
+        let lift = SKAction.moveTo(y: 49, duration: 0.28)
+        lift.timingMode = .easeInEaseOut
+        mallet.run(.sequence([contact, .group([lift, .fadeOut(withDuration: 0.28)])]), withKey: "strike")
     }
 
     private func startHeldGlow() {
@@ -624,7 +664,7 @@ final class HumObjectNode: SKNode {
                 barRipple.run(.group([expand, fade]), withKey: "hum.ripple")
             }
         }
-        if !AmbientAnimator.reduceMotion {
+        if kind != .bar, !AmbientAnimator.reduceMotion {
             let bodyUp = SKAction.scale(to: 1 + 0.035 * intensity, duration: 0.10)
             let bodyDown = SKAction.scale(to: 1, duration: 0.30)
             bodyUp.timingMode = .easeOut
@@ -651,6 +691,8 @@ final class HumObjectNode: SKNode {
         bodyNode.removeAllActions()
         glowNode.removeAllActions()
         barRipple.removeAllActions()
+        strikeMallet?.removeAllActions()
+        strikeMallet?.alpha = 0
         position = homePosition
         setScale(1)
         artRoot.position = .zero
@@ -840,11 +882,15 @@ enum HumStrikeExpression {
         return clampedIntensity(0.88 + speed * 0.35 + cadence * 0.22)
     }
 
+    static func settleDuration(toneDecay: TimeInterval) -> TimeInterval {
+        toneDecay.isFinite ? min(1.8, max(0.8, toneDecay)) : 1.8
+    }
+
     static func press(intensity: CGFloat, reduceMotion: Bool) -> Press {
         let intensity = clampedIntensity(intensity)
-        return Press(depth: reduceMotion ? 0 : 6 + intensity * 5,
-                     widthScale: reduceMotion ? 1 : 1 + intensity * 0.035,
-                     heightScale: reduceMotion ? 1 : 1 - intensity * 0.065,
+        return Press(depth: reduceMotion ? 0 : 1.4 + intensity * 1.2,
+                     widthScale: 1,
+                     heightScale: reduceMotion ? 1 : 1 - intensity * 0.008,
                      duration: reduceMotion ? 0 : 0.065)
     }
 }

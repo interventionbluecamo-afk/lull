@@ -1,0 +1,69 @@
+[
+  {
+    "asset": "wash-bay-clean",
+    "source": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-5463938c-d638-4647-ae51-fb9ad0816f3f.png",
+    "production": "App/Resources/Assets.xcassets/wash-bay-clean.imageset/wash-bay-clean.png",
+    "dimensions": [
+      1448,
+      1086
+    ],
+    "sha256": "5e0c79ffb0cdd40a515ba95e9a6398632c7e8a3ec8cc01052a6991b290a02452",
+    "processing": "Unmodified imagegen output copied to asset catalog"
+  },
+  {
+    "asset": "wash-bay-portrait-clean",
+    "source": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-74da928b-3e4d-442b-ab54-1e32f80ddf49.png",
+    "production": "App/Resources/Assets.xcassets/wash-bay-portrait-clean.imageset/wash-bay-portrait-clean.png",
+    "dimensions": [
+      887,
+      1774
+    ],
+    "sha256": "3727c89c413ff7c3b240645ae399f017c189c8398a85f4efd36e0b1f8bc9a6e5",
+    "processing": "Unmodified imagegen output copied to asset catalog"
+  },
+  {
+    "asset": "wash-brush-tuft",
+    "source": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-485ab14c-a71d-4b03-a1c3-4b02aaabd4e5.png",
+    "production": "App/Resources/Assets.xcassets/wash-brush-tuft.imageset/wash-brush-tuft.png",
+    "dimensions": [
+      1254,
+      1254
+    ],
+    "sha256": "1b4b1c1d3f0092ea29513274b179abf8d21f49716b73f1f54218dd989ac467e9",
+    "processing": "Unmodified imagegen output copied to asset catalog",
+    "firstCandidate": {
+      "asset": "wash-brush-tuft",
+      "source": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-27c48459-aa6f-4713-8481-a427e224eb78.png",
+      "production": null,
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "sha256": "55542caf1da96918a514c116a8707d69984ae0231031594d617d18893f3ee3a9",
+      "processing": "Unmodified imagegen output copied to asset catalog",
+      "archive": "Docs/Art/Materials-Motion-2026-11-03/Source/wash-brush-tuft-color-study.png"
+    }
+  },
+  {
+    "asset": "meadow-leaf-house-base",
+    "source": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-afb84c74-130e-48e2-b6bf-014460969c35.png",
+    "production": "App/Resources/Assets.xcassets/meadow-leaf-house-base.imageset/meadow-leaf-house-base.png",
+    "dimensions": [
+      1345,
+      1169
+    ],
+    "sha256": "1806b9667de9670ce64b72347d7df6619242d5f171cd0d813744c909739df327",
+    "processing": "Unmodified imagegen output copied to asset catalog"
+  },
+  {
+    "asset": "meadow-leaf-house-roof",
+    "source": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-ef2a9034-ac07-4de5-85c8-46cc3087f5f9.png",
+    "production": "App/Resources/Assets.xcassets/meadow-leaf-house-roof.imageset/meadow-leaf-house-roof.png",
+    "dimensions": [
+      1345,
+      1169
+    ],
+    "sha256": "00d5645975753cf86cf9db274963f4fb035b4b906c12b64b2c7a1eb9d874247a",
+    "processing": "Unmodified imagegen output copied to asset catalog"
+  }
+]

@@ -14,6 +14,7 @@ Updated November 3, 2026. Existing production paths and asset-slot names are pre
 
 ## Current passes
 
+- [`Materials-Motion-2026-11-03/`](Materials-Motion-2026-11-03/): November 3–4 approved nine-toy implementation, separate Wash brushes and Meadow roof, generation prompts/provenance, scoped verification and restart notes.
 - [`Meadow-Materials-2026-11-03/`](Meadow-Materials-2026-11-03/): new overhead leaf shelter, shared material lighting and actual scene previews. Includes exact `Prompt.json`, source decisions, the nine-toy roadmap and the build handoff.
 - [`Meadow-2026-11-03/`](Meadow-2026-11-03/): continuous felt ground, curled hedgehog, prompts and first-pass rationale.
 - [`Wash-2026-11-03/`](Wash-2026-11-03/): portrait wash bay prompt and integration notes.

@@ -35,6 +35,7 @@ final class MeadowScene: BaseToyScene {
     // MARK: - World
     private let worldNode = SKNode()      // everything lives here; scrolls opposite the snail
     private let groundLayer = SKNode()
+    private let groundDetailLayer = SKNode()
     private let springLayer = SKNode()    // painted spring patches
     private let trailLayer = SKNode()
     private let lifeLayer = SKNode()      // flowers, butterflies
@@ -128,12 +129,20 @@ final class MeadowScene: BaseToyScene {
         worldNode.zPosition = 1
         groundLayer.zPosition = 0;  worldNode.addChild(groundLayer)
         springLayer.zPosition = 2;  worldNode.addChild(springLayer)
+        groundDetailLayer.zPosition = 3; worldNode.addChild(groundDetailLayer)
         trailLayer.zPosition = 4;   worldNode.addChild(trailLayer)
         lifeLayer.zPosition = 6;    worldNode.addChild(lifeLayer)
         snailLayer.zPosition = 9;   worldNode.addChild(snailLayer)
         goldenVeil.zPosition = 30
         addChild(goldenVeil)
         rebuild()
+    }
+
+    override func teardownToyAudio() {
+        super.teardownToyAudio()
+        leadTouch = nil
+        snailTarget = nil
+        littleOnes?.resetTransientFeedback()
     }
 
     override func didChangeSize(_ oldSize: CGSize) {
@@ -179,7 +188,7 @@ final class MeadowScene: BaseToyScene {
         guard size.width > 160, size.height > 160 else { return }
         lastBuiltSize = size
         removeAction(forKey: "meadow.dandelionOffer")
-        [groundLayer, springLayer, trailLayer, lifeLayer, snailLayer].forEach { $0.removeAllChildren() }
+        [groundLayer, groundDetailLayer, springLayer, trailLayer, lifeLayer, snailLayer].forEach { $0.removeAllChildren() }
         flowers.removeAll(); butterflies.removeAll(); landmarks.removeAll()
         springPaths.removeAll(); trailPoints.removeAll(); trailNode = nil
         trailHalo = nil; petalBudget = 0
@@ -200,6 +209,7 @@ final class MeadowScene: BaseToyScene {
         buildSpringSurface()
         if snap == nil { buildHomeSpring() }   // a restored garden brings its own home
         buildLandmarks()
+        buildGroundDetails()
         buildSnail()
         buildFlowerTrail()
         buildLittleOnes(restoring: snap?.littleOnes)
@@ -337,6 +347,49 @@ final class MeadowScene: BaseToyScene {
                 pebble.position = p
                 pebble.zPosition = 0.2
                 groundLayer.addChild(pebble)
+            }
+        }
+    }
+
+    /// Small resting clusters give the stretches between discoveries a handmade scale.
+    /// They sit below all painted flowers/trails, own no touches, and have no idle actions.
+    private func buildGroundDetails() {
+        let clusters = MeadowGroundDetails.layout(worldSize: worldSize,
+            homeRadius: min(size.width, size.height) * 0.30,
+            avoid: landmarks.map { $0.position }, seed: littleOnesSeed)
+        for cluster in clusters {
+            let root = SKNode()
+            root.position = cluster.position
+            root.zRotation = cluster.turn
+            groundDetailLayer.addChild(root)
+            if cluster.style != 1 {
+                for index in 0..<2 {
+                    if let leaf = ToyArt.sprite("meadow-hide-leaf", fit: CGSize(width: 25, height: 25)) {
+                        MeadowMaterialLight.apply(to: leaf, night: isNight)
+                        leaf.position = CGPoint(x: index == 0 ? -10 : 7, y: index == 0 ? -4 : 5)
+                        leaf.zRotation = index == 0 ? -0.6 : 1.2
+                        root.addChild(leaf)
+                    }
+                }
+            }
+            if cluster.style == 0 {
+                if let flower = ToyArt.sprite("meadow-rosette", fit: CGSize(width: 16, height: 16)) {
+                    MeadowMaterialLight.apply(to: flower, night: isNight)
+                    flower.position = CGPoint(x: 12, y: -10)
+                    root.addChild(flower)
+                }
+            } else {
+                // No sleeping faces on scenery: the larger authored pebble friends remain
+                // discoverable landmarks. These two small stones only ground the plants.
+                for index in 0..<2 {
+                    let size = CGSize(width: index == 0 ? 15 : 10, height: index == 0 ? 11 : 8)
+                    let pebble = SKShapeNode(ellipseOf: size)
+                    pebble.strokeColor = .clear
+                    let color = MeadowMaterialLight.flowerColor(UIColor(hex: index == 0 ? 0xBDB7A2 : 0xA8AC98), night: isNight)
+                    ProceduralTexture.applyClayFill(to: pebble, base: color, size: size)
+                    pebble.position = CGPoint(x: index == 0 ? -7 : 7, y: cluster.style == 1 ? 0 : -13)
+                    root.addChild(pebble)
+                }
             }
         }
     }
@@ -838,7 +891,8 @@ final class MeadowScene: BaseToyScene {
 
         if let littleOnes {
             answerLittleOnes(littleOnes.step(mother: snail.position, heading: snail.zRotation,
-                                             flowers: flowerTrail.positions, dt: dt))
+                                             flowers: flowerTrail.positions,
+                                             visibleWorld: CGRect(origin: worldNode.convert(.zero, from: self), size: size), dt: dt))
         }
 
         // The camera drifts after the snail — soft lag, never a hard lock — and stops at the

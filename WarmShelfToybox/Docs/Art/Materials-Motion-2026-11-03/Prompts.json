@@ -1,0 +1,30 @@
+{
+  "tool": "Built-in imagegen",
+  "wash": [
+    {
+      "key": "washLandscape",
+      "ref": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/App/Resources/Assets.xcassets/wash-bay.imageset/wash-bay.png",
+      "prompt": "Use case: precise-object-edit. Asset: clean LANDSCAPE 4:3 background plate for Lull's Little Wash. Edit the supplied image. REMOVE ONLY the hanging wool/felt brush strands on the far left and far right. Reveal continuous sage felt wall behind them; show a slim neutral vertical spindle connecting the existing upper wooden cap to the existing bottom wooden base. Preserve exactly the original straight-on shallow elevated camera, top wooden pipe, five blue shower heads, metal supports, upper wooden brush caps, lower brush bases, perspective and horizontal wall/floor junction at 61.5% from top. Preserve all wood floor boards, drain at left at 79% from top, soft light from upper left and color palette. Keep entire original composition and 4:3 framing. Do NOT move, resize or redesign the room. No fibres remain anywhere. No extra props, labels or text. This is the quiet background; separate animated fibres will be composited later."
+    },
+    {
+      "key": "washPortrait",
+      "ref": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/App/Resources/Assets.xcassets/wash-bay-portrait.imageset/wash-bay-portrait.png",
+      "prompt": "Use case: precise-object-edit. Asset: clean PORTRAIT 1:2 background plate for Lull's Little Wash. Edit the supplied image. REMOVE ONLY the hanging wool/felt brush strands on the far left and far right. Reveal continuous sage felt wall behind them; show a slim neutral vertical spindle connecting the existing upper wooden cap to the existing bottom wooden base. Preserve exactly the original straight-on shallow elevated camera, top wooden pipe, three blue shower heads, metal supports, upper wooden brush caps, lower brush bases, perspective and horizontal wall/floor junction at 45.2% from top. Preserve the warm wood floor boards, drain centered at x18% y74.5% from top, soft light from upper left and palette. Keep entire original composition and 1:2 framing. Do NOT move, resize or redesign the room. No fibres remain anywhere. No extra props, labels or text. This is a quiet background; separate animated fibres will be composited later."
+    },
+    {
+      "key": "washBrush",
+      "ref": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/App/Resources/Assets.xcassets/wash-bay.imageset/wash-bay.png",
+      "prompt": "Use case: stylized-concept. Supporting STYLE REFERENCE is the supplied Lull wash room; do not reproduce the room. Generate ONE isolated small cluster of three hanging felt/wool brush fingers, genuine transparent background, no base, pole, cap, shadow or backdrop. Front-facing orthographic camera, no side turn, no overhead top surface. The three long soft flattened rounded strips hang from the same narrow seam at top center, widening gently toward rounded lower tips. Colors warm cream, muted butter yellow and a little faded terracotta; match the broad matted wool in the reference without excessive hair or noise. Soft neutral light from upper left, matte, chunky legible handmade forms. Three fingers form a single reusable brush tuft, not a whole column. Object fills x20-80%, y8-92% of a square canvas; top attachment around x50% y8%, lower tips at y92%. Transparent space around and between separated tips. No stitching clutter, shiny plastic, text, labels or water."
+    }
+  ],
+  "meadow": [
+    {
+      "key": "meadowBase",
+      "prompt": "Use case: precise-object-edit. This is a registered sprite layer extraction for an existing iOS game. Input image is the EDIT TARGET, a small overhead felt leaf shelter. Preserve its exact 1345 by 1169 canvas, transparent exterior, overhead camera, location, proportions, lighting, stitching and colors. Remove ONLY the large foreground/right roof leaf including its curled stem. Keep the rear-left leaf exactly in place. Behind the removed leaf reveal a subdued dark brown felt interior, occupying the shelter footprint; preserve the bottom doorway at x=0.485 of canvas, y=0.84 from top. The output is the BASE UNDERLAY which will be covered by a separate copy of the original front roof leaf. Do not create a new house, pedestal, steps, flowers or new walls. No cast shadow outside the shelter, no text. Do not crop or center the remaining leaf. Keep original registration with empty alpha space wherever exterior was transparent."
+    },
+    {
+      "key": "meadowRoof",
+      "prompt": "Use case: background-extraction. This is a registered sprite layer extraction for an existing iOS game. Input image is the EDIT TARGET, a small overhead felt leaf shelter. Preserve its exact 1345 by 1169 canvas, overhead camera, location, proportions, lighting, stitching and colors. Keep ONLY the large foreground/right roof leaf with its curled upper-right stem, exactly where it is in the original frame. Remove the rear-left leaf and dark brown doorway/interior entirely to genuine transparency. The front leaf seam follows roughly pixel (255,440) to (245,690) to (480,870) to (605,905) to (875,1075); the front leaf is on the RIGHT/ABOVE this edge. Do not fill the removed area or invent new parts. Do not crop, resize, recenter or change the foreground leaf. No cast shadow outside the leaf. Output a transparent registered layer of this single leaf only, with the rest of the original canvas transparent. No text."
+    }
+  ]
+}

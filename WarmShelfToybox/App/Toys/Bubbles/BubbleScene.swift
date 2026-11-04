@@ -9,6 +9,7 @@ final class BubbleScene: BaseToyScene {
     private var lastSpawnX: CGFloat = -999   // anti-queue: weather never files in line
     private var bubbleLayer = SKNode()
     private var ambientLayer = SKNode()
+    private var birdLayer = SKNode()
     private var totalPopCount = 0
     private var trackedLiveBubbleCount = 0
     private var liveBubbles: [BubbleNode] = []
@@ -26,6 +27,7 @@ final class BubbleScene: BaseToyScene {
         let yRatio: CGFloat
         let alpha: CGFloat
         let zPosition: CGFloat
+        let carriesBird: Bool
     }
 
     override func didMove(to view: SKView) {
@@ -38,6 +40,19 @@ final class BubbleScene: BaseToyScene {
         super.didChangeSize(oldSize)
         let snapshots = snapshotBubbles(oldSize: oldSize)
         rebuildWorld(preserving: snapshots)
+    }
+
+    override func teardownToyAudio() {
+        super.teardownToyAudio()
+        // Departures are finite; a pause or background cannot resume a half-flight.
+        birdLayer.removeAllChildren()
+        // Finish any 48 ms shell pop before pausing; it must not release a delayed
+        // passenger after the child returns from rest.
+        bubbleLayer.children.compactMap { $0 as? BubbleNode }.filter { $0.hasPopped }.forEach {
+            $0.onBirdReleased = nil
+            $0.removeAllActions()
+            $0.removeFromParent()
+        }
     }
 
     override func update(_ currentTime: TimeInterval) {
@@ -88,6 +103,11 @@ final class BubbleScene: BaseToyScene {
 
         bubbleLayer.removeFromParent()
         ambientLayer.removeFromParent()
+        birdLayer.removeAllChildren()
+        birdLayer.removeFromParent()
+        birdLayer = SKNode()
+        birdLayer.zPosition = 80
+        addChild(birdLayer)
         trackedLiveBubbleCount = 0
         liveBubbles.removeAll()
 
@@ -200,65 +220,28 @@ final class BubbleScene: BaseToyScene {
         }
     }
 
-    /// The passenger: a tiny felt bird flutters free of a popped bubble and flies
-    /// away — blink and you miss it, which is the point.
-    ///
-    /// Founder, build 5: "a more natural bird effect visually". Small songbirds fly in bounds:
-    /// a burst of wingbeats lifts them, then a short glide with folded wings lets them dip, so the
-    /// path undulates while the body stays rigid and pitches with the climb. The old flight
-    /// squashed the whole bird to fake flapping. If wing frames exist (`bubble-bird-down`, and
-    /// optionally `bubble-bird-glide`, drawn on the same canvas as `bubble-bird`), they beat
-    /// during each burst; prompts in Docs/Polish-2026-10-09/Art-prompts.md.
-    private func releaseBubbleBird(from p: CGPoint) {
-        let s: CGFloat = 11
-        let dir: CGFloat = p.x > size.width / 2 ? -1 : 1   // fly toward the nearer edge
-        let bird = SKNode()
-        let flapper = SKNode()   // the visual — pops in, independent of facing & flight
-        bird.addChild(flapper)
-        let fit = CGSize(width: s * 5.2, height: s * 5.2)
-        let art = ToyArt.sprite("bubble-bird", fit: fit)
+    /// A passenger that was visible inside the bubble now flies free. Its shape and
+    /// size remain continuous across the pop; only its parent changes.
+    private func releaseBubbleBird(_ bird: BubbleBirdNode) {
+        let p = bird.position
+        let dir: CGFloat = bird.xScale < 0 ? -1 : 1 // the visible passenger already faces this way
+        let art = bird.art
+        let wing = bird.wing
         let upFrame = art?.texture
         let downFrame = ToyArt.texture("bubble-bird-down")
         let glideFrame = ToyArt.texture("bubble-bird-glide")
-        let wing: SKNode?
-        if let art {
-            art.zPosition = 0
-            flapper.addChild(art)
-            wing = nil
-        } else {
-            let body = SKShapeNode(ellipseOf: CGSize(width: s * 2.2, height: s * 1.6))
-            body.fillColor = UIColor(hex: 0xC9836B)
-            body.strokeColor = .clear
-            flapper.addChild(body)
-            let belly = SKShapeNode(ellipseOf: CGSize(width: s * 1.2, height: s * 0.9))
-            belly.fillColor = UIColor(hex: 0xF2E0C8)
-            belly.strokeColor = .clear
-            belly.position = CGPoint(x: -s * 0.2, y: -s * 0.3)
-            flapper.addChild(belly)
-            let eye = SKShapeNode(circleOfRadius: s * 0.13)
-            eye.fillColor = WarmShelfPalette.cocoa.withAlpha(0.85)
-            eye.strokeColor = .clear
-            eye.position = CGPoint(x: -s * 0.75, y: s * 0.25)
-            flapper.addChild(eye)
-            let wingNode = SKShapeNode(ellipseOf: CGSize(width: s * 1.2, height: s * 0.8))
-            wingNode.fillColor = UIColor(hex: 0xB06A55)
-            wingNode.strokeColor = .clear
-            wingNode.position = CGPoint(x: s * 0.25, y: s * 0.15)
-            flapper.addChild(wingNode)
-            wing = wingNode
+        bird.xScale = dir
+        bird.zPosition = 0
+        birdLayer.addChild(bird)
+        if AmbientAnimator.reduceMotion {
+            bird.run(.sequence([.wait(forDuration: 0.16), .fadeOut(withDuration: 0.65), .removeFromParent()]))
+            return
         }
-
-        bird.position = p
-        bird.zPosition = 60
-        bird.xScale = dir        // FACE the way she flies (the art faces +x; left flips it)
-        flapper.setScale(0.3)
-        addChild(bird)
-        flapper.run(.scale(to: 1.0, duration: 0.16))   // she pops free of the bubble
 
         let startP = p
         let outX = dir * size.width * 0.62
         let climb = size.height * 0.4
-        let dur = 2.3
+        let dur = 2.8
         let reduceMotion = AmbientAnimator.reduceMotion
         // Five bounds: a flapping rise for 58% of each, then a folded-wing dip.
         let bounds = 5.0, flapShare = 0.58, beatsPerSecond = 9.0
@@ -337,7 +320,8 @@ final class BubbleScene: BaseToyScene {
                 xRatio: (bubble.position.x / oldSize.width).clamped(to: 0...1),
                 yRatio: (bubble.position.y / oldSize.height).clamped(to: -0.2...1.2),
                 alpha: bubble.alpha,
-                zPosition: bubble.zPosition
+                zPosition: bubble.zPosition,
+                carriesBird: bubble.carriesBird
             )
         }
     }
@@ -403,6 +387,13 @@ final class BubbleScene: BaseToyScene {
     /// Occasional surprises keep the same quiet frequency from the first touch onward.
     /// Playing longer never increases bird odds or shortens the mother-bubble interval.
     private let birdOdds = 12
+    private let maxBirds = 2
+
+    private var visibleBirdCount: Int {
+        // Include the tiny pop transition after a bubble has left liveBubbles.
+        bubbleLayer.children.compactMap { $0 as? BubbleNode }.filter { $0.carriesBird }.count
+            + birdLayer.children.count
+    }
     private let motherFloor: TimeInterval = 28
 
     private func shouldSpawnMotherBubble(currentTime: TimeInterval) -> Bool {
@@ -423,9 +414,10 @@ final class BubbleScene: BaseToyScene {
         let style: BubbleStyle = forceMother ? .mother : BubbleStyle.random()
         let radius = forceMother ? min(maxRadius * 1.34, min(size.width, size.height) * 0.24) : CGFloat.random(in: 46...maxRadius)
         let displayRadius = style.isRare ? min(radius * (style.isMother ? 1.0 : 1.14), size.width * 0.25) : radius
-        // (Founder, June 14: the falling-leaf/seed cargo read ugly — removed. A little
-        // bird fluttering free on a special pop will replace it once its art lands.)
-        let bubble = BubbleNode(radius: displayRadius, style: style)
+        // Decide at birth, so the child sees the passenger before choosing to pop.
+        let carriesBird = !style.isMother && displayRadius > 64 && visibleBirdCount < maxBirds
+            && Int.random(in: 0..<birdOdds) == 0
+        let bubble = BubbleNode(radius: displayRadius, style: style, carriesBird: carriesBird)
         bubble.alpha = CGFloat.random(in: 0.90...1.0)
 
         let minX = displayRadius
@@ -445,6 +437,7 @@ final class BubbleScene: BaseToyScene {
             spawnY = rimY - displayRadius * 0.3 + CGFloat.random(in: -10...14)
         }
         bubble.position = CGPoint(x: spawnX, y: spawnY)
+        bubble.passenger?.xScale = spawnX > size.width / 2 ? -1 : 1
         bubble.zPosition = CGFloat.random(in: 10...40)
         trackBubbleLifecycle(bubble)
         bubbleLayer.addChild(bubble)
@@ -462,12 +455,13 @@ final class BubbleScene: BaseToyScene {
 
         let maxRadius = min(CGFloat(92), max(CGFloat(42), size.width * 0.18))
         let radius = min(snapshot.radius, maxRadius)
-        let bubble = BubbleNode(radius: radius, style: snapshot.style)
+        let bubble = BubbleNode(radius: radius, style: snapshot.style, carriesBird: snapshot.carriesBird)
         bubble.alpha = snapshot.alpha
         bubble.position = CGPoint(
             x: (size.width * snapshot.xRatio).clamped(to: radius...(size.width - radius)),
             y: size.height * snapshot.yRatio
         )
+        bubble.passenger?.xScale = bubble.position.x > size.width / 2 ? -1 : 1
         bubble.zPosition = snapshot.zPosition
         trackBubbleLifecycle(bubble)
         bubbleLayer.addChild(bubble)
@@ -478,6 +472,7 @@ final class BubbleScene: BaseToyScene {
     private func trackBubbleLifecycle(_ bubble: BubbleNode) {
         liveBubbles.append(bubble)
         trackedLiveBubbleCount = liveBubbles.count
+        bubble.onBirdReleased = { [weak self] bird in self?.releaseBubbleBird(bird) }
         bubble.onPopped = { [weak self, weak bubble] in
             guard let self, let bubble else { return }
             self.unregisterBubble(bubble)
@@ -553,7 +548,6 @@ final class BubbleScene: BaseToyScene {
             screenPoint: popPoint,
             sceneSize: size
         )
-        let wasBig = bubble.radius > 64
         guard bubble.pop(in: self) else { return }
         registerPop()
         if isMother {
@@ -562,10 +556,6 @@ final class BubbleScene: BaseToyScene {
             // is the everyday truth (founder: cascades on every tap read
             // wrong). Her burst staying special is what makes it special.
             chainPop(near: popPoint, excluding: bubble)
-        }
-        // A passenger bird occasionally joins a large pop, at fixed odds.
-        if wasBig, !isMother, Int.random(in: 0..<birdOdds) == 0 {
-            releaseBubbleBird(from: popPoint)
         }
     }
 
@@ -781,23 +771,16 @@ final class BubbleScene: BaseToyScene {
             .prefix(8)
 
         elements.append(contentsOf: bubbles.map { bubble in
-            let popPoint = bubble.convert(CGPoint.zero, to: self)
             return makeActivatableAccessibilityElement(
                 in: view,
-                label: bubble.isRare ? "rare bubble — tap to pop" : "bubble — tap to pop",
+                label: bubble.carriesBird ? "bubble with a little bird — tap to let it fly" :
+                    (bubble.isRare ? "rare bubble — tap to pop" : "bubble — tap to pop"),
                 scenePosition: bubble.position,
                 size: CGSize(width: bubble.radius * 2.4, height: bubble.radius * 2.4),
                 traits: .button
             ) { [weak self, weak bubble] in
                 guard let self, let bubble, !bubble.hasPopped else { return }
-                let isMother = bubble.isMotherBubble
-                if bubble.pop(in: self) {
-                    self.registerPop()
-                    if isMother {
-                        self.releaseBabyBubbles(from: popPoint, color: bubble.style.popColor)
-                        self.chainPop(near: popPoint, excluding: bubble)
-                    }
-                }
+                self.popByHand(bubble)
             }
         })
 

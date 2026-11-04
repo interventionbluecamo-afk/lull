@@ -87,6 +87,9 @@ final class SleepyDropBoxScene: BaseToyScene {
 
     override func didMove(to view: SKView) {
         super.didMove(to: view)
+        NotificationCenter.default.removeObserver(self, name: UIApplication.willResignActiveNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(settleForInterruption),
+                                               name: UIApplication.willResignActiveNotification, object: nil)
         AudioManager.shared.prewarm(prefixes: ["sleepy.", "box."])
         ambientMoteInterval = 1.4
         boxLayer.zPosition = 5; addChild(boxLayer)
@@ -99,6 +102,31 @@ final class SleepyDropBoxScene: BaseToyScene {
     override func didChangeSize(_ oldSize: CGSize) {
         super.didChangeSize(oldSize)
         guard size.width > 160, size.height > 160, boxW > 0 else { return }
+        rebuildPreservingPlay(from: oldSize)
+    }
+
+    override func teardownToyAudio() {
+        super.teardownToyAudio()
+        settleForInterruption()
+    }
+
+    @objc private func settleForInterruption() {
+        guard boxW > 0 else { return }
+        rebuildPreservingPlay(from: size)
+        drawer.position.y = drawerClosedY
+        drawerTargetY = drawerClosedY
+        drawer.removeAllActions()
+        treasures.forEach { $0.settleImmediately() }
+        setBoxMood(.sleepy, animated: false)
+    }
+
+    override func resumeToyAfterRest() {
+        super.resumeToyAfterRest()
+        lastDrawerUpdateTime = nil
+        idleInviteDrawer()
+    }
+
+    private func rebuildPreservingPlay(from oldSize: CGSize) {
         // A rotation keeps posted shapes inside and preserves the child's loose arrangement.
         // Rebuilding the full set also completes a partly animated drawer return safely.
         let savedInside = insideKinds
@@ -683,7 +711,7 @@ final class SleepyDropBoxScene: BaseToyScene {
         body.lineWidth = 2
         body.zPosition = 0
         drawer.addChild(body)
-        SleepyWoodMaterial.apply(to: body, base: woodTop, size: CGSize(width: drawerW, height: drawerH))
+        SleepyWoodMaterial.apply(to: body, base: woodTop, size: CGSize(width: drawerW, height: drawerH), bevel: 0.09)
         // A recessed felt-lined well sunk into the drawer front, with a shaded bottom and a lit near
         // lip — so the drawer reads as a shallow tray that visibly holds the shapes, not a flat patch.
         let wellRect = CGRect(x: -drawerW * 0.4, y: -drawerH * 0.32, width: drawerW * 0.8, height: drawerH * 0.64)
@@ -704,14 +732,14 @@ final class SleepyDropBoxScene: BaseToyScene {
         knobShadow.position = CGPoint(x: 0, y: -drawerH * 0.16); knobShadow.zPosition = 0.9
         drawer.addChild(knobShadow)
         let knob = SKShapeNode(circleOfRadius: drawerH * 0.3)
-        knob.fillColor = woodDark
+        knob.fillColor = woodWarm
         knob.strokeColor = WarmShelfPalette.cocoa.withAlpha(0.22)
         knob.lineWidth = 1.5
         knob.position = CGPoint(x: 0, y: -drawerH * 0.04)
         knob.zPosition = 1
         drawer.addChild(knob)
-        SleepyWoodMaterial.apply(to: knob, base: woodDark,
-                                 size: CGSize(width: drawerH * 0.6, height: drawerH * 0.6))
+        SleepyWoodMaterial.apply(to: knob, base: woodWarm,
+                                 size: CGSize(width: drawerH * 0.6, height: drawerH * 0.6), bevel: 0.13)
         drawerKnobLocalY = -drawerH * 0.04
 
         drawer.position = CGPoint(x: faceCenter.x, y: drawerClosedY)
@@ -746,13 +774,15 @@ final class SleepyDropBoxScene: BaseToyScene {
         dishBack.zPosition = 0.4
         boxLayer.addChild(dishBack)
         SleepyWoodMaterial.apply(to: dishBack, base: woodWarm, size: CGSize(width: dishW, height: dishH))
-        // The hollow interior floor (darker felt) the pieces actually rest on.
+        // The interior is the same birch, shaded by the shallow surrounding wall.
         let dishFloor = SKShapeNode(rect: CGRect(x: -dishW / 2 + 7, y: -dishH * 0.42, width: dishW - 14, height: dishH * 0.74), cornerRadius: dishH * 0.32)
-        dishFloor.fillColor = UIColor(hex: 0x8A5A28).withAlpha(0.4)
+        dishFloor.fillColor = UIColor(hex: 0xC4A27A)
         dishFloor.strokeColor = .clear
         dishFloor.position = dishBack.position
         dishFloor.zPosition = 0.43
         boxLayer.addChild(dishFloor)
+        SleepyWoodMaterial.apply(to: dishFloor, base: UIColor(hex: 0xC4A27A),
+                                 size: CGSize(width: dishW - 14, height: dishH * 0.74), bevel: 0.025)
         // A lit front lip — the dish's near edge catches the light.
         let dishLip = SKShapeNode(rect: CGRect(x: -dishW / 2 + 5, y: -dishH * 0.5 + 3, width: dishW - 10, height: dishH * 0.14), cornerRadius: dishH * 0.07)
         dishLip.fillColor = woodTop
@@ -837,13 +867,15 @@ final class SleepyDropBoxScene: BaseToyScene {
     }
 
     private func boxBodyWobble(_ intensity: CGFloat) {
-        guard !AmbientAnimator.reduceMotion, let face = boxFaceRef else { return }
-        // Scale the front mass in place (it pivots at its own centre) — a soft belly wobble.
-        face.removeAction(forKey: "wobble")
-        let a = 0.03 * intensity
-        face.run(.sequence([
-            .scaleX(to: 1 + a, y: 1 - a, duration: 0.07), .scaleX(to: 1, y: 1, duration: 0.24)
-        ]), withKey: "wobble")
+        guard !AmbientAnimator.reduceMotion, !changingBox else { return }
+        // Wood settles as one rigid object. Move shell, drawer, face and sockets
+        // together instead of stretching the shell underneath its fixed openings.
+        for layer in [frontLayer, panelLayer] {
+            layer.removeAction(forKey: "wood.settle")
+            let land = SKAction.moveTo(y: -min(1.1, intensity * 0.8), duration: 0.08)
+            let rest = SKAction.move(to: .zero, duration: 0.32); rest.timingMode = .easeOut
+            layer.run(.sequence([land, rest]), withKey: "wood.settle")
+        }
     }
 
     private func idleInviteDrawer() {
@@ -854,7 +886,8 @@ final class SleepyDropBoxScene: BaseToyScene {
             guard let self, self.drawerTouch == nil, !self.insideKinds.isEmpty,
                   self.insideKinds.count < self.pieceKinds.count,
                   abs(self.drawer.position.y - self.drawerClosedY) < 1 else { return }
-            self.drawer.run(.sequence([.moveBy(x: 0, y: -4, duration: 0.5), .moveBy(x: 0, y: 4, duration: 0.6)]))
+            self.drawer.run(.sequence([.moveTo(y: self.drawerClosedY - 2, duration: 0.3),
+                                       .moveTo(y: self.drawerClosedY, duration: 0.6)]), withKey: "invite.move")
         }
         drawer.run(.repeatForever(.sequence([.wait(forDuration: 3.4), check])), withKey: "invite")
     }
@@ -888,6 +921,7 @@ final class SleepyDropBoxScene: BaseToyScene {
             if drawerTouch == nil, hypot(p.x - drawer.position.x, p.y - (drawer.position.y + drawerKnobLocalY)) < boxH * 0.16 {
                 removeAction(forKey: "drawer.close")
                 drawer.removeAction(forKey: "tremble")
+                drawer.removeAction(forKey: "invite.move")
                 drawerTouch = touch
                 didTumbleThisPull = false
                 didSlideThisPull = false
@@ -906,12 +940,15 @@ final class SleepyDropBoxScene: BaseToyScene {
             let p = touch.location(in: self)
             if touch == drawerTouch {
                 drawerTargetY = (drawerDragStartY + p.y - drawerTouchStartY).clamped(to: drawerOpenY...drawerClosedY)
+                drawer.position.y = drawerTargetY
+                noticeDrawerPull()
             } else if touch == dragTouch {
                 let inset = pieceRadius * 1.35
                 dragTarget = CGPoint(
                     x: (p.x + dragOffset.x).clamped(to: inset...size.width - inset),
-                    y: (p.y + dragOffset.y + 6).clamped(to: inset...size.height - inset)
+                    y: (p.y + dragOffset.y).clamped(to: inset...size.height - inset)
                 )
+                dragPiece?.position = dragTarget
             }
         }
     }
@@ -964,8 +1001,7 @@ final class SleepyDropBoxScene: BaseToyScene {
         guard touch == dragTouch, let piece = dragPiece else { return }
         dragTouch = nil; dragPiece = nil
         clearHover()
-        // Commit using the last intended center, so a fast drag does not miss merely
-        // because the material's authored follow-through trails the finger slightly.
+        // The last finger-owned center also resolves a quick release between frames.
         if let index = openingForDrop(near: dragTarget, kind: piece.kind) {
             dropPiece(piece, into: index)
         } else if let near = nearestOpening(near: dragTarget) {
@@ -1077,13 +1113,9 @@ final class SleepyDropBoxScene: BaseToyScene {
         case .star:  alignRot = starHoleTilt
         default:     alignRot = 0
         }
-        var pre: SKAction = .group([align, SKAction.rotate(toAngle: alignRot, duration: 0.13)])
-        if kind == .star, !AmbientAnimator.reduceMotion {
-            let wiggle = SKAction.sequence([.rotate(toAngle: starHoleTilt + 0.24, duration: 0.06),
-                                            .rotate(toAngle: starHoleTilt - 0.14, duration: 0.08),
-                                            .rotate(toAngle: starHoleTilt, duration: 0.06)])
-            pre = .group([align, wiggle])
-        }
+        let pre: SKAction = AmbientAnimator.reduceMotion
+            ? .move(to: alignPoint, duration: 0)
+            : .group([align, SKAction.rotate(toAngle: alignRot, duration: 0.13)])
         // Into the hole, not away: once the piece sits snug over its socket it is handed to
         // a crop node cut to the socket's own outline, so it can only ever be seen INSIDE
         // the hole. It then slips back and down into the dark while the cavity's shade
@@ -1108,10 +1140,10 @@ final class SleepyDropBoxScene: BaseToyScene {
             piece.move(toParent: socket)
             piece.zPosition = 1
         }
-        let slip = SKAction.group([
-            .moveBy(x: 0, y: -opening.size.height * 0.34, duration: 0.36),
-            .scale(to: 0.72, duration: 0.36),
-            .sequence([.wait(forDuration: 0.16), .fadeAlpha(to: 0.0, duration: 0.2)])
+        let slip: SKAction = AmbientAnimator.reduceMotion ? .fadeOut(withDuration: 0.22) : .group([
+            .moveBy(x: 0, y: -opening.size.height * 0.34, duration: 0.38),
+            .scale(to: 0.86, duration: 0.38),
+            .sequence([.wait(forDuration: 0.18), .fadeAlpha(to: 0.0, duration: 0.2)])
         ])
         slip.timingMode = .easeIn
         shade.run(.sequence([.wait(forDuration: 0.14), .fadeAlpha(to: 0.85, duration: 0.22)]))
@@ -1135,7 +1167,9 @@ final class SleepyDropBoxScene: BaseToyScene {
     private func drawerTremble() {
         guard !AmbientAnimator.reduceMotion, drawerTouch == nil else { return }
         drawer.removeAction(forKey: "tremble")
-        drawer.run(.sequence([.moveBy(x: 0, y: -3, duration: 0.05), .moveBy(x: 0, y: 3, duration: 0.08)]), withKey: "tremble")
+        let homeY = drawerTargetY
+        let settle = SKAction.moveTo(y: homeY, duration: 0.26); settle.timingMode = .easeOut
+        drawer.run(.sequence([.moveTo(y: homeY - 1.5, duration: 0.07), settle]), withKey: "tremble")
     }
 
     private func flashRim(_ index: Int, hot: Bool) {
@@ -1282,17 +1316,17 @@ final class SleepyDropBoxScene: BaseToyScene {
             self?.returningDestinations.removeValue(forKey: piece.kind)
         }
         if AmbientAnimator.reduceMotion {
-            piece.run(.sequence([appear, .move(to: dest, duration: 0.4),
-                                 .run { [weak piece] in piece?.squash(0.06) }, finishReturn]))
+            piece.position = dest
+            piece.setScale(1)
+            piece.run(.sequence([.fadeIn(withDuration: 0.22), finishReturn]))
             return
         }
-        // Pour out toward the slot, then drop in with a gravity ease, a puff of dust, and a soft
-        // bounce — a satisfying authored tumble that always settles tidy.
-        let above = CGPoint(x: dest.x, y: dest.y + r * 1.3)
+        // A short weighted roll from the drawer, with one small landing and no rubber bounce.
+        let above = CGPoint(x: dest.x, y: dest.y + r * 0.65)
         let toAbove = SKAction.move(to: above, duration: 0.26); toAbove.timingMode = .easeOut
         let drop = SKAction.move(to: dest, duration: 0.17); drop.timingMode = .easeIn
-        let bounce = SKAction.sequence([.moveBy(x: 0, y: r * 0.42, duration: 0.1), .moveBy(x: 0, y: -r * 0.42, duration: 0.13)])
-        let tumbleRot = SKAction.sequence([.rotate(toAngle: CGFloat.random(in: -0.5...0.5), duration: 0.3), .rotate(toAngle: 0, duration: 0.23)])
+        let settle = SKAction.rotate(toAngle: 0, duration: 0.32); settle.timingMode = .easeInEaseOut
+        let tumbleRot = SKAction.sequence([.rotate(toAngle: CGFloat.random(in: -0.16...0.16), duration: 0.25), settle])
         piece.run(.sequence([
             appear,
             .group([tumbleRot, .sequence([toAbove, drop])]),
@@ -1301,7 +1335,6 @@ final class SleepyDropBoxScene: BaseToyScene {
                 piece.squash(0.13)   // the box.open run already sings the treasures out
                 self.spawnMotes(at: piece.position, color: piece.color, count: 3)
             },
-            bounce,
             finishReturn
         ]))
     }
@@ -1319,7 +1352,7 @@ final class SleepyDropBoxScene: BaseToyScene {
         return u * u * a + 2 * u * t * c + t * t * b
     }
 
-    // MARK: - Update (authored drag lag + magnet + drawer friction)
+    // MARK: - Update (direct manipulation + weighted drawer release)
 
     override func update(_ currentTime: TimeInterval) {
         super.update(currentTime)
@@ -1328,16 +1361,12 @@ final class SleepyDropBoxScene: BaseToyScene {
         // pause so resuming cannot snap the drawer through its release threshold.
         let elapsed = lastDrawerUpdateTime.map { max(0, min(currentTime - $0, 0.05)) } ?? 1.0 / 60.0
         lastDrawerUpdateTime = currentTime
-        let drawerFollow = 1 - pow(0.72, CGFloat(elapsed) * 60)
+        let drawerFollow = AmbientAnimator.reduceMotion ? 1 : 1 - pow(0.78, CGFloat(elapsed) * 60)
 
-        // Dragged treasure follows the finger with a soft lag; magnet-aligns near a hole.
+        // Held wood follows the finger directly; the socket's expression supplies anticipation.
         if let piece = dragPiece {
-            var target = dragTarget
             if let index = openingForDrop(near: dragTarget, kind: piece.kind) {
                 let o = openings[index]
-                let d = hypot(o.center.x - dragTarget.x, o.center.y - dragTarget.y)
-                let pull = max(0, 1 - d / captureRadius(at: index)) * 0.24
-                target = CGPoint(x: target.x + (o.center.x - target.x) * pull, y: target.y + (o.center.y - target.y) * pull)
                 if hoverOpening != index {
                     hoverOpening.map { flashRim($0, hot: false) }
                     flashRim(index, hot: true); hoverOpening = index
@@ -1346,33 +1375,34 @@ final class SleepyDropBoxScene: BaseToyScene {
                     spawnMotes(at: o.center, color: o.felt, count: 3)   // the hole welcomes the piece
                     HapticsManager.shared.impact(style: .light, intensity: 0.08)   // felt, not heard
                 }
-            } else if hypot(piece.position.x - boxCenter.x, piece.position.y - boxCenter.y) < boxW * 0.8 {
+            } else if hypot(dragTarget.x - boxCenter.x, dragTarget.y - boxCenter.y) < boxW * 0.8 {
                 if hoverOpening != nil { clearHover() }
                 if mood != .curious { setBoxMood(.curious) }          // the box notices the child
             } else {
                 if hoverOpening != nil { clearHover() }
                 if mood != .sleepy { setBoxMood(.sleepy) }
             }
-            let pos = piece.position
-            piece.position = CGPoint(x: pos.x + (target.x - pos.x) * 0.4, y: pos.y + (target.y - pos.y) * 0.4)
         }
 
-        // Drawer eases toward its target with soft friction.
-        let dy = drawerTargetY - drawer.position.y
-        if abs(dy) > 0.3 {
-            drawer.position.y += dy * drawerFollow
-            // One soft slide per pull; the drawer's travel and the treasures inside are felt,
-            // not heard (it used to repeat every quarter second with a rattle on top).
-            if drawerTouch != nil, !didSlideThisPull {
-                didSlideThisPull = true
-                tone("sleepy.drawer")
-            }
-            // Tumble once when pulled far enough.
-            if !didTumbleThisPull, drawerTouch != nil,
-               drawer.position.y < drawerClosedY - (drawerClosedY - drawerOpenY) * 0.5 {
-                didTumbleThisPull = true
-                tumbleOut()
-            }
+        // Only the released drawer eases. While held, its handle follows the finger.
+        if drawerTouch == nil, drawer.action(forKey: "tremble") == nil,
+           drawer.action(forKey: "invite.move") == nil {
+            let dy = drawerTargetY - drawer.position.y
+            if abs(dy) > 0.3 { drawer.position.y += dy * drawerFollow }
+            else { drawer.position.y = drawerTargetY }
+        }
+    }
+
+    private func noticeDrawerPull() {
+        guard drawerTouch != nil else { return }
+        if !didSlideThisPull, abs(drawer.position.y - drawerDragStartY) > 1 {
+            didSlideThisPull = true
+            tone("sleepy.drawer")
+        }
+        if !didTumbleThisPull,
+           drawer.position.y < drawerClosedY - (drawerClosedY - drawerOpenY) * 0.5 {
+            didTumbleThisPull = true
+            tumbleOut()
         }
     }
 

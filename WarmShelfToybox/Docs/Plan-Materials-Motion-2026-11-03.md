@@ -1,6 +1,6 @@
 # Lull materials and interactive moments plan
 
-November 3, 2026. Founder selected the full nine-toy direction and requested this plan before further execution. This is the proposed implementation scope. No additional gameplay work, image generation or upload is part of preparing this plan. The pending 1.0 review remains untouched.
+November 3, 2026 plan; execution authorized by the founder's “go” and resumed November 4 after a Mac restart. All nine work packages are implemented locally; combined build and scene checks are in progress. Upload remains on hold and the pending 1.0 review remains untouched. Current implementation evidence is under `Docs/Art/Materials-Motion-2026-11-03/`.
 
 ## Outcome
 
@@ -53,6 +53,8 @@ Save exact prompts, references, originals, selected exports, attachment coordina
 | 9 | Bubbles | In an occasional special bubble, show the existing little bird before popping. On the child's pop, that same bird emerges and flies away gently. Ordinary bubbles keep their existing simple behavior. | The bird does not appear from nowhere or get duplicated. The bubble remains easy to pop and the discovery creates no demand to chase, collect or wait. |
 
 ## Execution stages
+
+November 4 addition from the founder: Meadow must remain playable after bringing all babies home, with more interest between landmarks. Implementation reuses five slots after a quiet pause, chooses fresh offscreen hiding locations, preserves house warmth and rotation state, and adds bounded low-contrast ground clusters below the flower trail. The extra scope has focused recurrence/placement checks.
 
 - [ ] **A — Establish the reference:** record scene camera/material/layer contracts; finish Meadow's composite; use it to establish the level of detail and restraint. Build one Wash brush interaction with its clean plate before multiplying fibres or adding water responses.
 - [ ] **B — Finish the physical toys:** complete Wash in both orientations, refine Sleepy Box materials and weight, finish Mix-Up's connected movement and cast registration.

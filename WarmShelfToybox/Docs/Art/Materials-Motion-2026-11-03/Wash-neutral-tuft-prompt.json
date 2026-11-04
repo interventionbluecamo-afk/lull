@@ -1,0 +1,5 @@
+{
+  "key": "washNeutralTuft",
+  "ref": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/App/Resources/Assets.xcassets/wash-brush-tuft.imageset/wash-brush-tuft.png",
+  "prompt": "Use case: precise-object-edit. Edit ONLY the colors of this registered transparent felt brush tuft sprite. Preserve EXACTLY the 1254 by 1254 canvas, alpha silhouette, placement, front-facing orthographic camera, attachment seam, three chunky rounded fingers and diffuse upper-left lighting. Make ALL THREE fingers the SAME neutral warm ivory wool (muted #E8E2D6), without the yellow and orange areas. This neutral source will receive restrained sage, terracotta or cream tint in the game, so retain fibre shading and texture. No color bands, no glossy highlights, no new stitches. Genuine transparency, no shadow or background. Do not crop, resize, recenter or alter proportions."
+}

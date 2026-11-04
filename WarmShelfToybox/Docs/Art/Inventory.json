@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at_utc": "2026-11-04T02:38:57+00:00",
+  "generated_at_utc": "2026-11-04T19:09:02+00:00",
   "catalog": "App/Resources/Assets.xcassets",
   "scope": "Files declared by Contents.json in the production asset catalog; bundled does not mean runtime-active.",
   "limitations": [
@@ -11,18 +11,18 @@
     "Only PNG dimensions are read; other file types still have size and SHA-256 metadata."
   ],
   "summary": {
-    "asset_entries": 283,
-    "declared_files": 299,
-    "readable_files": 299,
-    "bundled_bytes": 255841496,
+    "asset_entries": 288,
+    "declared_files": 304,
+    "readable_files": 304,
+    "bundled_bytes": 264474907,
     "assets_by_category": {
       "Bubbles": 5,
       "Drop Dots": 7,
       "Feed": 47,
       "Hum": 3,
       "Legacy or unclassified": 4,
-      "Little Wash": 23,
-      "Meadow": 27,
+      "Little Wash": 26,
+      "Meadow": 29,
       "Mix-Up": 85,
       "Shared": 34,
       "Sleepy Box": 9,
@@ -31,7 +31,7 @@
     "missing_files": 0,
     "errors": 0,
     "duplicate_hash_groups": 18,
-    "reference_files_indexed": 537,
+    "reference_files_indexed": 544,
     "reference_files_hashed": 24
   },
   "assets": [
@@ -2832,6 +2832,27 @@
       ]
     },
     {
+      "name": "meadow-leaf-house-base",
+      "category": "Meadow",
+      "kind": "imageset",
+      "contents": "App/Resources/Assets.xcassets/meadow-leaf-house-base.imageset/Contents.json",
+      "files": [
+        {
+          "filename": "meadow-leaf-house-base.png",
+          "path": "App/Resources/Assets.xcassets/meadow-leaf-house-base.imageset/meadow-leaf-house-base.png",
+          "exists": true,
+          "bytes": 1845924,
+          "sha256": "1806b9667de9670ce64b72347d7df6619242d5f171cd0d813744c909739df327",
+          "png_dimensions": {
+            "width": 1345,
+            "height": 1169
+          },
+          "byte_identical_reference_files": [],
+          "filename_candidates_not_verified": []
+        }
+      ]
+    },
+    {
       "name": "meadow-leaf-house-glow",
       "category": "Meadow",
       "kind": "imageset",
@@ -2851,6 +2872,27 @@
           "filename_candidates_not_verified": [
             "Docs/Art/Build10/Source/meadow-leaf-house-glow.png"
           ]
+        }
+      ]
+    },
+    {
+      "name": "meadow-leaf-house-roof",
+      "category": "Meadow",
+      "kind": "imageset",
+      "contents": "App/Resources/Assets.xcassets/meadow-leaf-house-roof.imageset/Contents.json",
+      "files": [
+        {
+          "filename": "meadow-leaf-house-roof.png",
+          "path": "App/Resources/Assets.xcassets/meadow-leaf-house-roof.imageset/meadow-leaf-house-roof.png",
+          "exists": true,
+          "bytes": 1596507,
+          "sha256": "00d5645975753cf86cf9db274963f4fb035b4b906c12b64b2c7a1eb9d874247a",
+          "png_dimensions": {
+            "width": 1345,
+            "height": 1169
+          },
+          "byte_identical_reference_files": [],
+          "filename_candidates_not_verified": []
         }
       ]
     },
@@ -4849,6 +4891,48 @@
       ]
     },
     {
+      "name": "wash-bay-clean",
+      "category": "Little Wash",
+      "kind": "imageset",
+      "contents": "App/Resources/Assets.xcassets/wash-bay-clean.imageset/Contents.json",
+      "files": [
+        {
+          "filename": "wash-bay-clean.png",
+          "path": "App/Resources/Assets.xcassets/wash-bay-clean.imageset/wash-bay-clean.png",
+          "exists": true,
+          "bytes": 2057865,
+          "sha256": "5e0c79ffb0cdd40a515ba95e9a6398632c7e8a3ec8cc01052a6991b290a02452",
+          "png_dimensions": {
+            "width": 1448,
+            "height": 1086
+          },
+          "byte_identical_reference_files": [],
+          "filename_candidates_not_verified": []
+        }
+      ]
+    },
+    {
+      "name": "wash-bay-portrait-clean",
+      "category": "Little Wash",
+      "kind": "imageset",
+      "contents": "App/Resources/Assets.xcassets/wash-bay-portrait-clean.imageset/Contents.json",
+      "files": [
+        {
+          "filename": "wash-bay-portrait-clean.png",
+          "path": "App/Resources/Assets.xcassets/wash-bay-portrait-clean.imageset/wash-bay-portrait-clean.png",
+          "exists": true,
+          "bytes": 2110659,
+          "sha256": "3727c89c413ff7c3b240645ae399f017c189c8398a85f4efd36e0b1f8bc9a6e5",
+          "png_dimensions": {
+            "width": 887,
+            "height": 1774
+          },
+          "byte_identical_reference_files": [],
+          "filename_candidates_not_verified": []
+        }
+      ]
+    },
+    {
       "name": "wash-bay-portrait",
       "category": "Little Wash",
       "kind": "imageset",
@@ -4891,6 +4975,27 @@
           "filename_candidates_not_verified": [
             "Docs/Art/Build7/Source/wash-bay-source.png"
           ]
+        }
+      ]
+    },
+    {
+      "name": "wash-brush-tuft",
+      "category": "Little Wash",
+      "kind": "imageset",
+      "contents": "App/Resources/Assets.xcassets/wash-brush-tuft.imageset/Contents.json",
+      "files": [
+        {
+          "filename": "wash-brush-tuft.png",
+          "path": "App/Resources/Assets.xcassets/wash-brush-tuft.imageset/wash-brush-tuft.png",
+          "exists": true,
+          "bytes": 1022456,
+          "sha256": "1b4b1c1d3f0092ea29513274b179abf8d21f49716b73f1f54218dd989ac467e9",
+          "png_dimensions": {
+            "width": 1254,
+            "height": 1254
+          },
+          "byte_identical_reference_files": [],
+          "filename_candidates_not_verified": []
         }
       ]
     },

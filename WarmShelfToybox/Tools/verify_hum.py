@@ -52,9 +52,9 @@ for speed: CGFloat in [-100, 0, 120, 600, 1200, 100000, .infinity, .nan] {
         let intensity = HumStrikeExpression.intensity(speed: speed, interval: interval)
         check(intensity.isFinite && intensity >= 0.72 && intensity <= 1.45)
         let press = HumStrikeExpression.press(intensity: intensity, reduceMotion: false)
-        check(press.depth >= 9 && press.depth <= 13.25)
-        check(press.widthScale > 1 && press.widthScale < 1.06)
-        check(press.heightScale > 0.90 && press.heightScale < 1)
+        check(press.depth >= 2.264 - 0.0001 && press.depth <= 3.14 + 0.0001)
+        check(press.widthScale == 1) // adjacent visible key edges stay exactly spaced
+        check(press.heightScale >= 0.9884 && press.heightScale < 1)
         let calm = HumStrikeExpression.press(intensity: intensity, reduceMotion: true)
         check(calm.depth == 0 && calm.widthScale == 1 && calm.heightScale == 1 && calm.duration == 0)
     }
@@ -64,6 +64,12 @@ check(HumStrikeExpression.press(intensity: fastSweep, reduceMotion: false).depth
 check(HumStrikeExpression.clampedIntensity(.nan) == 1)
 check(HumStrikeExpression.clampedIntensity(-100) == 0.72)
 check(HumStrikeExpression.clampedIntensity(100) == 1.45)
+check(HumStrikeExpression.settleDuration(toneDecay: 1.8) == 1.8)
+check(HumStrikeExpression.settleDuration(toneDecay: 0.8) == 0.8)
+for value: TimeInterval in [-100, 0, 0.4, 1.8, 100, .infinity, .nan] {
+    let decay = HumStrikeExpression.settleDuration(toneDecay: value)
+    check(decay.isFinite && decay >= 0.8 && decay <= 1.8)
+}
 // Rapid repeated strikes and held-mote emissions retain a fixed maximum, replacing oldest effects.
 let effects = Effects()
 for index in 0..<10000 {

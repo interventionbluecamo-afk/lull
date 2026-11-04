@@ -53,7 +53,9 @@ final class CharacterModel {
  var needsMoreFood: Bool { bitesRemaining > 0 }
  func transitionTo(_ m: CharacterMood) { mood = m }
  func runHappyShimmy() {}
-'''+methods+'\n}\n'+block(cs,'enum FeedCastCatalog')+'\n'+block(fs,'enum FeedServingRules')+'\n'+block(fs,'struct FeedCastRotation')+'\n'+block(fs,'struct FeedPlateFoodRotation')+r'''
+ var clearedAttentionCount = 0
+ func clearFoodAttention() { clearedAttentionCount += 1 }
+'''+methods+'\n}\n'+block(cs,'enum FeedCastCatalog')+'\n'+block(fs,'enum FeedServingRules')+'\n'+block(fs,'struct FeedCastRotation')+'\n'+block(fs,'struct FeedPlateFoodRotation')+'\n'+block(cs,'enum FeedFoodAttention')+r'''
 var checks = 0
 func check(_ p: @autoclosure () -> Bool) { precondition(p()); checks += 1 }
 let c = CharacterModel()
@@ -261,7 +263,29 @@ check(FeedCastCatalog.completeCast(catalog) { allFrames.contains($0) }.count == 
 check(FeedCastCatalog.completeCast(catalog) { allFrames.subtracting(["feed-cast-newfriend-6"]).contains($0) }.isEmpty)
 check(FeedCastCatalog.decode(Data(#"{"version":2,"cast":[]}"#.utf8)) == nil)
 check(FeedCastCatalog.decode(Data(#"{"version":1,"cast":[{"name":"scarf","friendlyName":"parked","headWidth":0.9,"headCentre":0.4,"mouth":0.5}]}"#.utf8))!.isEmpty)
-print("PASS: \(checks) Feed request, mouth/edge, arrival bubble, menu/request preservation, consumed-plate variety, complete-cast bags, catalog, timing and rotation checks using extracted production methods")
+// Anticipation is driven by distance to held food, in local units; size/rotation
+// changes must not turn a faraway plate into a bite or reverse the gaze.
+for radius: CGFloat in [36, 60, 104, 144] {
+ let near = FeedFoodAttention.approach(offset: CGPoint(x: radius, y: 0), headRadius: radius)
+ let far = FeedFoodAttention.approach(offset: CGPoint(x: radius * 3.3, y: 0), headRadius: radius)
+ let left = FeedFoodAttention.approach(offset: CGPoint(x: -radius, y: -radius), headRadius: radius)
+ check(near.strength > 0.9 && near.direction.x > 0)
+ check(far.strength == 0)
+ check(left.direction.x < 0 && left.direction.y < 0)
+}
+var notice: CGFloat = 0
+for _ in 0..<12 { notice = FeedFoodAttention.settledStrength(current: notice, target: 1, deltaTime: 1.0 / 60, reduceMotion: false) }
+check(notice > 0.85)
+var withdrawn = notice
+for _ in 0..<12 { withdrawn = FeedFoodAttention.settledStrength(current: withdrawn, target: 0, deltaTime: 1.0 / 60, reduceMotion: false) }
+check(withdrawn > 0.35 && withdrawn < notice) // withdrawal settles more slowly
+for _ in 0..<120 { withdrawn = FeedFoodAttention.settledStrength(current: withdrawn, target: 0, deltaTime: 1.0 / 60, reduceMotion: false) }
+check(withdrawn == 0)
+check(FeedFoodAttention.settledStrength(current: 0.8, target: 0, deltaTime: 1, reduceMotion: true) == 0)
+check(FeedFoodAttention.settledStrength(current: 0, target: 1, deltaTime: 0, reduceMotion: true) == 1)
+check(c.clearedAttentionCount == 3) // the eating lock never clears/commits a second time
+
+print("PASS: \(checks) Feed request, mouth/edge, arrival bubble, menu/request preservation, consumed-plate variety, complete-cast bags, catalog, anticipation/withdrawal, timing and rotation checks using extracted production methods")
 
 '''
 with tempfile.TemporaryDirectory(prefix="lull-feed-verification-") as temporary_directory:

@@ -31,6 +31,7 @@ final class DropDotsScene: BaseToyScene {
 
         let feltIndex: Int
         let radius: CGFloat
+        var hasLanded = false
         /// The blue-moon golden dot (approved delight): butter-gold, hums a fifth
         /// higher, and makes its neighbors shimmer when it lands. ~1 in 40.
         let isGolden: Bool
@@ -88,7 +89,7 @@ final class DropDotsScene: BaseToyScene {
                 addChild(body)
                 art.zPosition = 0
                 art.color = isGolden ? DropDotToken.gold : color
-                art.colorBlendFactor = isGolden ? 0.55 : 0.95   // dots match their rings (founder: 0.72 read dusty)
+                art.colorBlendFactor = isGolden ? 0.55 : 0.90   // retain clear ring colours with more of the authored clay highlight
                 body.addChild(art)
                 if isGolden {
                     let ring = SKShapeNode(circleOfRadius: r * 0.84)
@@ -133,9 +134,9 @@ final class DropDotsScene: BaseToyScene {
 
             buildFace()
 
-            // A bright specular catch — premium clay gloss.
+            // A small broad highlight keeps the fallback clay matte.
             let glint = SKShapeNode(ellipseOf: CGSize(width: r * 0.5, height: r * 0.32))
-            glint.fillColor = UIColor.white.withAlpha(0.5); glint.strokeColor = .clear
+            glint.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.18); glint.strokeColor = .clear
             glint.position = CGPoint(x: -r * 0.32, y: r * 0.4); glint.zRotation = -0.5; glint.zPosition = 0.5
             body.addChild(glint)
         }
@@ -188,6 +189,7 @@ final class DropDotsScene: BaseToyScene {
 
         func squash(_ a: CGFloat) {
             body.removeAction(forKey: "squash")
+            guard !AmbientAnimator.reduceMotion else { body.setScale(1); return }
             body.run(.sequence([.scaleX(to: 1 + a, y: 1 - a, duration: 0.06), .scaleX(to: 1, y: 1, duration: 0.2)]), withKey: "squash")
         }
 
@@ -196,26 +198,53 @@ final class DropDotsScene: BaseToyScene {
             run(.sequence([.moveBy(x: 0, y: 4, duration: 0.08), .moveBy(x: 0, y: -4, duration: 0.12)]))
         }
 
-        /// A one-time soft bloom: a glow ring grows and fades while the token gives a gentle pulse —
-        /// the magic happens, then the board returns to normal (never a permanent lit state).
-        func celebrate() {
-            guard !AmbientAnimator.reduceMotion else { return }
-            let g = SKShapeNode(circleOfRadius: radius * 1.04)
-            g.fillColor = .clear
-            g.strokeColor = color.withAlpha(0.95)
-            g.lineWidth = radius * 0.22
-            g.blendMode = .add
-            g.zPosition = 1
-            g.alpha = 0
-            g.setScale(0.82)
-            addChild(g)
-            g.run(.sequence([
-                .group([.fadeAlpha(to: 0.95, duration: 0.16), .scale(to: 1.4, duration: 0.55)]),
-                .fadeOut(withDuration: 0.5),
-                .removeFromParent()
-            ]))
-            body.run(.sequence([.scale(to: 1.15, duration: 0.16), .scale(to: 1, duration: 0.32)]), withKey: "celebrate")
+        /// Weight travels down the stack. Only the rigid visual moves; the slot
+        /// and its contact shadow keep their exact registered positions.
+        func settleAfterLanding(depth: Int) {
+            for key in ["landingSettle", "squash", "lift", "wob", "celebrate"] { body.removeAction(forKey: key) }
+            body.setScale(1)
+            body.zRotation = 0
+            guard !AmbientAnimator.reduceMotion else { body.position = .zero; return }
+            let down = SKAction.moveTo(y: -DropDotsSettling.displacement(radius: radius, depth: depth), duration: 0.075)
+            let rest = SKAction.moveTo(y: 0, duration: 0.42)
+            down.timingMode = .easeOut
+            rest.timingMode = .easeInEaseOut
+            body.run(.sequence([.wait(forDuration: DropDotsSettling.delay(depth: depth)), down, rest]),
+                     withKey: "landingSettle")
         }
+
+        func settleImmediately() {
+            removeAllActions()
+            body.removeAllActions()
+            shadow.removeAllActions()
+            childNode(withName: "patternGlow")?.removeFromParent()
+            body.position = .zero
+            body.zRotation = 0
+            body.setScale(1)
+            setScale(1)
+            alpha = 1
+            zRotation = 0
+            shadow.position = CGPoint(x: 0, y: -radius * 0.82)
+            shadow.alpha = 0.42
+            shadow.setScale(1)
+        }
+
+        /// Pattern feedback has no second bounce. The single reusable halo fades
+        /// around a rigid token, leaving the landing chain as the physical cause.
+        func celebrate(delay: TimeInterval = 0) {
+            childNode(withName: "patternGlow")?.removeFromParent()
+            let glow = SKShapeNode(circleOfRadius: radius * 1.04)
+            glow.name = "patternGlow"
+            glow.fillColor = .clear
+            glow.strokeColor = color.withAlpha(0.6)
+            glow.lineWidth = radius * 0.10
+            glow.zPosition = 1
+            glow.alpha = 0
+            addChild(glow)
+            glow.run(.sequence([.wait(forDuration: delay), .fadeAlpha(to: 0.65, duration: 0.14),
+                                .fadeOut(withDuration: 0.65), .removeFromParent()]))
+        }
+
     }
 
     private struct Cell: Hashable { let c: Int; let r: Int; init(_ c: Int, _ r: Int) { self.c = c; self.r = r } }
@@ -275,6 +304,7 @@ final class DropDotsScene: BaseToyScene {
     private var tabTouchStartY: CGFloat = 0
     private var columnRimColors: [UIColor] = []
     private weak var resetTab: SKNode?
+    private var resetTabHome = CGPoint.zero
 
     // MARK: - Touch
     private weak var dragToken: DropDotToken?
@@ -325,12 +355,14 @@ final class DropDotsScene: BaseToyScene {
 
     private func rebuild(gridSnap: [GridSnap] = [], traySnap: [(felt: Int, golden: Bool)?] = []) {
         guard size.width > 120, size.height > 120 else { return }
+        cancelDiscoveryActions()
         [boardLayer, tokenLayer, frontLayer, particleLayer].forEach { $0.removeAllChildren() }
         columnRims.removeAll(); mouthRings.removeAll(); traySlots.removeAll(); trayTokens.removeAll()
         glowingCells.removeAll(); boardWasFull = false
         homeColumns.removeAll(); rainbowRows.removeAll(); wasSorted = false
         ringTints.removeAll()
-        dragToken = nil; dragTouch = nil; hoverCol = nil; tabTouch = nil; stackXs = []
+        dragToken = nil; dragTouch = nil; dragFromSlot = nil; hoverCol = nil; tabTouch = nil; stackXs = []
+        dragOffset = .zero; dragTarget = .zero
         grid = Array(repeating: Array(repeating: nil, count: rows), count: cols)
 
         let play = safePlayRect()
@@ -457,6 +489,7 @@ final class DropDotsScene: BaseToyScene {
             let t = DropDotToken(feltIndex: s.felt, radius: tokenR, isGolden: s.golden)
             t.position = CGPoint(x: stackX(s.c), y: cellY(s.r))
             t.zPosition = 5
+            t.hasLanded = true
             tokenLayer.addChild(t)
             grid[s.c][s.r] = t
         }
@@ -930,6 +963,7 @@ final class DropDotsScene: BaseToyScene {
         tab.zPosition = 1
         frontLayer.addChild(tab)   // in front of the rail band (and of any dot pouring past it)
         resetTab = tab
+        resetTabHome = tab.position
 
         let shadow = SKSpriteNode(texture: ProceduralTexture.softClayShadow(size: CGSize(width: tabW * 1.05, height: tabH * 0.7)))
         shadow.position = CGPoint(x: 0, y: -tabH * 0.5); shadow.zPosition = -0.2
@@ -994,9 +1028,8 @@ final class DropDotsScene: BaseToyScene {
                 let token = trayTokens[slot]!
                 // A returning dot is touchable where it actually is. Take ownership
                 // immediately so its old pour/fly-home animation cannot fight this drag.
-                token.removeAllActions()
-                token.alpha = 1
-                token.setScale(1)
+                token.settleImmediately()
+                token.hasLanded = false
                 dragToken = token; dragTouch = touch; dragFromSlot = slot
                 dragOffset = CGPoint(x: token.position.x - p.x, y: token.position.y - p.y)
                 dragTarget = token.position
@@ -1018,7 +1051,8 @@ final class DropDotsScene: BaseToyScene {
         for touch in touches where touch == dragTouch {
             let p = touch.location(in: self)
             dragTarget = CGPoint(x: (p.x + dragOffset.x).clamped(to: 24...size.width - 24),
-                                 y: (p.y + dragOffset.y + 6).clamped(to: 40...size.height - 40))
+                                 y: (p.y + dragOffset.y).clamped(to: 40...size.height - 40))
+            updateDraggedToken()
         }
         if let pull = tabTouch, touches.contains(pull) {
             // Leaving sideways disarms the handle permanently for this touch. A palm
@@ -1035,7 +1069,13 @@ final class DropDotsScene: BaseToyScene {
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for touch in touches where touch == dragTouch { endDrag() }
+        for touch in touches where touch == dragTouch {
+            let point = touch.location(in: self)
+            dragTarget = CGPoint(x: (point.x + dragOffset.x).clamped(to: 24...size.width - 24),
+                                 y: (point.y + dragOffset.y).clamped(to: 40...size.height - 40))
+            updateDraggedToken()
+            endDrag()
+        }
         if let pull = tabTouch, touches.contains(pull) {
             tabTouch = nil
             // A tap on the handle pours; a touch that slid off it (a resting palm, a
@@ -1050,10 +1090,33 @@ final class DropDotsScene: BaseToyScene {
         if let pull = tabTouch, touches.contains(pull) { tabTouch = nil }
     }
 
-    override func suspendToyForRest() {
+    override func teardownToyAudio() {
+        super.teardownToyAudio()
+        guard cell > 1, grid.count == cols else { return }
         cancelDrag()
         tabTouch = nil
-        super.suspendToyForRest()
+        cancelDiscoveryActions()
+        for c in 0..<cols {
+            for r in 0..<rows {
+                guard let token = grid[c][r] else { continue }
+                token.settleImmediately()
+                token.hasLanded = true
+                token.position = CGPoint(x: stackX(c), y: cellY(r))
+            }
+        }
+        for (slot, token) in trayTokens.enumerated() {
+            token?.settleImmediately()
+            token?.position = traySlots[slot]
+            token?.zPosition = 5
+        }
+        columnRims.forEach { $0.removeAllActions(); $0.alpha = 0 }
+        mouthRings.forEach { $0.removeAllActions(); $0.setScale(1) }
+        resetTab?.removeAllActions()
+        resetTab?.position = resetTabHome
+        resetTab?.setScale(1)
+        particleLayer.removeAllChildren()
+        detectPatterns(celebrate: false)
+        refreshDiscoveries(celebrate: false)
     }
 
     /// An interruption returns the owned dot without posting or consuming it.
@@ -1061,10 +1124,7 @@ final class DropDotsScene: BaseToyScene {
         guard let token = dragToken, let slot = dragFromSlot else { return }
         dragTouch = nil; dragToken = nil; dragFromSlot = nil
         clearHover()
-        token.removeAllActions()
-        token.setLifted(false)
-        token.alpha = 1
-        token.setScale(1)
+        token.settleImmediately()
         token.zPosition = 5
         if traySlots.indices.contains(slot) { token.position = traySlots[slot] }
     }
@@ -1102,9 +1162,9 @@ final class DropDotsScene: BaseToyScene {
     // MARK: - Drop / land
 
     private func dropIntoColumn(_ token: DropDotToken, col: Int, fromSlot slot: Int) {
-        token.removeAllActions()
-        token.alpha = 1
-        token.setScale(1)
+        guard hasSpace(col), grid.flatMap({ $0 }).allSatisfy({ $0 !== token }) else { return }
+        token.settleImmediately()
+        token.hasLanded = false
         let row = rows - 1 - filled(col)
         grid[col][row] = token
         token.setLifted(false)
@@ -1128,34 +1188,29 @@ final class DropDotsScene: BaseToyScene {
     }
 
     private func onLanded(_ token: DropDotToken, col: Int, row: Int, dest: CGPoint) {
-        token.squash(0.18)
-        let fill = filled(col)   // includes this token — the grid is written before the fall
+        guard grid[col][row] === token else { return }
+        token.hasLanded = true
+        let fill = grid[col].compactMap { $0 }.filter { $0.hasLanded }.count
         playLandThunk(fill: fill, golden: token.isGolden)
         HapticsManager.shared.impact(style: .soft, intensity: 0.22)
-        jiggleColumn(col, except: row)
+        settleColumn(col, from: row)
         spawnDust(at: dest, color: token.color)
         if token.isGolden { shimmerNeighbors(of: col) } else if token.feltIndex == col { welcomeHome(col, color: token.color) }
-        // One song per landing: a bigger discovery (all sorted, a home column, a rainbow row)
-        // sings instead of the column wave and the three-in-a-row chime, which still glow.
+        // Keep one discovery per landing. Patterns can still be noticed while a
+        // larger discovery owns the glow/song, with no additional stack motion.
         let sang = refreshDiscoveries(celebrate: true)
-        let boardNowFull = grid.allSatisfy { $0.allSatisfy { $0 != nil } }
-        if fill == rows, !boardNowFull, !sang { columnWave(col) }
-        detectPatterns(withSound: !sang)
-        checkBoardFull()
+        let boardNowFull = grid.allSatisfy { $0.allSatisfy { $0?.hasLanded == true } }
+        let columnCompleted = fill == rows && !boardNowFull && !sang
+        if columnCompleted { columnWave(col) }
+        detectPatterns(celebrate: !sang && !columnCompleted && !boardNowFull,
+                       withSound: !sang && !columnCompleted && !boardNowFull)
+        checkBoardFull(celebrate: !sang)
     }
 
-    /// Approved delight: the column wave. Filling a column to the top runs one soft
-    /// arpeggio up its dots, bottom to lid — naturally once, since only a landing
-    /// can cross three-to-four.
     private func columnWave(_ col: Int) {
         tone("dots.wave", minInterval: 0.5)
-        guard !AmbientAnimator.reduceMotion else { return }
-        for r in stride(from: rows - 1, through: 0, by: -1) {        // row 3 = bottom
-            grid[col][r]?.run(.sequence([
-                .wait(forDuration: Double(rows - 1 - r) * 0.09),
-                .scale(to: 1.08, duration: 0.12),
-                .scale(to: 1.0, duration: 0.18)
-            ]))
+        for r in stride(from: rows - 1, through: 0, by: -1) {
+            grid[col][r]?.celebrate(delay: Double(rows - 1 - r) * 0.09)
         }
     }
 
@@ -1178,21 +1233,16 @@ final class DropDotsScene: BaseToyScene {
             let p = f > 0 ? CGPoint(x: stackX(nc), y: cellY(rows - f))   // top occupied cell
                           : CGPoint(x: cellX(nc), y: mouthY)            // empty: the mouth glints
             spawnMotes(at: p, color: DropDotToken.gold, count: 3)
-            guard !AmbientAnimator.reduceMotion else { continue }
-            for r in 0..<rows {
-                grid[nc][r]?.run(.sequence([
-                    .wait(forDuration: 0.08),
-                    .scale(to: 1.05, duration: 0.12),
-                    .scale(to: 1.0, duration: 0.16)
-                ]))
+            for r in 0..<rows where grid[nc][r]?.hasLanded == true {
+                grid[nc][r]?.celebrate(delay: 0.08)
             }
         }
     }
 
-    private func jiggleColumn(_ col: Int, except: Int) {
-        guard !AmbientAnimator.reduceMotion else { return }
-        for r in 0..<rows where r != except {
-            grid[col][r]?.run(.sequence([.moveBy(x: 0, y: -3, duration: 0.05), .moveBy(x: 0, y: 3, duration: 0.12)]))
+    private func settleColumn(_ col: Int, from landedRow: Int) {
+        for row in landedRow..<rows {
+            guard let token = grid[col][row], token.hasLanded else { continue }
+            token.settleAfterLanding(depth: row - landedRow)
         }
     }
 
@@ -1203,11 +1253,11 @@ final class DropDotsScene: BaseToyScene {
         let dirs = [(1, 0), (0, 1), (1, 1), (1, -1)]
         for c in 0..<cols {
             for r in 0..<rows {
-                guard let k = grid[c][r]?.feltIndex else { continue }
+                guard grid[c][r]?.hasLanded == true, let k = grid[c][r]?.feltIndex else { continue }
                 for (dc, dr) in dirs {
                     var run = [Cell(c, r)]
                     var cc = c + dc, rr = r + dr
-                    while cc >= 0, cc < cols, rr >= 0, rr < rows, grid[cc][rr]?.feltIndex == k, run.count < 3 {
+                    while cc >= 0, cc < cols, rr >= 0, rr < rows, grid[cc][rr]?.hasLanded == true, grid[cc][rr]?.feltIndex == k, run.count < 3 {
                         run.append(Cell(cc, rr)); cc += dc; rr += dr
                     }
                     if run.count >= 3 { run.forEach { matched.insert($0) } }
@@ -1223,7 +1273,7 @@ final class DropDotsScene: BaseToyScene {
             tone("dots.pattern", minInterval: 0.25)
             HapticsManager.shared.impact(style: .soft, intensity: 0.2)
         }
-        for cell in matched {
+        for cell in newly {
             grid[cell.c][cell.r]?.celebrate()
             spawnMotes(at: CGPoint(x: stackX(cell.c), y: cellY(cell.r)),
                        color: grid[cell.c][cell.r]?.color ?? WarmShelfPalette.butter, count: 2)
@@ -1232,7 +1282,7 @@ final class DropDotsScene: BaseToyScene {
 
     // MARK: - Discoveries (home columns, rainbow rows, all sorted)
 
-    private var feltGrid: [[Int?]] { grid.map { $0.map { $0?.feltIndex } } }
+    private var feltGrid: [[Int?]] { grid.map { $0.map { $0?.hasLanded == true ? $0?.feltIndex : nil } } }
 
     /// Notice what the board now holds. With `celebrate`, the newest discovery gets one song and
     /// its own little show; returns true when something sang. Without it (rotation, a dot sent
@@ -1262,21 +1312,13 @@ final class DropDotsScene: BaseToyScene {
         return true
     }
 
-    /// Three of a colour home in their own column: the ring glows long and the dots hop up it.
+    /// Three of a colour home in their own column: the ring glows for a quiet beat.
     private func homeColumnSong(_ col: Int) {
         tone("dots.pattern", minInterval: 0.25)
         HapticsManager.shared.impact(style: .soft, intensity: 0.24)
         let color = DropDotToken.roundFelts[col % DropDotToken.roundFelts.count]
         welcomeHome(col, color: color)
         spawnMotes(at: CGPoint(x: stackX(col), y: mouthY), color: color, count: 5)
-        guard !AmbientAnimator.reduceMotion else { return }
-        for r in stride(from: rows - 1, through: 0, by: -1) {
-            grid[col][r]?.run(.sequence([
-                .wait(forDuration: Double(rows - 1 - r) * 0.1),
-                .moveBy(x: 0, y: tokenR * 0.35, duration: 0.12),
-                .moveBy(x: 0, y: -tokenR * 0.35, duration: 0.16)
-            ]))
-        }
     }
 
     /// Four different colours across a row: a little rainbow runs along it, left to right.
@@ -1286,21 +1328,12 @@ final class DropDotsScene: BaseToyScene {
         for c in 0..<cols {
             guard let token = grid[c][row] else { continue }
             let delay = Double(c) * 0.11
-            run(.sequence([.wait(forDuration: delay), .run { [weak self, weak token] in
-                guard let self, let token else { return }
-                self.spawnMotes(at: token.position, color: token.color, count: 3)
-            }]))
-            guard !AmbientAnimator.reduceMotion else { continue }
-            token.run(.sequence([
-                .wait(forDuration: delay),
-                .scale(to: 1.12, duration: 0.12),
-                .scale(to: 1.0, duration: 0.18)
-            ]))
+            token.celebrate(delay: delay)
         }
     }
 
-    /// Every dot home under its own colour: each ring glows in turn, every dot hops, one warm
-    /// song, then the pull-tab invites a pour. The toy's finale, never a score.
+    /// Each ring notices its own dots; the new settling chain remains their only
+    /// movement. One keyed invitation can follow, even after rapid repeated play.
     private func sortedFinale() {
         tone("dots.full.board")
         HapticsManager.shared.impact(style: .soft, intensity: 0.3)
@@ -1309,42 +1342,34 @@ final class DropDotsScene: BaseToyScene {
             run(.sequence([.wait(forDuration: delay), .run { [weak self] in
                 guard let self else { return }
                 self.welcomeHome(c, color: DropDotToken.roundFelts[c % DropDotToken.roundFelts.count])
-            }]))
-            guard !AmbientAnimator.reduceMotion else { continue }
-            for r in 0..<rows {
-                grid[c][r]?.run(.sequence([
-                    .wait(forDuration: delay + 0.05),
-                    .moveBy(x: 0, y: tokenR * 0.45, duration: 0.14),
-                    .moveBy(x: 0, y: -tokenR * 0.45, duration: 0.2)
-                ]))
-            }
+            }]), withKey: "dots.discovery.\(c)")
         }
-        run(.sequence([.wait(forDuration: 1.4), .run { [weak self] in self?.inviteTabNow() }]))
+        run(.sequence([.wait(forDuration: 1.4), .run { [weak self] in self?.inviteTabNow() }]),
+            withKey: "dots.discoveryInvite")
     }
 
-    private func checkBoardFull() {
-        let full = grid.allSatisfy { $0.allSatisfy { $0 != nil } }
+    private func checkBoardFull(celebrate: Bool) {
+        let full = grid.allSatisfy { $0.allSatisfy { $0?.hasLanded == true } }
         guard full, !boardWasFull else { if !full { boardWasFull = false }; return }
         boardWasFull = true
+        guard celebrate else { return }
         tone("dots.full.board")
-        // a warm glow rolls left→right through the grid
-        guard !AmbientAnimator.reduceMotion else { return }
         for c in 0..<cols {
-            for r in 0..<rows {
-                grid[c][r]?.run(.sequence([
-                    .wait(forDuration: Double(c) * 0.08),
-                    .scale(to: 1.08, duration: 0.16), .scale(to: 1, duration: 0.2)
-                ]))
-            }
+            for r in 0..<rows { grid[c][r]?.celebrate(delay: Double(c) * 0.08) }
         }
-        resetTab?.run(.sequence([.wait(forDuration: 0.5), .moveBy(x: 0, y: -6, duration: 0.12), .moveBy(x: 0, y: 6, duration: 0.16),
-                                 .moveBy(x: 0, y: -6, duration: 0.12), .moveBy(x: 0, y: 6, duration: 0.16)]))
+        inviteTabNow()
+    }
+
+    private func cancelDiscoveryActions() {
+        for c in 0..<cols { removeAction(forKey: "dots.discovery.\(c)") }
+        removeAction(forKey: "dots.discoveryInvite")
     }
 
     // MARK: - Reset dump
 
     private func triggerReset() {
         guard dragToken == nil else { return }
+        cancelDiscoveryActions()
         let tokens = grid.flatMap { $0 }.compactMap { $0 }
         resetTab?.run(.sequence([.scale(to: 0.94, duration: 0.08), .moveBy(x: 0, y: -10, duration: 0.12), .moveBy(x: 0, y: 10, duration: 0.18), .scale(to: 1, duration: 0.1)]))
         HapticsManager.shared.impact(style: .rigid, intensity: 0.26)   // felt; the pour below is the sound
@@ -1368,8 +1393,8 @@ final class DropDotsScene: BaseToyScene {
         var empties = (0..<trayTokens.count).filter { trayTokens[$0] == nil }
         let gateY = boardRect.minY - cell * 0.45
         for (i, token) in tokens.enumerated() {
-            token.removeAllActions()
-            token.setLifted(false)
+            token.settleImmediately()
+            token.hasLanded = false
             let delay = Double(i) * 0.07
             let drop = SKAction.moveTo(y: gateY, duration: 0.24); drop.timingMode = .easeIn
             token.zPosition = 4
@@ -1423,23 +1448,19 @@ final class DropDotsScene: BaseToyScene {
         }
     }
 
-    // MARK: - Update (drag lag + column magnet)
+    // MARK: - Direct drag + column guide
 
-    override func update(_ currentTime: TimeInterval) {
-        super.update(currentTime)
+    private func updateDraggedToken() {
         guard cell > 1, let token = dragToken else { return }
-        var target = dragTarget
-        if token.position.y > gridBottomY - cell * 0.3 {
-            let col = nearestColumn(token.position.x)
-            let mx = cellX(col)
-            let pull: CGFloat = token.position.y > gridTopY - cell * 0.5 ? 0.5 : 0.28
-            target.x += (mx - target.x) * pull
+        // Preserve the grabbed point. The rim previews the column; alignment is
+        // applied only on release, so a guide never drags against the child's hand.
+        token.position = dragTarget
+        if dragTarget.y > gridBottomY - cell * 0.3 {
+            let col = nearestColumn(dragTarget.x)
             if hoverCol != col { setHover(col) }
         } else if hoverCol != nil {
             clearHover()
         }
-        token.position = CGPoint(x: token.position.x + (target.x - token.position.x) * 0.4,
-                                 y: token.position.y + (target.y - token.position.y) * 0.4)
     }
 
     private func setHover(_ col: Int) {
@@ -1451,8 +1472,6 @@ final class DropDotsScene: BaseToyScene {
             let home = dragToken.map { !$0.isGolden && $0.feltIndex == col } ?? false
             rim.strokeColor = (home ? dragToken?.color ?? WarmShelfPalette.paperHighlight : WarmShelfPalette.paperHighlight).withAlpha(0.85)
             rim.run(.fadeAlpha(to: 1, duration: 0.15))
-            // existing stack jiggles a little
-            for r in 0..<rows { grid[col][r]?.run(.sequence([.scale(to: 1.04, duration: 0.1), .scale(to: 1, duration: 0.14)])) }
             spawnMotes(at: CGPoint(x: cellX(col), y: mouthY), color: columnRimColors[col % columnRimColors.count], count: 2)
         }
     }
@@ -1545,7 +1564,7 @@ final class DropDotsScene: BaseToyScene {
         // Taking a dot back un-notices quietly, so rebuilding a match celebrates again.
         detectPatterns(celebrate: false)
         refreshDiscoveries(celebrate: false)
-        token.removeAllActions(); token.setLifted(false); token.zPosition = 20
+        token.settleImmediately(); token.hasLanded = false; token.zPosition = 20
         let target = traySlots[slot]
         let lift = SKAction.moveBy(x: 0, y: tokenR * 0.7, duration: 0.12); lift.timingMode = .easeOut
         let fly = SKAction.move(to: target, duration: 0.34); fly.timingMode = .easeInEaseOut
@@ -1639,6 +1658,15 @@ final class DropDotsScene: BaseToyScene {
             self?.triggerReset()
         })
         return elements
+    }
+}
+
+/// Timing and compression of a rigid stack, independent of rendering so rapid
+/// repeated arrivals can be checked without a simulator.
+enum DropDotsSettling {
+    static func delay(depth: Int) -> TimeInterval { Double(max(0, depth)) * 0.065 }
+    static func displacement(radius: CGFloat, depth: Int) -> CGFloat {
+        min(2.2, max(0, radius) * 0.075) * pow(0.72, CGFloat(max(0, depth)))
     }
 }
 

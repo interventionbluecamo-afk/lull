@@ -138,6 +138,9 @@ final class GlowWindowScene: BaseToyScene {
     private var curtainL: SKNode!
     private var curtainR: SKNode!
     private var curtainRestX: CGFloat = 0     // |x| of a fully-open panel centre from window centre
+    private var curtainHemOpen: CGFloat = 1
+    private var curtainFabric: [SKSpriteNode] = []
+    private static let curtainMesh = WindowCurtainFabric.mesh
 
     // MARK: - Touch
     private enum Grab { case dial, curtainL, curtainR, room, can, cat, plant, ball, block }
@@ -232,6 +235,8 @@ final class GlowWindowScene: BaseToyScene {
         skyTapGlow.alpha = 0
         carriedNode = nil
         carryTarget = nil
+        curtainHemOpen = curtainOpen
+        if curtainL != nil, curtainR != nil { applyCurtain(animated: false) }
         AudioManager.shared.stopWindowAmbience(fadeOut: 0.4)
         super.teardownToyAudio()
     }
@@ -276,6 +281,9 @@ final class GlowWindowScene: BaseToyScene {
         dialVelocity = 0
         dialTouchMoved = false
         curtainGrabDX = 0
+        curtainHemOpen = curtainOpen
+        curtainFabric.removeAll()
+        lastUpdateTime = 0
         carriedNode = nil
         carryTarget = nil
         [roomLayer, glassLayer, beamLayer, frameLayer, lampLayer, curtainLayer, particleLayer, controlLayer].forEach { $0.removeAllChildren() }
@@ -2288,6 +2296,7 @@ final class GlowWindowScene: BaseToyScene {
             sprite.anchorPoint = CGPoint(x: 0.5, y: 1)   // hangs from the rod
             sprite.size = CGSize(width: w, height: h)
             node.addChild(sprite)
+            curtainFabric.append(sprite)
             node.xScale = mirrored ? -1 : 1
             return node
         }
@@ -2315,6 +2324,16 @@ final class GlowWindowScene: BaseToyScene {
         let hem = SKShapeNode(rect: CGRect(x: -w / 2, y: -h, width: w, height: h * 0.045), cornerRadius: w * 0.03)
         hem.fillColor = WarmShelfPalette.cocoa.withAlpha(0.16); hem.strokeColor = .clear
         node.addChild(hem)
+        // The fallback gets the same cloth mesh, rendered once for this layout.
+        // Neither room plate nor rod is included in the deformable texture.
+        if let texture = view?.texture(from: node, crop: CGRect(x: -w / 2, y: -h, width: w, height: h)) {
+            node.removeAllChildren()
+            let sprite = SKSpriteNode(texture: texture)
+            sprite.anchorPoint = CGPoint(x: 0.5, y: 1)
+            sprite.size = CGSize(width: w, height: h)
+            node.addChild(sprite)
+            curtainFabric.append(sprite)
+        }
         node.xScale = mirrored ? -1 : 1
         return node
     }
@@ -2504,7 +2523,7 @@ final class GlowWindowScene: BaseToyScene {
         let beamColor = sample([(0, 0xFFE6A8), (0.5, 0xFFB066), (0.75, 0x9FB0E8), (1, 0x8FA0E0)], p)
         let beamDay = 1 - smoothstep(0.55, 0.78, p)
         let beamNight = night
-        let beamStrength = (beamDay * 0.34 + beamNight * 0.18) * curtainOpen
+        let beamStrength = (beamDay * 0.34 + beamNight * 0.18) * visibleCurtainOpening
 
         // Global veils.
         let warm = bell(p, 0.5, 0.16) * 0.34
@@ -2513,13 +2532,14 @@ final class GlowWindowScene: BaseToyScene {
         if animated, !AmbientAnimator.reduceMotion {
             sunNode.run(.fadeAlpha(to: sunVisible, duration: 0.3))
             moonNode.run(.fadeAlpha(to: moonVisible, duration: 0.3))
-            beamNode.run(.fadeAlpha(to: beamStrength, duration: 0.3))
+            beamNode.run(.fadeAlpha(to: beamStrength, duration: 0.3), withKey: "phaseAlpha")
             warmVeil.run(.fadeAlpha(to: warm, duration: 0.3))
             coolVeil.run(.fadeAlpha(to: cool, duration: 0.3))
             for s in stars { s.run(.fadeAlpha(to: night * CGFloat.random(in: 0.6...1), duration: 0.4)) }
         } else {
             sunNode.alpha = sunVisible
             moonNode.alpha = moonVisible
+            beamNode.removeAction(forKey: "phaseAlpha")
             beamNode.alpha = beamStrength
             warmVeil.alpha = warm
             coolVeil.alpha = cool
@@ -2553,30 +2573,46 @@ final class GlowWindowScene: BaseToyScene {
 
     // MARK: - Curtain
 
-    private func applyCurtain(animated: Bool) {
-        // open: panels tucked to the sides; closed: panels meet at centre.
-        let closedX = windowRect.width * 0.16
-        let lx = windowCenter.x - (curtainRestX * curtainOpen + closedX * (1 - curtainOpen))
-        let rx = windowCenter.x + (curtainRestX * curtainOpen + closedX * (1 - curtainOpen))
-        // Gather narrow when open (folds bunch → far more glass shows), fill wide when closed.
-        let stretch = 0.5 + (1 - curtainOpen) * 0.6
-        let setX: (SKNode, CGFloat) -> Void = { node, x in
-            if animated, !AmbientAnimator.reduceMotion {
-                let move = SKAction.move(to: CGPoint(x: x, y: node.position.y), duration: 0.34)
-                move.timingMode = .easeOut
-                node.run(.sequence([move, .run { self.curtainSway(node) }]))
-                node.run(.scaleX(to: node.xScale < 0 ? -stretch : stretch, duration: 0.34))
-            } else {
-                node.position = CGPoint(x: x, y: node.position.y)
-                node.xScale = (node.xScale < 0 ? -1 : 1) * stretch
-            }
-        }
-        setX(curtainL, lx)
-        setX(curtainR, rx)
+    private var visibleCurtainOpening: CGFloat {
+        clamp(curtainOpen * 0.45 + curtainHemOpen * 0.55, 0, 1)
     }
 
-    /// Shortly after opening — and now and then while idle — the curtains give a soft fabric peek
-    /// so a child (and parent) sees they're cloth you can pull. Cleared the moment anything is grabbed.
+    private func applyCurtain(animated: Bool) {
+        guard curtainL != nil, curtainR != nil else { return }
+        if !animated || AmbientAnimator.reduceMotion { curtainHemOpen = curtainOpen }
+        let closedX = windowRect.width * 0.16
+        let offset = closedX + (curtainRestX - closedX) * curtainOpen
+        // The header slides along the rod; it never rotates or leaves its height.
+        curtainL.position.x = windowCenter.x - offset
+        curtainR.position.x = windowCenter.x + offset
+        curtainL.xScale = 1
+        curtainR.xScale = -1
+        updateCurtainMesh()
+    }
+
+    private func updateCurtainMesh() {
+        let destinations = WindowCurtainFabric.destinations(open: curtainOpen, hem: curtainHemOpen,
+                                                           travelOverWidth: (curtainRestX - windowRect.width * 0.16) / max(1, windowRect.width * 0.46))
+        let geometry = SKWarpGeometryGrid(columns: 24, rows: 10,
+                                          sourcePositions: Self.curtainMesh, destinationPositions: destinations)
+        curtainFabric.forEach { $0.warpGeometry = geometry }
+    }
+
+    private func settleCurtainFabric(deltaTime: TimeInterval) {
+        let previous = curtainHemOpen
+        let held = grabs.values.contains(.curtainL) || grabs.values.contains(.curtainR)
+        curtainHemOpen = WindowCurtainFabric.settledHem(current: curtainHemOpen, target: curtainOpen,
+                                                      deltaTime: deltaTime, held: held, reduceMotion: AmbientAnimator.reduceMotion)
+        guard previous != curtainHemOpen else { return }
+        updateCurtainMesh()
+        // The revealed light follows the same opening as the lower cloth, including
+        // its last little settle. No room layer is warped or stretched.
+        let day = 1 - smoothstep(0.55, 0.78, dayPhase)
+        let night = smoothstep(0.6, 0.92, dayPhase)
+        beamNode?.removeAction(forKey: "phaseAlpha")
+        beamNode?.alpha = (day * 0.34 + night * 0.18) * visibleCurtainOpening
+    }
+
     private func inviteCurtains() {
         guard !AmbientAnimator.reduceMotion else { return }
         removeAction(forKey: "curtainInvite")
@@ -2589,39 +2625,12 @@ final class GlowWindowScene: BaseToyScene {
     }
 
     private func curtainPeek() {
-        // When a change is armed behind them the peek grows fuller and slower, with a
-        // soft inward draft — the curtains themselves whisper *close me*. Never an arrow.
-        let armed = peekChange != nil && !peekRevealReady
-        let amp: CGFloat = armed ? 26 : 12
-        let outDur = armed ? 0.95 : 0.55
-        let backDur = armed ? 1.2 : 0.7
-        // Idle peek breathes OUTWARD (look, I'm cloth); the armed whisper drifts
-        // INWARD, toward each other — the closing gesture itself, offered gently.
-        let dir: CGFloat = armed ? -1 : 1
-        for (panel, sign) in [(curtainL, CGFloat(-1)), (curtainR, CGFloat(1))] {
-            guard let panel else { continue }
-            let x0 = panel.position.x
-            let out = SKAction.moveTo(x: x0 + sign * amp * dir, duration: outDur); out.timingMode = .easeOut
-            let back = SKAction.moveTo(x: x0, duration: backDur); back.timingMode = .easeInEaseOut
-            panel.run(.sequence([out, back]))
-            curtainSway(panel)
-        }
-        if armed {
-            tone("window.curtain", key: "curtain.whisper", minInterval: 2, volume: 0.5)
-        } else {
-            tone("window.curtain", key: "curtain.invite", minInterval: 2, volume: 0.4)
-        }
-    }
-
-    private func curtainSway(_ node: SKNode) {
+        // A small hem fold hints at the existing peek-a-boo discovery. The header
+        // remains attached and a new touch takes over this same state immediately.
         guard !AmbientAnimator.reduceMotion else { return }
-        let s = abs(node.xScale)
-        let sign: CGFloat = node.xScale < 0 ? -1 : 1
-        node.run(.sequence([
-            .scaleX(to: sign * s * 1.03, duration: 0.16),
-            .scaleX(to: sign * s * 0.99, duration: 0.18),
-            .scaleX(to: sign * s, duration: 0.16)
-        ]))
+        let armed = peekChange != nil && !peekRevealReady
+        curtainHemOpen = clamp(curtainOpen - (armed ? 0.045 : 0.018), 0, 1)
+        updateCurtainMesh()
     }
 
     // MARK: - Lamp
@@ -2679,6 +2688,7 @@ final class GlowWindowScene: BaseToyScene {
                 grabs[touch] = which
                 let node = which == .curtainL ? curtainL! : curtainR!
                 curtainGrabDX = pr.x - node.position.x
+                removeAction(forKey: "curtainInvite")
                 continue
             }
             // The cat — tap to pet (a stretch, a purr, hearts at night). She naps on the
@@ -2732,11 +2742,13 @@ final class GlowWindowScene: BaseToyScene {
                 dialTick()
             case .curtainL:
                 let nx = pr.x - curtainGrabDX
-                let frac = clamp((windowCenter.x - nx) / curtainRestX, 0, 1)
+                let closedX = windowRect.width * 0.16
+                let frac = WindowCurtainFabric.opening(offset: windowCenter.x - nx, closedOffset: closedX, openOffset: curtainRestX)
                 setCurtain(open: frac, animated: false)
             case .curtainR:
                 let nx = pr.x - curtainGrabDX
-                let frac = clamp((nx - windowCenter.x) / curtainRestX, 0, 1)
+                let closedX = windowRect.width * 0.16
+                let frac = WindowCurtainFabric.opening(offset: nx - windowCenter.x, closedOffset: closedX, openOffset: curtainRestX)
                 setCurtain(open: frac, animated: false)
             case .room:
                 let raw = roomGrabBaseline + (p.x - roomGrabStartX) * 0.6
@@ -2932,9 +2944,11 @@ final class GlowWindowScene: BaseToyScene {
                     dialKnob.setScale(1)
                 }
             case .curtainL, .curtainR:
-                applyCurtain(animated: true)
-                tone("window.curtain", key: "curtain.settle", volume: 0.6)
-                HapticsManager.shared.impact(style: .soft, intensity: 0.16)
+                applyCurtain(animated: !cancelled)
+                if !cancelled {
+                    tone("window.curtain", key: "curtain.settle", volume: 0.6)
+                    HapticsManager.shared.impact(style: .soft, intensity: 0.16)
+                }
             case .room:
                 tone("window.drop", key: "room.settle", minInterval: 0.4, volume: 0.6)
             case .can:
@@ -3019,13 +3033,16 @@ final class GlowWindowScene: BaseToyScene {
     }
 
     private func curtainHit(_ p: CGPoint) -> Grab? {
-        // Tighter than it looks: the sill corners are crowded (cat, lamp, star), so the
-        // curtain only claims touches near its own fabric (playtest).
-        let panelW = windowRect.width * 0.42
-        if p.y < windowRect.maxY, p.y > windowRect.minY {
-            if abs(p.x - curtainL.position.x) < panelW * 0.42 { return .curtainL }
-            if abs(p.x - curtainR.position.x) < panelW * 0.42 { return .curtainR }
-        }
+        guard p.y < windowRect.maxY, p.y > windowRect.minY else { return nil }
+        // Hit the cloth where its trailing fold is visible, including a re-grab
+        // during settling. Keep a small tolerance without claiming the whole sill.
+        let panelHeight = windowRect.height + frameT() * 1.2
+        let depth = clamp((curtainL.position.y - p.y) / max(1, panelHeight), 0, 1)
+        let opening = curtainOpen + (curtainHemOpen - curtainOpen) * pow(depth, 1.45)
+        let offset = windowRect.width * 0.16 + (curtainRestX - windowRect.width * 0.16) * opening
+        let halfWidth = windowRect.width * 0.23 * (0.5 + (1 - opening) * 0.6) + 10
+        if abs(p.x - (windowCenter.x - offset)) < halfWidth { return .curtainL }
+        if abs(p.x - (windowCenter.x + offset)) < halfWidth { return .curtainR }
         return nil
     }
 
@@ -3048,12 +3065,9 @@ final class GlowWindowScene: BaseToyScene {
             lampAutoOn = nil
             applyLamp(animated: true)
         }
-        // follow finger immediately, gathering narrow as it opens
-        let closedX = windowRect.width * 0.16
-        let off = curtainRestX * curtainOpen + closedX * (1 - curtainOpen)
-        let ws = 0.5 + (1 - curtainOpen) * 0.6
-        curtainL.position = CGPoint(x: windowCenter.x - off, y: curtainL.position.y); curtainL.xScale = ws
-        curtainR.position = CGPoint(x: windowCenter.x + off, y: curtainR.position.y); curtainR.xScale = -ws
+        // Header and held fabric respond on this touch event. Only the unheld
+        // lower folds retain a little lag; repeated reversals replace that state.
+        applyCurtain(animated: !AmbientAnimator.reduceMotion)
         applyPhase(animated: false)   // light spill scales with the curtain; the drag itself is silent
         updatePeekABoo()
     }
@@ -3491,6 +3505,7 @@ final class GlowWindowScene: BaseToyScene {
         guard dialRadius > 1 else { return }
         let dt = lastUpdateTime == 0 ? 0 : min(0.05, currentTime - lastUpdateTime)
         lastUpdateTime = currentTime
+        settleCurtainFabric(deltaTime: dt)
 
         // Dial inertia after release.
         if !grabs.values.contains(.dial), abs(dialVelocity) > 0.0002, !AmbientAnimator.reduceMotion {
@@ -3801,5 +3816,39 @@ final class GlowWindowScene: BaseToyScene {
         }
         elements.append(curtains)
         return elements
+    }
+}
+
+/// The cloth's normalized mesh and lag. The rod seam is row 10 (y = 1),
+/// and remains attached at every opening, including rapid reversals.
+enum WindowCurtainFabric {
+    static let mesh: [SIMD2<Float>] = (0...10).flatMap { row in
+        (0...24).map { column in SIMD2(Float(column) / 24, Float(row) / 10) }
+    }
+
+    static func opening(offset: CGFloat, closedOffset: CGFloat, openOffset: CGFloat) -> CGFloat {
+        min(1, max(0, (offset - closedOffset) / max(1, openOffset - closedOffset)))
+    }
+
+    static func settledHem(current: CGFloat, target: CGFloat, deltaTime: TimeInterval, held: Bool, reduceMotion: Bool) -> CGFloat {
+        let target = min(1, max(0, target))
+        guard !reduceMotion else { return target }
+        let fraction = 1 - exp(-CGFloat(min(0.05, max(0, deltaTime))) / (held ? 0.085 : 0.22))
+        let next = min(1, max(0, current + (target - current) * fraction))
+        return abs(next - target) < 0.0005 ? target : next
+    }
+
+    static func destinations(open: CGFloat, hem: CGFloat, travelOverWidth: CGFloat) -> [SIMD2<Float>] {
+        mesh.map { vertex in
+            let x = CGFloat(vertex.x), y = CGFloat(vertex.y)
+            let lowerWeight = pow(1 - y, 1.45)
+            let opening = open + (hem - open) * lowerWeight
+            let gather = 0.5 + (1 - opening) * 0.6
+            let trail = -(opening - open) * travelOverWidth
+            let fold = sin(x * .pi * 12)
+            let pleat = fold * 0.012 * opening * sin(y * .pi)
+            let hemLift = fold * fold * 0.009 * opening * (1 - y)
+            return SIMD2(Float(0.5 + (x - 0.5) * gather + trail + pleat), Float(y + hemLift))
+        }
     }
 }

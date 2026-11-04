@@ -30,6 +30,12 @@ inventory groups unmatched names as **Legacy or unclassified**, not “safe to d
 new house renderer uses a code-drawn doorway glow. Original source remains in
 `Docs/Art/Build10/Source/`.
 
+November 4 material layers: Wash now prefers `wash-bay-clean` / `wash-bay-portrait-clean`
+with `wash-brush-tuft` animated separately; the original room slots are fallbacks. Meadow
+prefers the registered `meadow-leaf-house-base` and `meadow-leaf-house-roof` pair and keeps
+the one-piece `meadow-leaf-house` as fallback. Prompts and exact asset hashes are under
+`Docs/Art/Materials-Motion-2026-11-03/`.
+
 Regenerate the inventory with `python3 Tools/Art/inventory_assets.py` from
 `WarmShelfToybox/`. It records PNG dimensions, file sizes, SHA-256 hashes, missing declared
 files and duplicate groups without changing artwork. Exact-byte reference matches and

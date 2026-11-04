@@ -4,7 +4,7 @@
 Compiles the production model from App/Toys/Meadow/MeadowLittleOnes.swift and checks hiding
 places, finding, the parade along her path, the hop over flowers, going home, and that a
 visit's places survive a rotation. Static checks cover the scene: the little ones never touch
-her flower trail, the finale plays once, and sounds answer outcomes only.
+her flower trail, the first-five welcome plays once, recurrence stays bounded, and sounds answer outcomes only.
 """
 from pathlib import Path
 import os
@@ -37,7 +37,8 @@ def check(ok, what):
 
 node = source.split("// MARK: - The little ones on screen", 1)[1]
 check("flowerTrail" not in source and "stamp(" not in source, "the little ones never stamp or change her flowers")
-check("if model.allHome, !finaleDone {" in node and "finaleDone = true" in node, "the all-home finale plays once")
+check("if model.warmthCount == MeadowLittleOnesModel.count, !finaleDone {" in node and "finaleDone = true" in node,
+      "the first-five welcome plays once, not once per replenished batch")
 check("littleOnes: littleOnes?.snapshot" in scene and "buildLittleOnes(restoring: snap?.littleOnes)" in scene,
       "a rotation keeps who was found and who is home")
 check("private let littleOnesSeed" in scene, "one seed per visit keeps the hiding places across a rebuild")
@@ -45,6 +46,10 @@ answer = re.search(r"private func answerLittleOnes.*?\n    }\n", scene, re.S).gr
 check("events.found > 0" in answer and "events.arrived > 0" in answer and "AudioManager.shared.play" in answer,
       "sounds answer outcomes only: joining, going home, all home")
 check(re.search(r"AmbientAnimator\.reduceMotion", node) is not None, "Reduce Motion is respected")
+check("for i in model.replenish" in node and "hideAgain(i)" in node,
+      "replenishment resets existing baby and leaf nodes")
+check("groundDetailLayer.zPosition = 3" in scene and "trailLayer.zPosition = 4" in scene,
+      "scenery stays underneath the flower trail")
 
 checks = r'''
 import Foundation
@@ -162,6 +167,79 @@ let restored = MeadowLittleOnesModel(restoring: snap)
 check(restored.snapshot == snap && restored.allHome && restored.houseVisible, "a rotation restores everyone where they were, with home visible")
 check(dist(MeadowLittleOnesModel.housePosition(homeRadius: 117), .zero) < 117 && dist(MeadowLittleOnesModel.housePosition(homeRadius: 117), .zero) > 40,
       "the house stands in the home garden, beside her starting place")
+
+
+// Continual exploration reuses five delivered slots, preserving a steady welcome glow.
+let viewport = CGRect(x: -240, y: -400, width: 480, height: 800)
+var recurring = MeadowLittleOnesModel(restoring: home.snapshot)
+for _ in 0..<60 {
+    check(recurring.replenish(dt: 1.0 / 20, mother: recurring.house, visibleWorld: viewport).isEmpty,
+          "arrivals have a quiet rest before any slot is reused")
+}
+let pausedSnapshot = recurring.snapshot
+var rotatedRecurrence = MeadowLittleOnesModel(restoring: pausedSnapshot)
+var recycled: [Int] = []
+for _ in 0..<220 {
+    let first = recurring.replenish(dt: 1.0 / 20, mother: recurring.house, visibleWorld: viewport)
+    let afterRotation = rotatedRecurrence.replenish(dt: 1.0 / 20, mother: rotatedRecurrence.house, visibleWorld: viewport)
+    check(first == afterRotation && recurring.snapshot == rotatedRecurrence.snapshot,
+          "rotation preserves countdown, random sequence, hiding positions and warmth")
+    recycled += first
+}
+check(Set(recycled) == Set(0..<5), "all five become available again without restarting")
+check(recurring.homeCount == 0 && recurring.places.allSatisfy { $0 == .hidden }, "new places are hidden, not auto-found")
+check(recurring.warmthCount == 5, "replenishment never cools the house")
+for i in 0..<5 {
+    check(!viewport.insetBy(dx: -96, dy: -96).contains(recurring.spots[i]), "new hiding place stays outside visible rectangle plus margin")
+    check(dist(recurring.spots[i], home.spots[i]) >= 198, "a delivered slot uses a fresh place")
+    check(dist(recurring.spots[i], recurring.house) >= 192, "a new little one cannot immediately rejoin the mother")
+}
+
+// A fully visible world has nowhere safe to hide: wait, never pop a baby into view.
+var visibleEverywhere = MeadowLittleOnesModel(restoring: home.snapshot)
+let wholeWorld = CGRect(x: -3000, y: -3000, width: 6000, height: 6000)
+for _ in 0..<600 {
+    check(visibleEverywhere.replenish(dt: 0.05, mother: .zero, visibleWorld: wholeWorld).isEmpty,
+          "no candidate is ever allowed inside the visible world")
+}
+check(visibleEverywhere.allHome && visibleEverywhere.warmthCount == 5, "blocked placement keeps deliveries and warmth")
+for dt: TimeInterval in [0, -1, .infinity, .nan] {
+    let before = visibleEverywhere.snapshot
+    _ = visibleEverywhere.replenish(dt: dt, mother: .zero, visibleWorld: viewport)
+    check(visibleEverywhere.snapshot == before, "invalid or paused delta never consumes the quiet rest")
+}
+
+// One hundred further trips retain exactly five slots and a bounded trail; no history grows.
+for _ in 0..<100 {
+    for i in 0..<5 { _ = recurring.motherMoved(to: recurring.spots[i]) }
+    let delivery = recurring.motherMoved(to: recurring.house)
+    check(delivery.arrived.count == 5, "each new group can be found and led home")
+    for _ in 0..<240 { _ = recurring.replenish(dt: 0.05, mother: recurring.house, visibleWorld: viewport) }
+    check(recurring.places.allSatisfy { $0 == .hidden }, "continued play always restores available hiding slots")
+    check(recurring.spots.count == 5 && recurring.places.count == 5 && recurring.restRemaining.count == 5,
+          "recurrence keeps fixed slot storage")
+    check(recurring.parade.isEmpty && recurring.trail.count <= 53, "parade and sampled trail remain bounded")
+    check(recurring.warmthCount == 5, "later visits do not escalate the welcome")
+}
+
+// Scenery density and material placement are deterministic and sparse across routes.
+for seed in UInt64(1)...20 {
+    let worldSize = CGSize(width: 2200, height: 2200)
+    let avoid = [CGPoint(x: 500, y: 300), CGPoint(x: -500, y: -500)]
+    let clusters = MeadowGroundDetails.layout(worldSize: worldSize, homeRadius: 117, avoid: avoid, seed: seed)
+    check(clusters == MeadowGroundDetails.layout(worldSize: worldSize, homeRadius: 117, avoid: avoid, seed: seed),
+          "rotation redraws the same clusters")
+    check(clusters.count >= 60 && clusters.count <= MeadowGroundDetails.maximumClusters,
+          "bounded clusters fill the long routes without growing during play")
+    for (i, cluster) in clusters.enumerated() {
+        check(abs(cluster.position.x) < 1000 && abs(cluster.position.y) < 1000, "detail stays in the play world")
+        check(dist(cluster.position, .zero) > 117 * 1.4 + 30, "home remains uncluttered")
+        check(avoid.allSatisfy { dist(cluster.position, $0) > 125 }, "detail leaves landmarks clear")
+        check((0..<3).contains(cluster.style), "only the three restrained material groups are used")
+        check(clusters[(i + 1)...].allSatisfy { dist(cluster.position, $0.position) > 150 },
+              "clusters retain clear walking space between them")
+    }
+}
 
 print("PASS: \(passed) model checks")
 '''

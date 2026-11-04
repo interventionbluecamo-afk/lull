@@ -49,6 +49,108 @@ struct MixUpArtSource {
     }
 }
 
+enum MixUpRigGeometry {
+    static func groundingOffset(soleY: CGFloat, halfWidth: CGFloat,
+                                scaleX: CGFloat, scaleY: CGFloat, rotation: CGFloat) -> CGFloat {
+        let verticalScale = scaleY * cos(rotation)
+        guard abs(verticalScale) > 0.1 else { return 0 }
+        let lowestSole = soleY * verticalScale - abs(halfWidth * scaleX * sin(rotation))
+        return (soleY - lowestSole) / verticalScale
+    }
+}
+
+/// Local cloth/felt response on the existing registered sprite. Every join and the
+/// lower face stays fixed, and positions stay inside the original art envelope.
+/// No extra cropped overlay can detach, double an ear, or expose an unpainted seam.
+enum MixUpSoftMotion {
+    enum Profile: CaseIterable { case longEars, shortEars, tuft, hat, sleeves }
+    static let spriteName = "mix.softArt"
+    private static let actionKey = "mix.softSettle"
+    static let divisions = 10
+
+    static func profile(name: String, zone: MixUpZone) -> Profile? {
+        switch zone {
+        case .head:
+            switch name {
+            case "bunny": return .longEars
+            case "bear", "fox", "mouse": return .shortEars
+            case "songbird": return .tuft
+            case "officer": return .hat
+            default: return nil    // a robot and a hard helmet keep their rigid material
+            }
+        case .body: return name == "robot" ? nil : .sleeves
+        case .legs: return nil
+        }
+    }
+
+    /// Pure normalized geometry, also exercised by the focused motion check.
+    static func destination(_ point: SIMD2<Float>, profile: Profile, amount: Float) -> SIMD2<Float> {
+        let x = point.x, y = point.y
+        let a = max(-1, min(1, amount))
+        var dx: Float = 0, dy: Float = 0
+        switch profile {
+        case .longEars, .shortEars:
+            let base: Float = profile == .longEars ? 0.56 : 0.76
+            let tip = max(0, (y - base) / (1 - base))
+            let side = min(1, max(0, (abs(x - 0.5) - 0.13) / 0.12))
+            dx = a * tip * tip * side * (profile == .longEars ? 0.026 : 0.014)
+            dy = -abs(a) * tip * side * 0.007
+        case .tuft:
+            let tip = max(0, (y - 0.82) / 0.18)
+            let middle = max(0, 1 - abs(x - 0.5) / 0.28)
+            dx = a * tip * middle * 0.014
+        case .hat:
+            let tip = max(0, (y - 0.64) / 0.36)
+            dx = a * tip * tip * 0.016
+            dy = -abs(a) * tip * 0.004
+        case .sleeves:
+            let side = max(0, (abs(x - 0.5) - 0.27) / 0.23)
+            // Exact pinned rows protect both neck and waist. The torso's middle
+            // stays rigid while only the outer sleeves trail their shoulder.
+            let vertical = y > 0 && y < 1 ? sin(y * .pi) * sin(y * .pi) : 0
+            dx = a * side * vertical * 0.020
+            dy = -abs(a) * side * vertical * 0.010
+        }
+        return SIMD2(max(0, min(1, x + dx)), max(0, min(1, y + dy)))
+    }
+
+    private static func grid(profile: Profile, amount: Float) -> SKWarpGeometryGrid {
+        var source: [SIMD2<Float>] = []
+        var destination: [SIMD2<Float>] = []
+        for row in 0...divisions {
+            for column in 0...divisions {
+                let point = SIMD2<Float>(Float(column) / Float(divisions), Float(row) / Float(divisions))
+                source.append(point)
+                destination.append(self.destination(point, profile: profile, amount: amount))
+            }
+        }
+        return SKWarpGeometryGrid(columns: divisions, rows: divisions,
+                                  sourcePositions: source, destinationPositions: destination)
+    }
+
+    static func respond(in node: SKNode, name: String, zone: MixUpZone, direction: CGFloat = 1) {
+        guard let sprite = node.childNode(withName: "//" + spriteName) as? SKSpriteNode,
+              let profile = profile(name: name, zone: zone) else { return }
+        sprite.removeAction(forKey: actionKey)
+        guard !AmbientAnimator.reduceMotion else { sprite.warpGeometry = nil; return }
+        if sprite.warpGeometry == nil { sprite.warpGeometry = grid(profile: profile, amount: 0) }
+        let amount: Float = direction < 0 ? -1 : 1
+        guard let notice = SKAction.warp(to: grid(profile: profile, amount: amount), duration: 0.16),
+              let settle = SKAction.warp(to: grid(profile: profile, amount: 0), duration: 0.64) else { return }
+        notice.timingMode = .easeOut
+        settle.timingMode = .easeInEaseOut
+        sprite.run(.sequence([notice, settle, .run { [weak sprite] in sprite?.warpGeometry = nil }]),
+                   withKey: actionKey)
+    }
+
+    static func cancel(in node: SKNode) {
+        node.enumerateChildNodes(withName: "//" + spriteName) { child, _ in
+            child.removeAction(forKey: actionKey)
+            (child as? SKSpriteNode)?.warpGeometry = nil
+        }
+    }
+}
+
 /// A recognizable, varied library of heads, bodies, and legs in the alphabet-card look.
 enum MixUpLibrary {
     private static let primaryHeadName = "mix.primary.head"
@@ -208,6 +310,7 @@ enum MixUpLibrary {
         return MixUpPart(name: name, usesJointAnchors: true) { s in
             let n = SKNode()
             let sprite = SKSpriteNode(texture: paintedTexture)
+            sprite.name = MixUpSoftMotion.spriteName
             switch zone {
             case .head:
                 sprite.size = CGSize(width: 90 * s, height: 90 * bounds.height / bounds.width * s)

@@ -5,7 +5,8 @@ import SpriteKit
 // that follows in her steps, hopping between her flowers (never squashing or re-blooming
 // them). A leaf house is visible in the home garden from the start; she leads them home,
 // each one hops in, and the house glows warmer. No counter, no timer, no way to fail.
-// New hiding places each visit.
+// Delivered slots quietly return to new offscreen hiding places, keeping five available
+// without a restart, a counter, or an ever-growing node history.
 
 // MARK: - The model (no SpriteKit, so it can be checked off-device)
 
@@ -48,6 +49,12 @@ struct MeadowLittleOnesModel {
         var house: CGPoint
         var trail: [CGPoint] = []
         var paradeSpacing: CGFloat = MeadowLittleOnesModel.paradeGap
+        var worldSize: CGSize
+        var homeRadius: CGFloat
+        var avoid: [CGPoint]
+        var replenishmentSeed: UInt64
+        var restRemaining: [TimeInterval]
+        var warmthCount: Int
     }
 
     private(set) var spots: [CGPoint]
@@ -56,6 +63,14 @@ struct MeadowLittleOnesModel {
     private(set) var parade: [Int] = []
     let house: CGPoint
     let paradeSpacing: CGFloat
+    private let worldSize: CGSize
+    private let homeRadius: CGFloat
+    private let avoid: [CGPoint]
+    private var replenishmentSeed: UInt64
+    private(set) var restRemaining: [TimeInterval]
+    /// Warmth records the visit's first five welcomes and then stays steady. It is bounded,
+    /// independent of which reusable slots are currently out in the meadow.
+    private(set) var warmthCount = 0
     /// Her recent path, newest last, long enough for the whole parade.
     private(set) var trail: [CGPoint] = []
 
@@ -63,10 +78,20 @@ struct MeadowLittleOnesModel {
     var allHome: Bool { homeCount == Self.count }
     /// Home is a quiet landmark from the start, even before anyone has been found.
     var houseVisible: Bool { true }
-    var snapshot: Snapshot { Snapshot(spots: spots, places: places, parade: parade, house: house, trail: trail, paradeSpacing: paradeSpacing) }
+    var snapshot: Snapshot {
+        Snapshot(spots: spots, places: places, parade: parade, house: house, trail: trail,
+                 paradeSpacing: paradeSpacing, worldSize: worldSize, homeRadius: homeRadius,
+                 avoid: avoid, replenishmentSeed: replenishmentSeed, restRemaining: restRemaining,
+                 warmthCount: warmthCount)
+    }
 
     init(worldSize: CGSize, homeRadius: CGFloat, avoid: [CGPoint], seed: UInt64, paradeSpacing: CGFloat = Self.paradeGap) {
         self.paradeSpacing = max(Self.paradeGap, paradeSpacing)
+        self.worldSize = worldSize
+        self.homeRadius = homeRadius
+        self.avoid = avoid
+        replenishmentSeed = seed
+        restRemaining = Array(repeating: 0, count: Self.count)
         spots = Self.hidingSpots(worldSize: worldSize, homeRadius: homeRadius, avoid: avoid, seed: seed)
         places = Array(repeating: .hidden, count: spots.count)
         house = Self.housePosition(homeRadius: homeRadius)
@@ -79,6 +104,12 @@ struct MeadowLittleOnesModel {
         house = snapshot.house
         trail = snapshot.trail
         paradeSpacing = snapshot.paradeSpacing
+        worldSize = snapshot.worldSize
+        homeRadius = snapshot.homeRadius
+        avoid = snapshot.avoid
+        replenishmentSeed = snapshot.replenishmentSeed
+        restRemaining = snapshot.restRemaining
+        warmthCount = snapshot.warmthCount
     }
 
     /// Called as she walks. Returns the little ones that just joined, and those that just
@@ -109,10 +140,59 @@ struct MeadowLittleOnesModel {
         var arrived: [Int] = []
         if !parade.isEmpty, hypot(p.x - house.x, p.y - house.y) < Self.houseRadius {
             arrived = parade
-            for i in parade { places[i] = .home }
+            for i in parade {
+                places[i] = .home
+                restRemaining[i] = 8 + Double(i) * 0.7
+            }
+            warmthCount = min(Self.count, warmthCount + arrived.count)
             parade.removeAll()
         }
         return (found, arrived)
+    }
+
+    /// Reuse only delivered slots after a quiet pause. New leaves never appear inside
+    /// the visible world rectangle or beside the mother. A blocked placement waits and
+    /// retries with a bounded search; it never relaxes the visibility/clearance rules.
+    mutating func replenish(dt: TimeInterval, mother: CGPoint, visibleWorld: CGRect) -> [Int] {
+        guard dt.isFinite, dt > 0, mother.x.isFinite, mother.y.isFinite,
+              visibleWorld.width.isFinite, visibleWorld.height.isFinite,
+              visibleWorld.width > 0, visibleWorld.height > 0 else { return [] }
+        let elapsed = min(dt, 0.05)
+        let margin = max(Self.findRadius * 1.5, paradeSpacing * 1.5)
+        let hiddenFromView = visibleWorld.insetBy(dx: -margin, dy: -margin)
+        let half = min(worldSize.width, worldSize.height) / 2
+        let inner = max(homeRadius * 1.8, half * 0.28)
+        let outer = half * 0.82
+        guard outer > inner else { return [] }
+        var replenished: [Int] = []
+        for i in places.indices where places[i] == .home {
+            restRemaining[i] = max(0, restRemaining[i] - elapsed)
+            guard restRemaining[i] == 0 else { continue }
+            replenishmentSeed &+= 0x9E37_79B9_7F4A_7C15
+            var random = MeadowSeededRandom(seed: replenishmentSeed)
+            var destination: CGPoint?
+            for _ in 0..<96 {
+                let angle = random.unit() * .pi * 2
+                let radius = inner + (outer - inner) * random.unit().squareRoot()
+                let point = CGPoint(x: cos(angle) * radius, y: sin(angle) * radius)
+                guard !hiddenFromView.contains(point),
+                      hypot(point.x - mother.x, point.y - mother.y) >= Self.findRadius * 3,
+                      hypot(point.x - spots[i].x, point.y - spots[i].y) >= max(120, half * 0.18),
+                      avoid.allSatisfy({ hypot($0.x - point.x, $0.y - point.y) >= 110 }),
+                      spots.indices.allSatisfy({ $0 == i || hypot(spots[$0].x - point.x, spots[$0].y - point.y) >= max(100, paradeSpacing * 2) })
+                else { continue }
+                destination = point
+                break
+            }
+            guard let destination else {
+                restRemaining[i] = 1 // a crowded/fully-visible world waits, without a hot loop
+                continue
+            }
+            spots[i] = destination
+            places[i] = .hidden
+            replenished.append(i)
+        }
+        return replenished
     }
 
     /// Where the k-th follower walks: along her own path, `paradeGap` apart. A path shorter
@@ -181,6 +261,36 @@ struct MeadowLittleOnesModel {
     }
 }
 
+/// Quiet material clusters between destinations. Fixed cells and a visit seed keep
+/// rotation stable; scenery is bounded and never becomes a touch target or trail obstacle.
+enum MeadowGroundDetails {
+    struct Cluster: Equatable {
+        let position: CGPoint
+        let style: Int
+        let turn: CGFloat
+    }
+    static let maximumClusters = 81
+
+    static func layout(worldSize: CGSize, homeRadius: CGFloat, avoid: [CGPoint], seed: UInt64) -> [Cluster] {
+        var random = MeadowSeededRandom(seed: seed ^ 0x5A67_0D33_A9F1_CE21)
+        let step = min(worldSize.width, worldSize.height) * 0.88 / 9
+        guard step > 0 else { return [] }
+        var result: [Cluster] = []
+        for x in -4...4 {
+            for y in -4...4 {
+                let point = CGPoint(x: (CGFloat(x) + (random.unit() - 0.5) * 0.28) * step,
+                                    y: (CGFloat(y) + (random.unit() - 0.5) * 0.28) * step)
+                let style = Int(random.next() % 3)
+                let turn = (random.unit() - 0.5) * .pi * 1.3
+                guard hypot(point.x, point.y) > homeRadius * 1.4 + 30,
+                      avoid.allSatisfy({ hypot($0.x - point.x, $0.y - point.y) > 125 }) else { continue }
+                result.append(Cluster(position: point, style: style, turn: turn))
+            }
+        }
+        return result
+    }
+}
+
 /// Frame-rate-independent following, with a speed cap when a new baby joins far away.
 struct MeadowFollowerMotion: Equatable {
     var position: CGPoint
@@ -221,6 +331,9 @@ final class MeadowLittleOnesNode: SKNode {
     private var leaves: [SKNode] = []
     private let house = SKNode()
     private var houseGlow: SKNode?
+    private var houseRoof: SKSpriteNode?
+    private var completedHomeCount = 0
+    private var activeArrivals = 0
     private var houseDoor = CGPoint.zero
     private var finaleDone: Bool
     private var motions: [MeadowFollowerMotion] = []
@@ -238,7 +351,8 @@ final class MeadowLittleOnesNode: SKNode {
         self.model = model
         self.babySize = babySize
         self.night = night
-        finaleDone = model.allHome
+        finaleDone = model.warmthCount == MeadowLittleOnesModel.count
+        completedHomeCount = model.warmthCount
         super.init()
         buildHouse(size: houseSize)
         for i in 0..<model.spots.count { buildBaby(i) }
@@ -258,12 +372,26 @@ final class MeadowLittleOnesNode: SKNode {
         house.position = model.house
         house.zPosition = 0.2
         let fit = CGSize(width: size, height: size)
-        if let art = ToyArt.sprite("meadow-leaf-house", fit: fit) {
+        // Both transparent layers share the original canvas and registration. A partial
+        // delivery keeps the static shelter: never lay a movable leaf over its baked copy.
+        let base = ToyArt.sprite("meadow-leaf-house-base", fit: fit)
+        let roof = ToyArt.sprite("meadow-leaf-house-roof", fit: fit)
+        let layered = base != nil && roof != nil && base?.size == roof?.size
+        if let art = layered ? base : ToyArt.sprite("meadow-leaf-house", fit: fit) {
             MeadowMaterialLight.apply(to: art, night: night)
             house.addChild(art)
-            // High-angle leaf shelter: the entrance is under the lower edge of its roof.
-            // Only the doorway warms as babies arrive; never overlay the old daytime house.
-            houseDoor = CGPoint(x: -art.size.width * 0.015, y: -art.size.height * 0.34)
+            // Normalized coordinates are measured on the 1345×1169 reference, y up.
+            houseDoor = CGPoint(x: art.size.width * (0.485 - 0.5), y: art.size.height * (0.16 - 0.5))
+            if layered, let roof {
+                let attachment = CGPoint(x: 0.65, y: 0.70)
+                roof.anchorPoint = attachment
+                roof.position = CGPoint(x: (attachment.x - 0.5) * roof.size.width,
+                                        y: (attachment.y - 0.5) * roof.size.height)
+                roof.zPosition = 0.42 // the entering baby passes between the base and roof
+                MeadowMaterialLight.apply(to: roof, night: night)
+                house.addChild(roof)
+                houseRoof = roof
+            }
             let glow = SKSpriteNode(texture: ProceduralTexture.softRadialGlow)
             glow.size = CGSize(width: art.size.width * 0.34, height: art.size.height * 0.18)
             glow.position = houseDoor
@@ -395,7 +523,7 @@ final class MeadowLittleOnesNode: SKNode {
         babyBodies[i].position = CGPoint(x: 0, y: lift * babySize * 0.12)
     }
 
-    private var glowLevel: CGFloat { CGFloat(model.homeCount) / CGFloat(MeadowLittleOnesModel.count) * (night ? 0.70 : 0.40) }
+    private var glowLevel: CGFloat { CGFloat(completedHomeCount) / CGFloat(MeadowLittleOnesModel.count) * (night ? 0.70 : 0.40) }
 
     /// A hidden little one sits mostly under its leaf, just its head showing.
     private func peekPosition(_ i: Int) -> CGPoint {
@@ -418,8 +546,9 @@ final class MeadowLittleOnesNode: SKNode {
     // MARK: Play
 
     /// Every frame: notice her, walk the parade, bring them home.
-    func step(mother: CGPoint, heading: CGFloat, flowers: [CGPoint], dt: TimeInterval) -> MeadowLittleOnesEvents {
+    func step(mother: CGPoint, heading: CGFloat, flowers: [CGPoint], visibleWorld: CGRect, dt: TimeInterval) -> MeadowLittleOnesEvents {
         var events = MeadowLittleOnesEvents()
+        for i in model.replenish(dt: dt, mother: mother, visibleWorld: visibleWorld) { hideAgain(i) }
         let (found, arrived) = model.motherMoved(to: mother)
         for i in found { join(i, delay: 0) }
         events.found = found.count
@@ -446,13 +575,34 @@ final class MeadowLittleOnesNode: SKNode {
         if !arrived.isEmpty {
             for (n, i) in arrived.enumerated() { goHome(i, delay: Double(n) * 0.32) }
             events.arrived = arrived.count
-            if model.allHome, !finaleDone {
+            if model.warmthCount == MeadowLittleOnesModel.count, !finaleDone {
                 finaleDone = true
                 events.allHome = true
-                run(.sequence([.wait(forDuration: Double(arrived.count) * 0.32 + 0.4), .run { [weak self] in self?.finale() }]))
             }
         }
         return events
+    }
+
+    private func hideAgain(_ i: Int) {
+        let baby = babies[i], body = babyBodies[i], leaf = leaves[i]
+        baby.removeAllActions()
+        body.removeAllActions()
+        leaf.removeAllActions()
+        leaf.position = model.spots[i]
+        leaf.zRotation = CGFloat(i) * 1.3
+        leaf.setScale(1)
+        leaf.alpha = 1
+        leaf.isHidden = false
+        baby.position = peekPosition(i)
+        baby.zRotation = leaf.zRotation + .pi / 2
+        baby.zPosition = 0.5
+        baby.alpha = 1
+        baby.setScale(1)
+        baby.isHidden = false
+        body.position = .zero
+        body.setScale(1)
+        motions[i] = MeadowFollowerMotion(position: baby.position, heading: baby.zRotation)
+        if !AmbientAnimator.reduceMotion { startPeeking(i) }
     }
 
     private func join(_ i: Int, delay: TimeInterval) {
@@ -476,29 +626,103 @@ final class MeadowLittleOnesNode: SKNode {
     }
 
     private func goHome(_ i: Int, delay: TimeInterval) {
+        activeArrivals += 1
         let baby = babies[i]
         baby.removeAllActions()
+        babyBodies[i].removeAllActions()
+        babyBodies[i].setScale(1)
+        babyBodies[i].position = .zero
+        baby.setScale(1)
         let door = CGPoint(x: model.house.x + houseDoor.x, y: model.house.y + houseDoor.y)
-        let level = glowLevel
+        let apron = CGPoint(x: door.x, y: door.y - babySize * 0.72)
         let reduce = AmbientAnimator.reduceMotion
-        let hopIn = SKAction.move(to: door, duration: reduce ? 0.4 : 0.32)
-        hopIn.timingMode = .easeInEaseOut
+        let distance = hypot(apron.x - baby.position.x, apron.y - baby.position.y)
+        let approach = SKAction.move(to: apron, duration: reduce ? 0 : min(0.72, max(0.28, Double(distance / 240))))
+        approach.timingMode = .easeInEaseOut
+        let tuck = SKAction.move(to: CGPoint(x: door.x, y: door.y + babySize * 0.72), duration: reduce ? 0 : 0.30)
+        tuck.timingMode = .easeInEaseOut
         baby.run(.sequence([
             .wait(forDuration: delay),
-            reduce ? hopIn : .group([hopIn, .sequence([.scale(to: 1.25, duration: 0.16), .scale(to: 0.6, duration: 0.16)])]),
-            .fadeOut(withDuration: 0.15),
+            .run { [weak self, weak baby] in
+                self?.liftRoof()
+                baby?.zPosition = 0.5
+                if !reduce {
+                    baby?.run(.rotate(toAngle: atan2(apron.y - (baby?.position.y ?? apron.y),
+                                                    apron.x - (baby?.position.x ?? apron.x)),
+                                      duration: 0.16, shortestUnitArc: true), withKey: "arrivalHeading")
+                }
+            },
+            // Reduced Motion fades at the current position, then places the baby at the
+            // real doorway. It never flies or shrinks across the meadow.
+            reduce ? .fadeOut(withDuration: 0.18) : approach,
+            .run { [weak baby] in
+                baby?.position = apron
+                baby?.zRotation = .pi / 2
+                baby?.zPosition = 0.5
+                if reduce { baby?.alpha = 1 }
+            },
+            tuck,
+            .fadeOut(withDuration: reduce ? 0.24 : 0.12),
             .hide(),
-            .run { [weak self] in self?.houseGlow?.run(.fadeAlpha(to: level, duration: 0.4)) }
-        ]))
+            .run { [weak self] in self?.finishArrival() }
+        ]), withKey: "arrival")
+    }
+
+    private func liftRoof() {
+        guard let houseRoof, !AmbientAnimator.reduceMotion else { return }
+        // Foreshorten only the front leaf around its stitched attachment. The house,
+        // doorway, back leaf and contact shadow remain planted.
+        let lift = SKAction.group([.scaleY(to: 0.97, duration: 0.16),
+                                   .rotate(toAngle: -0.018, duration: 0.16)])
+        lift.timingMode = .easeOut
+        houseRoof.run(lift, withKey: "arrivalLeaf")
+    }
+
+    private func finishArrival() {
+        activeArrivals = max(0, activeArrivals - 1)
+        let warmthBeforeArrival = completedHomeCount
+        completedHomeCount = min(model.warmthCount, completedHomeCount + 1)
+        houseGlow?.run(.fadeAlpha(to: glowLevel, duration: 0.6), withKey: "doorWarmth")
+        if activeArrivals == 0, let houseRoof {
+            let settle = SKAction.group([.scale(to: 1, duration: 0.8),
+                                         .rotate(toAngle: 0, duration: 0.8)])
+            settle.timingMode = .easeInEaseOut
+            houseRoof.run(.sequence([.wait(forDuration: 0.18), settle]), withKey: "arrivalLeaf")
+        }
+        if warmthBeforeArrival < MeadowLittleOnesModel.count,
+           completedHomeCount == MeadowLittleOnesModel.count { finale() }
+    }
+
+    /// Pause/background settles committed arrivals without replaying a half-finished entry.
+    func resetTransientFeedback() {
+        removeAllActions()
+        children.filter { $0.name == "homeSpark" }.forEach { $0.removeFromParent() }
+        houseRoof?.removeAllActions()
+        houseRoof?.setScale(1)
+        houseRoof?.zRotation = 0
+        houseGlow?.removeAllActions()
+        completedHomeCount = model.warmthCount
+        activeArrivals = 0
+        for i in babies.indices {
+            babies[i].removeAllActions()
+            babyBodies[i].removeAllActions()
+            babies[i].setScale(1)
+            babies[i].alpha = 1
+            babies[i].zPosition = 0.5
+            babyBodies[i].setScale(1)
+            babyBodies[i].position = .zero
+            leaves[i].removeAllActions()
+        }
+        settle()
     }
 
     /// All five home: the house glows warm, and a few soft sparks rise from the doorway.
     private func finale() {
-        houseGlow?.run(.sequence([.fadeAlpha(to: night ? 0.85 : 0.55, duration: 0.5), .fadeAlpha(to: glowLevel, duration: 0.8)]))
+        houseGlow?.run(.sequence([.fadeAlpha(to: night ? 0.85 : 0.55, duration: 0.5), .fadeAlpha(to: glowLevel, duration: 0.8)]), withKey: "doorWarmth")
         guard !AmbientAnimator.reduceMotion else { return }
-        house.run(.sequence([.scale(to: 1.08, duration: 0.3), .scale(to: 1, duration: 0.5)]))
         for n in 0..<7 {
             let spark = SKShapeNode(circleOfRadius: CGFloat.random(in: 2...3.5))
+            spark.name = "homeSpark"
             spark.fillColor = UIColor(hex: 0xFFD98A)
             spark.strokeColor = .clear
             spark.position = CGPoint(x: model.house.x + houseDoor.x + CGFloat.random(in: -10...10), y: model.house.y + houseDoor.y)

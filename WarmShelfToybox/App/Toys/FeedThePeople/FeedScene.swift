@@ -22,6 +22,7 @@ final class FeedScene: BaseToyScene {
     private var characterShadows: [ObjectIdentifier: SKSpriteNode] = [:]
     private var characterHomes: [ObjectIdentifier: CGPoint] = [:]
     private var activeFoodTouches: [UITouch: FoodNode] = [:]
+    private var lastAttentionTime: TimeInterval = 0
     private var feedsSinceVisitorChange = 0
     private var foodSourcePosition: CGPoint {
         let verticalOffset: CGFloat
@@ -154,6 +155,8 @@ final class FeedScene: BaseToyScene {
 
     override func didChangeSize(_ oldSize: CGSize) {
         super.didChangeSize(oldSize)
+        characters.forEach { $0.clearFoodAttention() }
+        lastAttentionTime = 0
         let characterSnapshots = snapshotCharacters(oldSize: oldSize)
         let foodSnapshots = snapshotFoods(oldSize: oldSize)
         rebuildWorld(preservingCharacters: characterSnapshots, preservingFoods: foodSnapshots)
@@ -161,7 +164,19 @@ final class FeedScene: BaseToyScene {
 
     override func update(_ currentTime: TimeInterval) {
         super.update(currentTime)
+        let dt = lastAttentionTime == 0 ? 1.0 / 60 : min(0.05, currentTime - lastAttentionTime)
+        lastAttentionTime = currentTime
+        updateFoodAttention(deltaTime: dt)
         syncCharacterShadows()
+    }
+
+    private func updateFoodAttention(deltaTime: TimeInterval) {
+        let foods = activeFoodTouches.values.filter { $0.isDragging && !$0.isServing }
+        for character in characters {
+            let target = foods.map { $0.convert(.zero, to: self) }
+                .min { character.mouthDistance(to: $0) < character.mouthDistance(to: $1) }
+            character.noticeFood(at: target, deltaTime: deltaTime)
+        }
     }
 
     /// A still, sunlit room behind the table: two warm planes meeting at a soft horizon,
@@ -1268,10 +1283,12 @@ final class FeedScene: BaseToyScene {
         }
     }
 
-    override func suspendToyForRest() {
-        super.suspendToyForRest()
+    override func teardownToyAudio() {
         for food in activeFoodTouches.values { food.settleAtHomeImmediately() }
         activeFoodTouches.removeAll()
+        characters.forEach { $0.clearFoodAttention() }
+        lastAttentionTime = 0
+        super.teardownToyAudio()
     }
 
     private func isFoodAlreadyBeingDragged(_ food: FoodNode) -> Bool {

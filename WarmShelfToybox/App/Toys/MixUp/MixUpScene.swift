@@ -9,6 +9,7 @@ final class MixUpScene: BaseToyScene {
 
     private var stage = SKNode()
     private var root = SKNode()
+    private var groundedRig = SKNode()
     private var headAttachment = SKNode()
     private var slots: [MixUpZone: SKNode] = [:]
     private var chevrons: [(zone: MixUpZone, dir: CGFloat, node: SKNode)] = []
@@ -136,6 +137,9 @@ final class MixUpScene: BaseToyScene {
 
     override func didMove(to view: SKView) {
         super.didMove(to: view)
+        NotificationCenter.default.removeObserver(self, name: UIApplication.willResignActiveNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(settleForInterruption),
+                                               name: UIApplication.willResignActiveNotification, object: nil)
         rebuild()
     }
 
@@ -154,8 +158,55 @@ final class MixUpScene: BaseToyScene {
         rebuild()
     }
 
+    override func teardownToyAudio() {
+        super.teardownToyAudio()
+        settleForInterruption()
+    }
+
+    @objc private func settleForInterruption() {
+        cancelPendingMoments()
+        guard stage.parent != nil else { return }
+        root.removeAllActions()
+        root.position = CGPoint(x: size.width / 2, y: characterRootY)
+        root.zRotation = 0; root.setScale(1)
+        groundedRig.position = .zero
+        for zone in MixUpZone.allCases {
+            guard let slot = slots[zone] else { continue }
+            slot.removeAllActions()
+            slot.position = CGPoint(x: 0, y: slotLocalY(zone))
+            slot.zRotation = 0; slot.setScale(1); slot.alpha = 1
+            // A flip already accepted its target index. Install that final part so
+            // cancellation never leaves a narrowed page or mismatched saved recipe.
+            installPart(in: zone)
+        }
+        headAttachment.position = CGPoint(x: 0, y: 30 * mixScale)
+        headAttachment.zRotation = 0
+        keepsakeButtonArt.removeAllActions(); keepsakeButtonArt.setScale(1)
+        buildCreationsShelf()
+    }
+
+    override func resumeToyAfterRest() {
+        super.resumeToyAfterRest()
+        lastUpdate = 0
+        AmbientAnimator.breathe(node: root, scale: 1.014, duration: 4.4)
+    }
+
+    private func cancelPendingMoments() {
+        for key in [Self.arrivalVoiceKey, Self.wholeFriendKey, Self.personalityKey,
+                    Self.wholeFriendShowKey, "mixArrivalPose", "mixSavedArrival"] {
+            removeAction(forKey: key)
+        }
+        MixUpSoftMotion.cancel(in: root)
+        stage.childNode(withName: "mix.keepsake.flight")?.removeFromParent()
+        savingKeepsake = false
+        flipping.removeAll()
+        idleAccumulator = 0
+        lastUpdate = 0
+    }
+
     private func rebuild() {
         guard size.width > 160, size.height > 160 else { return }
+        cancelPendingMoments()
         lastBuiltSize = size
         lastBuiltSafeInsets = safeInsets
         flipping.removeAll()
@@ -189,10 +240,12 @@ final class MixUpScene: BaseToyScene {
         root.position = CGPoint(x: size.width / 2, y: characterRootY)
         root.zPosition = 10
         stage.addChild(root)
+        groundedRig = SKNode()
+        root.addChild(groundedRig)
         slots.removeAll()
         headAttachment = SKNode()
         headAttachment.position = CGPoint(x: 0, y: 30 * mixScale)
-        if usesJointedArt { root.addChild(headAttachment) }
+        if usesJointedArt { groundedRig.addChild(headAttachment) }
 
         for zone in [MixUpZone.legs, .body, .head] {
             let slot = SKNode()
@@ -201,7 +254,7 @@ final class MixUpScene: BaseToyScene {
             // poke in front of the head — the head always reads cleanly on top.
             slot.zPosition = zone == .head ? 10 : (zone == .body ? 5 : 1)
             if usesJointedArt, zone == .head { headAttachment.addChild(slot) }
-            else { root.addChild(slot) }
+            else { groundedRig.addChild(slot) }
             slots[zone] = slot
             installPart(in: zone)
             addChevrons(for: zone)
@@ -303,6 +356,16 @@ final class MixUpScene: BaseToyScene {
             return
         }
         savingKeepsake = true
+        // Saving is the child's action; the portrait flight is only its presentation.
+        // Persist now, so interruption/rotation cannot silently lose an accepted look.
+        MixUpCreationStore.append(recipe)
+        if AmbientAnimator.reduceMotion {
+            buildCreationsShelf()
+            creationFrames.last?.node.run(.sequence([.fadeAlpha(to: 0.72, duration: 0), .fadeIn(withDuration: 0.3)]))
+            HapticsManager.shared.softTap()
+            savingKeepsake = false
+            return
+        }
 
         // Press the heart: quick squash in, slow ease out (the asymmetry law made tactile).
         keepsakeButtonArt.removeAction(forKey: "breath")
@@ -324,7 +387,7 @@ final class MixUpScene: BaseToyScene {
         chevrons.forEach { $0.node.isHidden = true }
         let texture = view.texture(from: root)
         chevrons.forEach { $0.node.isHidden = false }
-        guard let texture else { savingKeepsake = false; return }
+        guard let texture else { buildCreationsShelf(); savingKeepsake = false; return }
 
         // A copy of the character lifts off and flies up to its new spot on the creations shelf.
         let innerW = miniFrameSize.width * 0.84
@@ -332,22 +395,22 @@ final class MixUpScene: BaseToyScene {
         let texSize = texture.size()
         let fit = min(innerW / max(1, texSize.width), innerH / max(1, texSize.height))
 
-        let newCount = min(MixUpCreationStore.load().count + 1, creationDisplayCapacity)
+        let newCount = min(MixUpCreationStore.load().count, creationDisplayCapacity)
         let slots = shelfSlotPositions(count: newCount)
         let target = CGPoint(x: ledge.position.x + (slots.last?.x ?? 0),
                              y: ledge.position.y + (slots.last?.y ?? 0))
 
         let flying = SKSpriteNode(texture: texture)
+        flying.name = "mix.keepsake.flight"
         let characterBounds = root.calculateAccumulatedFrame()
         flying.position = CGPoint(x: characterBounds.midX, y: characterBounds.midY)
         flying.zPosition = 60
-        addChild(flying)
+        stage.addChild(flying)
 
         let move = SKAction.move(to: target, duration: 0.72); move.timingMode = .easeInEaseOut
         let shrink = SKAction.scale(to: fit, duration: 0.72); shrink.timingMode = .easeInEaseOut
         flying.run(.group([move, shrink]), completion: { [weak self, weak flying] in
             flying?.removeFromParent()
-            MixUpCreationStore.append(recipe)
             self?.buildCreationsShelf()
             self?.savingKeepsake = false
         })
@@ -359,7 +422,7 @@ final class MixUpScene: BaseToyScene {
                 guard let self else { return }
                 TouchFeedbackAnimator.bubblePopRing(in: self, at: target, radius: 26, color: WarmShelfPalette.butter)
             }
-        ]))
+        ]), withKey: "mixSavedArrival")
     }
 
     // MARK: - Creations library (saved looks on a little wooden shelf)
@@ -374,7 +437,7 @@ final class MixUpScene: BaseToyScene {
         private static let key = "lull.mixup.creations"
         private static let castVersionKey = "lull.mixup.creations.castVersion"
         private static let castVersion = 4   // 4: robot, officer, firefighter appended (6-8)
-        static let capacity = 6
+        static let capacity = 6    // visible shelf only; never trim stored historical recipes
         static func load() -> [MixUpCreation] {
             let defaults = UserDefaults.standard
             guard let data = defaults.data(forKey: key),
@@ -412,7 +475,6 @@ final class MixUpScene: BaseToyScene {
             guard !promoteExisting(creation) else { return }
             var list = load()
             list.append(creation)
-            if list.count > capacity { list.removeFirst(list.count - capacity) }
             persist(list)
         }
     }
@@ -563,13 +625,15 @@ final class MixUpScene: BaseToyScene {
             if zone == .head { arrivingHead = parts[idx].name }
             flipping.insert(zone)
             indices[zone] = idx
-            let close = SKAction.scaleY(to: 0.04, duration: 0.13); close.timingMode = .easeIn
+            prepareForFlip(slot, zone: zone)
+            let close = flipScale(to: 0.04, duration: 0.13); close.timingMode = .easeIn
             let swap = SKAction.run { [weak self] in self?.installPart(in: zone) }
-            let open = SKAction.scaleY(to: 1.12, duration: 0.16); open.timingMode = .easeOut
-            let settle = SKAction.scaleY(to: 1.0, duration: 0.22); settle.timingMode = .easeInEaseOut
+            let open = flipScale(to: 1.035, duration: 0.16); open.timingMode = .easeOut
+            let settle = flipScale(to: 1.0, duration: 0.28); settle.timingMode = .easeInEaseOut
             slot.run(.sequence([close, swap, open, settle,
                                 .run { [weak self] in
                                     self?.flipping.remove(zone)
+                                    self?.secondaryResponse(zone: zone)
                                     self?.checkMatchedBow()   // a saved look can complete a match too
                                 }]), withKey: "flip")
         }
@@ -579,7 +643,8 @@ final class MixUpScene: BaseToyScene {
             AudioManager.shared.playMixFlip()
             if let arrivingHead {
                 // The returning friend says hello once its head has landed.
-                run(.sequence([.wait(forDuration: 0.4), .run { [weak self] in self?.voiceArrival(of: arrivingHead) }]))
+                run(.sequence([.wait(forDuration: 0.4), .run { [weak self] in self?.voiceArrival(of: arrivingHead) }]),
+                    withKey: Self.arrivalVoiceKey)
             }
         } else {
             hop(height: 10 * mixScale, squash: true)   // already wearing this look — a happy little hop
@@ -887,6 +952,25 @@ final class MixUpScene: BaseToyScene {
         return .body
     }
 
+    private func prepareForFlip(_ slot: SKNode, zone: MixUpZone) {
+        removeAction(forKey: "mixArrivalPose")
+        slot.removeAllActions()
+        MixUpSoftMotion.cancel(in: slot)
+        slot.position = CGPoint(x: 0, y: slotLocalY(zone))
+        slot.zRotation = 0; slot.setScale(1); slot.alpha = 1
+    }
+
+    private func flipScale(to scale: CGFloat, duration: TimeInterval) -> SKAction {
+        if AmbientAnimator.reduceMotion { return .fadeAlpha(to: min(1, scale), duration: duration) }
+        // Keep the collar/waist/soles at their registered heights throughout the turn.
+        return usesJointedArt ? .scaleX(to: scale, duration: duration) : .scaleY(to: scale, duration: duration)
+    }
+
+    private func secondaryResponse(zone: MixUpZone, direction: CGFloat = 1) {
+        guard let slot = slots[zone], !flipping.contains(zone) else { return }
+        MixUpSoftMotion.respond(in: slot, name: currentPartName(zone), zone: zone, direction: direction)
+    }
+
     private func flip(_ zone: MixUpZone, forward: Bool) {
         guard !flipping.contains(zone), let slot = slots[zone] else { return }
         let parts = MixUpLibrary.parts(for: zone)
@@ -896,12 +980,13 @@ final class MixUpScene: BaseToyScene {
         let count = parts.count
         let cur = indices[zone] ?? 0
         indices[zone] = ((cur + (forward ? 1 : -1)) % count + count) % count
+        prepareForFlip(slot, zone: zone)
 
-        let close = SKAction.scaleY(to: 0.04, duration: 0.13); close.timingMode = .easeIn
+        let close = flipScale(to: 0.04, duration: 0.13); close.timingMode = .easeIn
         let swap = SKAction.run { [weak self] in self?.installPart(in: zone) }
-        let open = SKAction.scaleY(to: 1.12, duration: 0.16); open.timingMode = .easeOut
+        let open = flipScale(to: 1.035, duration: 0.16); open.timingMode = .easeOut
         // Settle slower than open — the page breathes back rather than snapping.
-        let settle = SKAction.scaleY(to: 1.0, duration: 0.22); settle.timingMode = .easeInEaseOut
+        let settle = flipScale(to: 1.0, duration: 0.28); settle.timingMode = .easeInEaseOut
         slot.run(.sequence([
             close,
             swap,
@@ -914,6 +999,7 @@ final class MixUpScene: BaseToyScene {
                 guard let self else { return }
                 if zone == .head { self.voiceArrival(of: self.currentPartName(.head)) }
                 self.flipping.remove(zone)
+                self.secondaryResponse(zone: zone, direction: forward ? 1 : -1)
                 self.checkMatchedBow()   // a whole friend cancels the arrival hello for its own
             }
         ]), withKey: "flip")
@@ -1010,14 +1096,15 @@ final class MixUpScene: BaseToyScene {
         // Let the part finish flipping in, then the whole character notices and reacts to it.
         // (The whole-friend moment, which replaced the procedural-era theme combos, is
         // driven by checkMatchedBow once every zone has settled.)
-        run(.sequence([.wait(forDuration: 0.40), .run { [weak self] in
-            guard let self else { return }
+        run(.sequence([.wait(forDuration: 0.60), .run { [weak self] in
+            guard let self, !self.flipping.contains(zone) else { return }
+            guard !AmbientAnimator.reduceMotion else { return }
             switch zone {
             case .head: self.headPersonality(self.currentPartName(.head))
             case .body: self.peerDown(by: -0.16); self.showOffBody()
             case .legs: self.peerDown(by: -0.30); self.showOffLegs()
             }
-        }]))
+        }]), withKey: "mixArrivalPose")
     }
 
     private func currentPartName(_ zone: MixUpZone) -> String {
@@ -1105,6 +1192,8 @@ final class MixUpScene: BaseToyScene {
     }
 
     private func takeBow() {
+        secondaryResponse(zone: .head, direction: -1)
+        secondaryResponse(zone: .body, direction: -1)
         // One small bow: root nod (rotation only — root's SCALE belongs to the breathe
         // loop) plus a gentle body-slot dip. Absolute returns, hop-style.
         root.removeAction(forKey: "sway")
@@ -1477,6 +1566,7 @@ final class MixUpScene: BaseToyScene {
     }
 
     private func hop(height: CGFloat, squash: Bool) {
+        guard !AmbientAnimator.reduceMotion else { return }
         // Absolute moves (not relative) and a hard reset to the grounded baseline first, so stacked
         // celebrations can never leave the character drifting in the air — it always lands home.
         let baseY = characterRootY
@@ -1588,20 +1678,21 @@ final class MixUpScene: BaseToyScene {
     override func didEvaluateActions() {
         super.didEvaluateActions()
         guard usesJointedArt, let body = slots[.body] else { return }
-        // Body reactions lift the collar and carry the head with them. Keep the head
-        // independent during a book-page flip so changing a shirt never folds the face.
-        if flipping.contains(.body) {
-            headAttachment.position = CGPoint(x: 0, y: 30 * mixScale)
-            headAttachment.zRotation = 0
-        } else {
-            headAttachment.position = body.convert(CGPoint(x: 0, y: 74 * mixScale), to: root)
-            headAttachment.zRotation = body.zRotation
-        }
+        // The collar follows the body even during a page turn; horizontal flips keep
+        // its height intact, and the head never inherits the shirt's narrowing scale.
+        headAttachment.position = body.convert(CGPoint(x: 0, y: 74 * mixScale), to: groundedRig)
+        headAttachment.zRotation = body.zRotation
+        // Root actions keep their authored hops. Correct only the incidental sole
+        // movement caused by breathing and a bow around the old centre pivot.
+        groundedRig.position.y = MixUpRigGeometry.groundingOffset(
+            soleY: -98 * mixScale, halfWidth: 43 * mixScale,
+            scaleX: root.xScale, scaleY: root.yScale, rotation: root.zRotation)
+        if AmbientAnimator.reduceMotion { MixUpSoftMotion.cancel(in: root) }
     }
 
     override func update(_ currentTime: TimeInterval) {
         super.update(currentTime)
-        let delta = lastUpdate == 0 ? 0 : currentTime - lastUpdate
+        let delta = lastUpdate == 0 ? 0 : min(0.05, max(0, currentTime - lastUpdate))
         lastUpdate = currentTime
         idleAccumulator += delta
         if idleAccumulator > 5.0 {

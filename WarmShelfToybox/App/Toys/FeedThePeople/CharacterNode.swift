@@ -110,6 +110,14 @@ final class CharacterNode: SKNode {
     private var thoughtBubble: SKNode?
     private var wantIcons: [(kind: FoodKind, node: FoodNode)] = []
     private var friendshipCounts: [ObjectIdentifier: Int] = [:]
+    // A separate rigid pose keeps attention out of the arrival/chewing actions.
+    // Its pivot is the friend's base, so a lean never floats the feet.
+    private let attentionPose = SKNode()
+    private var attention: CGFloat = 0
+    private var attentionDirection = CGPoint.zero
+    private var anticipatingMouth = false
+    private var gazeVertices: [SIMD2<Float>] = []
+    private var gazeWeights: [Float] = []
 
     private var activeMouth: SKShapeNode {
         switch mood {
@@ -175,6 +183,12 @@ final class CharacterNode: SKNode {
         isAccessibilityElement = true
         isUserInteractionEnabled = false
         buildCharacter()
+        for child in children where child !== thoughtBubble {
+            child.removeFromParent()
+            attentionPose.addChild(child)
+        }
+        addChild(attentionPose)
+        prepareAuthoredGaze()
         updateExpression(animated: false)
         scheduleAmbientLife()
         schedulePersonalityTicks()
@@ -189,7 +203,7 @@ final class CharacterNode: SKNode {
         if let member = castMember, let art = artSprite {
             return art.convert(Self.artMouthPoint(member: member, spriteSize: art.size, anchorPoint: art.anchorPoint), to: scene)
         }
-        return convert(CGPoint(x: 0, y: FeedServingRules.proceduralMouthY(headRadius: headRadius)), to: scene)
+        return attentionPose.convert(CGPoint(x: 0, y: FeedServingRules.proceduralMouthY(headRadius: headRadius)), to: scene)
     }
 
     var snapRadius: CGFloat {
@@ -254,9 +268,115 @@ final class CharacterNode: SKNode {
         return hypot(scenePoint.x - mouthScenePosition.x, scenePoint.y - mouthScenePosition.y)
     }
 
+    /// Notice only food currently held by the child. No action queue and no bite is
+    /// committed here: withdrawing it simply lets the same pose exhale to neutral.
+    func noticeFood(at scenePoint: CGPoint?, deltaTime: TimeInterval) {
+        guard mood == .hungry else {
+            clearFoodAttention()
+            return
+        }
+        guard scenePoint != nil || attention != 0 || anticipatingMouth else { return }
+        var target: CGFloat = 0
+        if let scenePoint, let scene {
+            let point = convert(scenePoint, from: scene)
+            let mouthY = castMember.flatMap { member in
+                artSprite.map { Self.artMouthPoint(member: member, spriteSize: $0.size, anchorPoint: $0.anchorPoint).y }
+            } ?? FeedServingRules.proceduralMouthY(headRadius: headRadius)
+            let approach = FeedFoodAttention.approach(offset: CGPoint(x: point.x, y: point.y - mouthY), headRadius: headRadius)
+            target = approach.strength
+            if target > 0 { attentionDirection = approach.direction }
+        }
+        attention = FeedFoodAttention.settledStrength(current: attention, target: target, deltaTime: deltaTime,
+                                                     reduceMotion: AmbientAnimator.reduceMotion)
+        let reduce = AmbientAnimator.reduceMotion
+        let angle = reduce ? 0 : -attentionDirection.x * attention * 0.035
+        let pivotHeight = artSprite.map { $0.size.height * $0.anchorPoint.y } ?? headRadius * 1.28
+        attentionPose.zRotation = angle
+        attentionPose.position = CGPoint(x: -sin(angle) * pivotHeight, y: (cos(angle) - 1) * pivotHeight)
+
+        let opens = anticipatingMouth ? attention > 0.38 : attention > 0.58
+        if opens != anticipatingMouth {
+            anticipatingMouth = opens
+            if let member = castMember, let art = artSprite,
+               let texture = ToyArt.texture("feed-cast-\(member)-\(opens ? 5 : 1)") {
+                art.texture = texture
+            }
+        }
+        let gaze = CGPoint(x: attentionDirection.x * attention, y: attentionDirection.y * attention)
+        if let art = artSprite, !gazeVertices.isEmpty {
+            if attention == 0 {
+                art.warpGeometry = nil
+            } else {
+                // Move the painted pupils inside their existing eye whites. Skin,
+                // glasses, hair and silhouette remain registered to the source art.
+                let destinations = zip(gazeVertices, gazeWeights).map { vertex, weight in
+                    vertex + SIMD2(Float(gaze.x) * 0.009, Float(gaze.y) * 0.006) * weight
+                }
+                art.warpGeometry = SKWarpGeometryGrid(columns: 40, rows: 40,
+                                                     sourcePositions: gazeVertices, destinationPositions: destinations)
+            }
+        } else {
+            for eye in [leftPupil, rightPupil].compactMap({ $0 }) {
+                // The iris, pupil and catchlights move together; the white stays put.
+                for detail in eye.children {
+                    if detail.userData == nil { detail.userData = NSMutableDictionary() }
+                    if detail.userData?["gazeHome"] == nil { detail.userData?["gazeHome"] = NSValue(cgPoint: detail.position) }
+                    let home = (detail.userData?["gazeHome"] as? NSValue)?.cgPointValue ?? .zero
+                    detail.position = CGPoint(x: home.x + gaze.x * headRadius * 0.035,
+                                              y: home.y + gaze.y * headRadius * 0.028)
+                }
+            }
+            hungryMouth?.xScale = 1 + attention * 0.3
+            hungryMouth?.yScale = 1 + attention * 0.65
+        }
+    }
+
+    func clearFoodAttention() {
+        guard attention != 0 || anticipatingMouth else { return }
+        attention = 0
+        attentionDirection = .zero
+        attentionPose.position = .zero
+        attentionPose.zRotation = 0
+        artSprite?.warpGeometry = nil
+        if anticipatingMouth, mood == .hungry { updateExpression(animated: false) }
+        anticipatingMouth = false
+        hungryMouth?.setScale(1)
+        for eye in [leftPupil, rightPupil].compactMap({ $0 }) {
+            for detail in eye.children {
+                if let home = (detail.userData?["gazeHome"] as? NSValue)?.cgPointValue { detail.position = home }
+            }
+        }
+    }
+
+    private func prepareAuthoredGaze() {
+        guard artSprite != nil, let member = castMember else { return }
+        // Iris centres measured on the registered production canvases (fractions
+        // from top-left). Unknown future cast members retain their authored gaze.
+        let eyes: (CGFloat, CGFloat, CGFloat)
+        switch member {
+        case "sprout": eyes = (0.343, 0.682, 0.427)
+        case "grandmother": eyes = (0.357, 0.657, 0.444)
+        case "knithat": eyes = (0.350, 0.674, 0.500)
+        case "mira": eyes = (0.363, 0.663, 0.538)
+        case "jun": eyes = (0.354, 0.654, 0.536)
+        default: return
+        }
+        for row in 0...40 {
+            for column in 0...40 {
+                let x = CGFloat(column) / 40, y = CGFloat(row) / 40
+                gazeVertices.append(SIMD2(Float(x), Float(y)))
+                let dx = min(abs(x - eyes.0), abs(x - eyes.1)) / 0.072
+                let dy = abs(y - (1 - eyes.2)) / 0.048
+                let falloff = min(1, max(0, (1 - hypot(dx, dy)) / 0.55))
+                gazeWeights.append(Float(falloff * falloff * (3 - 2 * falloff)))
+            }
+        }
+    }
+
     @discardableResult
     func receivedFood(countsTowardRequest: Bool = true) -> Bool {
         guard mood != .eating else { return false }
+        clearFoodAttention()
         if countsTowardRequest { bitesRemaining = max(0, bitesRemaining - 1) }
         transitionTo(.eating)
         runHappyShimmy()
@@ -1378,6 +1498,7 @@ final class CharacterNode: SKNode {
 
     private func playPersonalityBeat() {
         guard mood == .hungry || mood == .resting else { return }
+        guard attention < 0.02 else { return }
 
         // Authored cast: pupils and head live in the painted cells, so personality
         // becomes whole-body — a little turn, a tiny dip, the slow sway. (Touching
@@ -1463,5 +1584,25 @@ enum FeedCastCatalog {
                 && $0.headCentre.isFinite && (0...1).contains($0.headCentre)
                 && $0.mouth.isFinite && (0...1).contains($0.mouth)
         }
+    }
+}
+
+/// Attention measures the held food in the friend's local space. It is independent
+/// of feeding/request state; merely approaching can never consume a bite.
+enum FeedFoodAttention {
+    static func approach(offset: CGPoint, headRadius: CGFloat) -> (strength: CGFloat, direction: CGPoint) {
+        let radius = max(1, headRadius)
+        let distance = hypot(offset.x, offset.y)
+        let strength = min(1, max(0, (radius * 3.2 - distance) / (radius * 2.3)))
+        return (strength, CGPoint(x: offset.x / max(radius, distance), y: offset.y / max(radius, distance)))
+    }
+
+    static func settledStrength(current: CGFloat, target: CGFloat, deltaTime: TimeInterval, reduceMotion: Bool) -> CGFloat {
+        let target = min(1, max(0, target))
+        guard !reduceMotion else { return target }
+        let dt = min(0.05, max(0, deltaTime))
+        let response = 1 - exp(-CGFloat(dt) / (target > current ? 0.10 : 0.28))
+        let next = current + (target - current) * response
+        return target == 0 && next < 0.002 ? 0 : next
     }
 }

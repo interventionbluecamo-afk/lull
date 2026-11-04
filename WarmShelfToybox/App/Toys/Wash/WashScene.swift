@@ -37,6 +37,13 @@ final class WashScene: BaseToyScene {
     private var isResting = false
     private var selectedTool: WashTool = .sponge
     private var rubs: [UITouch: Rub] = [:]
+    private var brushHands: [UITouch: Int] = [:]
+    private var roomBrushes: [WashBrushColumn] = []
+    private let drainResponse = SKNode()
+    private var drainCenter = CGPoint.zero
+    private var drainRadius: CGFloat = 24
+    private var lastRoomWater: TimeInterval = -10
+    private var lastDrainWater: TimeInterval = -10
     private var vehicle: WashVehicleNode?
     private var vehicleHome = CGPoint.zero
     private var bodyCanvas = CGSize.zero
@@ -94,6 +101,8 @@ final class WashScene: BaseToyScene {
         guard size.width > 160, size.height > 160 else { return }
         bay.removeAllChildren(); tools.removeAllChildren(); cursor.removeAllChildren()
         dropsLayer.removeAllChildren(); dropPool.removeAll(); toolHomes.removeAll(); toolHighlights.removeAll()
+        roomBrushes.removeAll(); brushHands.removeAll()
+        drainResponse.removeAllActions(); drainResponse.removeAllChildren(); drainResponse.removeFromParent()
         trayArt.removeAll()
         let play = safePlayRect()
         let landscape = size.width > size.height
@@ -104,7 +113,9 @@ final class WashScene: BaseToyScene {
         vehicleHome = layout.vehicleHome
 
         let portraitBay = !landscape && ToyArt.texture("wash-bay-portrait") != nil
-        let baySlot = portraitBay ? "wash-bay-portrait" : "wash-bay"
+        let cleanSlot = portraitBay ? "wash-bay-portrait-clean" : "wash-bay-clean"
+        let separatedBrushes = ToyArt.texture(cleanSlot) != nil && ToyArt.texture("wash-brush-tuft") != nil
+        let baySlot = separatedBrushes ? cleanSlot : (portraitBay ? "wash-bay-portrait" : "wash-bay")
         if let art = ToyArt.sprite(baySlot, fit: size), let artSize = art.texture?.size() {
             // The room follows the vehicle's ground line, rather than lowering the vehicle
             // to suit an enlarged landscape wall. Each orientation keeps the art's aspect.
@@ -115,6 +126,7 @@ final class WashScene: BaseToyScene {
             art.size = frame.size
             art.position = CGPoint(x: frame.midX, y: frame.midY)
             bay.addChild(art)
+            if separatedBrushes { buildRoomBrushes(frame: frame, portrait: portraitBay) }
         } else {
             let wall = SKSpriteNode(color: WarmShelfPalette.sage.withAlpha(0.14), size: size)
             wall.position = CGPoint(x: size.width / 2, y: size.height / 2); bay.addChild(wall)
@@ -147,6 +159,82 @@ final class WashScene: BaseToyScene {
             let drop = SKShapeNode(ellipseOf: CGSize(width: 3, height: 6))
             drop.fillColor = WarmShelfPalette.waterBlue.withAlpha(0.50); drop.strokeColor = .clear
             drop.alpha = 0; dropsLayer.addChild(drop); dropPool.append(Drop(node: drop))
+        }
+    }
+
+    private func buildRoomBrushes(frame: CGRect, portrait: Bool) {
+        // Fractions are measured in the two clean plates, y down. Both old room plates
+        // remain fallback art; movable fibres are never placed over baked-in fibres.
+        let top: CGFloat = portrait ? 0.087 : 0.088
+        let bottom: CGFloat = portrait ? 0.456 : 0.650
+        let width = frame.width * (portrait ? 0.34 : 0.25)
+        let height = frame.height * (bottom - top)
+        for fx: CGFloat in [0.026, 0.974] {
+            let brush = WashBrushColumn(width: width, height: height)
+            brush.position = CGPoint(x: frame.minX + frame.width * fx, y: frame.maxY - frame.height * top)
+            brush.zPosition = 2
+            bay.addChild(brush); roomBrushes.append(brush)
+        }
+        drainCenter = CGPoint(x: frame.minX + frame.width * (portrait ? 0.18 : 0.073),
+                              y: frame.maxY - frame.height * (portrait ? 0.744 : 0.789))
+        drainRadius = frame.width * (portrait ? 0.080 : 0.058)
+        drainResponse.zPosition = 3; bay.addChild(drainResponse)
+    }
+
+    private func roomBrushAt(_ point: CGPoint) -> Int? {
+        // Keep these optional discoveries away from system edges. Home/tool/vehicle
+        // ownership has already been resolved before this is called.
+        guard point.x >= 16, point.x <= size.width - 16,
+              point.y >= safePlayRect().minY, point.y <= safePlayRect().maxY else { return nil }
+        return roomBrushes.indices.first { roomBrushes[$0].touchRect.contains(point) }
+    }
+
+    private func rinseRoom(at point: CGPoint) {
+        guard sceneTime - lastRoomWater > 0.18 else { return }
+        if let index = roomBrushAt(point) {
+            lastRoomWater = sceneTime
+            let brush = roomBrushes[index]
+            brush.wet(at: point)
+            // A few drops fall from the actual lower fibres, not an unrelated room spot.
+            let foot = CGPoint(x: min(size.width - 20, max(20, point.x)), y: brush.footY + 12)
+            emitDrops(at: foot)
+            if hypot(foot.x - drainCenter.x, foot.y - drainCenter.y) < drainRadius * 3.0 {
+                showRunoff(from: foot)
+            }
+        } else if hypot(point.x - drainCenter.x, (point.y - drainCenter.y) * 2) < max(32, drainRadius * 1.8) {
+            lastRoomWater = sceneTime
+            showRunoff(from: point)
+        }
+    }
+
+    private func showRunoff(from point: CGPoint) {
+        guard sceneTime - lastDrainWater > 1.1 else { return }
+        lastDrainWater = sceneTime
+        drainResponse.removeAllActions(); drainResponse.removeAllChildren()
+        if AmbientAnimator.reduceMotion {
+            let sheen = SKShapeNode(ellipseOf: CGSize(width: drainRadius * 1.9, height: drainRadius * 0.60))
+            sheen.position = drainCenter; sheen.fillColor = WarmShelfPalette.waterBlue.withAlpha(0.22)
+            sheen.strokeColor = .clear; drainResponse.addChild(sheen)
+            sheen.run(.sequence([.fadeOut(withDuration: 0.7), .removeFromParent()]))
+            return
+        }
+        for i in 0..<3 {
+            let bead = SKShapeNode(ellipseOf: CGSize(width: 5, height: 2.5))
+            bead.fillColor = WarmShelfPalette.bubblePearl.withAlpha(0.65); bead.strokeColor = .clear
+            bead.position = point; bead.alpha = 0; drainResponse.addChild(bead)
+            let flow = SKAction.move(to: drainCenter, duration: 0.48)
+            flow.timingMode = .easeIn
+            bead.run(.sequence([.wait(forDuration: Double(i) * 0.08), .fadeIn(withDuration: 0.08), flow,
+                                .fadeOut(withDuration: 0.10), .removeFromParent()]))
+        }
+        for i in 0..<2 {
+            let ring = SKShapeNode(ellipseOf: CGSize(width: drainRadius * 1.9, height: drainRadius * 0.60))
+            ring.position = drainCenter; ring.fillColor = .clear
+            ring.strokeColor = WarmShelfPalette.bubblePearl.withAlpha(0.55); ring.lineWidth = 1.0
+            ring.alpha = 0; ring.setScale(0.88); drainResponse.addChild(ring)
+            let spread = SKAction.group([.scale(to: 1.22, duration: 0.65), .fadeOut(withDuration: 0.65)])
+            spread.timingMode = .easeOut
+            ring.run(.sequence([.wait(forDuration: 0.52 + Double(i) * 0.14), .fadeIn(withDuration: 0.08), spread, .removeFromParent()]))
         }
     }
 
@@ -242,6 +330,8 @@ final class WashScene: BaseToyScene {
         guard !isResting, vehicle != nil else { lastFrame = 0; return }
         let delta = lastFrame == 0 ? 0 : min(0.06, max(0, currentTime - lastFrame))
         lastFrame = currentTime; sceneTime += delta; phaseTime += delta
+        for brush in roomBrushes { brush.advance(delta, reducedMotion: AmbientAnimator.reduceMotion) }
+        if let hose = rubs.values.first(where: { $0.tool == .hose }) { rinseRoom(at: hose.point) }
         switch phase {
         case .arriving:
             syncPhasePose()
@@ -255,7 +345,7 @@ final class WashScene: BaseToyScene {
             if model.isComplete && didTouchVehicle { finishVehicle() }
         case .delighted:
             model.settleFinish(by: delta)   // the last foam and specks melt away with the sparkle
-            if phaseTime >= 0.95 { phase = .leaving; phaseTime = 0; clearHands() }
+            if phaseTime >= 0.95 { phase = .leaving; phaseTime = 0; clearHands(resetRoom: false) }
         case .leaving:
             syncPhasePose()
             if phaseTime >= travelDuration {
@@ -366,6 +456,9 @@ final class WashScene: BaseToyScene {
                 cursor.position = point; cursor.alpha = 0.82
                 updateTouchFeedback(from: point, to: point, tool: selectedTool)
                 faceAwakeUntil = sceneTime + 0.8
+            } else if let index = roomBrushAt(point), !brushHands.values.contains(index) {
+                brushHands[touch] = index
+                roomBrushes[index].touch(at: point, reducedMotion: AmbientAnimator.reduceMotion)
             }
         }
     }
@@ -373,6 +466,10 @@ final class WashScene: BaseToyScene {
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard !isResting else { return }
         for touch in touches {
+            if let index = brushHands[touch], roomBrushes.indices.contains(index) {
+                roomBrushes[index].touch(at: touch.location(in: self), reducedMotion: AmbientAnimator.reduceMotion)
+                continue
+            }
             guard var rub = rubs[touch] else { continue }
             let point = touch.location(in: self)
             cursor.position = rub.carried ? CGPoint(x: point.x + carryLift.x, y: point.y + carryLift.y) : point
@@ -383,10 +480,10 @@ final class WashScene: BaseToyScene {
             if distance >= 0.8, phase == .washing {
                 let strength = min(1.25, Double(distance / brushRadius) * 0.38 + elapsed * 0.22)
                 applyStroke(from: rub.point, to: point, strength: strength, tool: rub.tool)
-                rub.point = point; rub.timestamp = touch.timestamp
-            } else if phase != .washing {
-                rub.point = point; rub.timestamp = touch.timestamp
             }
+            // Keep the actual finger position even when a stationary hose is outside the
+            // vehicle: room water and the next stroke must not jump back to old contact.
+            rub.point = point; rub.timestamp = touch.timestamp
             rubs[touch] = rub
         }
     }
@@ -397,6 +494,9 @@ final class WashScene: BaseToyScene {
     private func release(_ touches: Set<UITouch>) {
         var returning: WashTool?
         for touch in touches {
+            if let index = brushHands.removeValue(forKey: touch), roomBrushes.indices.contains(index) {
+                roomBrushes[index].release()
+            }
             if let rub = rubs.removeValue(forKey: touch), rub.carried { returning = rub.tool }
         }
         if rubs.isEmpty {
@@ -510,7 +610,7 @@ final class WashScene: BaseToyScene {
     }
 
     private func selectTool(_ tool: WashTool) {
-        clearHands(); selectedTool = tool; updateToolHighlight()
+        clearHands(resetRoom: false); selectedTool = tool; updateToolHighlight()
         cursor.removeAllChildren()
         cursor.addChild(makeTool(tool, size: min(86, max(58, bodyCanvas.height * 0.25))))
         HapticsManager.shared.impact(style: .light, intensity: 0.20)
@@ -522,7 +622,7 @@ final class WashScene: BaseToyScene {
 
     private func finishVehicle() {
         guard phase == .washing else { return }
-        phase = .delighted; phaseTime = 0; clearHands()
+        phase = .delighted; phaseTime = 0; clearHands(resetRoom: false)
         Self.cast.recordCompletion()
         vehicle?.setFace(awake: true, clean: 1, look: nil, delighted: true)
         vehicle?.littleReaction()
@@ -547,8 +647,13 @@ final class WashScene: BaseToyScene {
         }
     }
 
-    private func clearHands() {
+    private func clearHands(resetRoom: Bool = true) {
         rubs.removeAll(); cursor.removeAction(forKey: "wash.toolHome"); cursor.alpha = 0; cursor.setScale(1)
+        if resetRoom {
+            brushHands.removeAll()
+            for brush in roomBrushes { brush.reset() }
+            drainResponse.removeAllActions(); drainResponse.removeAllChildren()
+        }
         for art in trayArt.values { art.alpha = 1 }
         resetCursorPose(); vehicle?.settleCarePose()
         AudioManager.shared.stopWashRinse()
@@ -570,6 +675,17 @@ final class WashScene: BaseToyScene {
 
     override func accessibilityElements(in view: SKView) -> [UIAccessibilityElement] {
         var elements = super.accessibilityElements(in: view)
+        for (index, brush) in roomBrushes.enumerated() {
+            let hit = brush.touchRect.intersection(safePlayRect())
+            guard !hit.isNull, hit.width > 12, hit.height > 20 else { continue }
+            elements.append(makeActivatableAccessibilityElement(in: view,
+                label: index == 0 ? "Left soft wash brush" : "Right soft wash brush",
+                scenePosition: CGPoint(x: hit.midX, y: hit.midY), size: hit.size, traits: .button) { [weak self, weak brush] in
+                    guard let self, let brush, !self.isResting else { return }
+                    brush.touch(at: CGPoint(x: hit.midX, y: hit.midY), reducedMotion: AmbientAnimator.reduceMotion)
+                    brush.run(.sequence([.wait(forDuration: 0.15), .run { [weak brush] in brush?.release() }]), withKey: "wash.brush.accessibility")
+                })
+        }
         for tool in WashTool.allCases {
             guard let home = toolHomes[tool] else { continue }
             let name = tool == .sponge ? "Sponge" : "Hose"
@@ -614,6 +730,116 @@ final class WashScene: BaseToyScene {
             }
         })
     }()
+}
+
+/// Seven overlapping tufts on a fixed spindle. Only the fibres deform; room, caps and
+/// floor remain still. A bounded spring has no timer-driven idle or queued animations.
+private final class WashBrushColumn: SKNode {
+    private let columnWidth: CGFloat
+    private let columnHeight: CGFloat
+    private let rowStep: CGFloat
+    private var fibres: [SKSpriteNode] = []
+    private var bends = [CGFloat](repeating: 0, count: 7)
+    private var speeds = [CGFloat](repeating: 0, count: 7)
+    private var targets = [CGFloat](repeating: 0, count: 7)
+    private var wetness = [CGFloat](repeating: 0, count: 7)
+    private var lastRendered = [CGFloat](repeating: 99, count: 7)
+    private let columns = 3
+    private let rows = 5
+
+    init(width: CGFloat, height: CGFloat) {
+        columnWidth = width; columnHeight = height; rowStep = height / 7
+        super.init()
+        guard let texture = ToyArt.texture("wash-brush-tuft") else { return }
+        for index in 0..<7 {
+            let tuft = SKSpriteNode(texture: texture)
+            // Source has its attachment at y=.915; padding remains semantically transparent.
+            tuft.size = CGSize(width: width, height: rowStep * 1.55)
+            tuft.anchorPoint = CGPoint(x: 0.5, y: 0.915)
+            tuft.position = CGPoint(x: 0, y: -CGFloat(index) * rowStep)
+            tuft.zPosition = CGFloat(8 - index)
+            tuft.color = [WarmShelfPalette.sage, WarmShelfPalette.butter,
+                          WarmShelfPalette.terracotta, WarmShelfPalette.paperHighlight][index % 4]
+            tuft.colorBlendFactor = index % 4 == 3 ? 0.12 : 0.72
+            addChild(tuft); fibres.append(tuft)
+        }
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+    var footY: CGFloat { position.y - columnHeight }
+    var touchRect: CGRect {
+        CGRect(x: position.x - columnWidth * 0.38, y: footY,
+               width: max(48, columnWidth * 0.76), height: columnHeight)
+    }
+
+    func touch(at scenePoint: CGPoint, reducedMotion: Bool) {
+        removeAction(forKey: "wash.brush.accessibility")
+        let localY = position.y - scenePoint.y
+        let dx = scenePoint.x - position.x
+        let direction: CGFloat = dx >= 0 ? 1 : -1
+        let strength = direction * min(0.17, max(0.05, abs(dx) / max(1, columnWidth) * 0.28))
+        for index in fibres.indices {
+            let center = CGFloat(index) * rowStep + rowStep * 0.45
+            let influence = max(0, 1 - abs(localY - center) / (rowStep * 1.45))
+            targets[index] = reducedMotion ? 0 : strength * influence
+            if reducedMotion { fibres[index].alpha = 1 - influence * 0.12 }
+        }
+    }
+
+    func release() {
+        targets = Array(repeating: 0, count: 7)
+        for tuft in fibres { tuft.alpha = 1 }
+    }
+
+    func wet(at scenePoint: CGPoint) {
+        let row = min(6, max(0, Int((position.y - scenePoint.y) / max(1, rowStep))))
+        wetness[row] = 1
+        if !AmbientAnimator.reduceMotion { speeds[row] += 0.18 }
+    }
+
+    func advance(_ delta: TimeInterval, reducedMotion: Bool) {
+        let dt = CGFloat(min(1.0 / 30.0, max(0, delta)))
+        guard dt > 0 else { return }
+        for index in fibres.indices {
+            wetness[index] = max(0, wetness[index] - dt * 0.32)
+            let base: CGFloat = index % 4 == 3 ? 0.12 : 0.72
+            fibres[index].colorBlendFactor = base + wetness[index] * 0.14
+            if reducedMotion {
+                bends[index] = 0; speeds[index] = 0; targets[index] = 0
+            } else {
+                // Stable damped flex; full finger response begins on the next display frame.
+                speeds[index] += ((targets[index] - bends[index]) * 180 - speeds[index] * 25) * dt
+                bends[index] = min(0.20, max(-0.20, bends[index] + speeds[index] * dt))
+                if abs(bends[index] - targets[index]) < 0.0003 && abs(speeds[index]) < 0.002 {
+                    bends[index] = targets[index]; speeds[index] = 0
+                }
+            }
+            guard abs(bends[index] - lastRendered[index]) > 0.0002 else { continue }
+            lastRendered[index] = bends[index]
+            guard abs(bends[index]) > 0.0001 else { fibres[index].warpGeometry = nil; continue }
+            var source: [SIMD2<Float>] = [], destination: [SIMD2<Float>] = []
+            for y in 0...rows {
+                for x in 0...columns {
+                    let u = Float(x) / Float(columns), v = Float(y) / Float(rows)
+                    let loose = max(0, (0.915 - v) / 0.915)
+                    let bend = Float(bends[index]) * loose * loose
+                    source.append(SIMD2(u, v))
+                    destination.append(SIMD2(u + bend * (0.88 + 0.12 * u), v - abs(bend) * 0.10))
+                }
+            }
+            fibres[index].warpGeometry = SKWarpGeometryGrid(columns: columns, rows: rows,
+                sourcePositions: source, destinationPositions: destination)
+        }
+    }
+
+    func reset() {
+        removeAllActions(); release()
+        for index in fibres.indices {
+            bends[index] = 0; speeds[index] = 0; wetness[index] = 0; lastRendered[index] = 0
+            fibres[index].warpGeometry = nil
+            fibres[index].colorBlendFactor = index % 4 == 3 ? 0.12 : 0.72
+        }
+    }
 }
 
 /// One live felt friend. Body and separate spinning wheels share a measured fractional rig.

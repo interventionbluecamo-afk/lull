@@ -37,7 +37,7 @@ check("let n = totalTokens" in scene and "slots: perRow..<totalTokens" in scene 
 total = int(re.search(r"private let totalTokens = (\d+)", scene).group(1))
 check(total == felt_count * 3, "the hand is three dots of every ring colour")
 check(re.search(r"Int\.random\(in: 0\.\.<80\) == 0", scene) is not None, "golden dots stay a once-in-a-while delight")
-check("refreshDiscoveries(celebrate: true)" in scene and "detectPatterns(withSound: !sang)" in scene,
+check("refreshDiscoveries(celebrate: true)" in scene and "detectPatterns(celebrate: !sang && !columnCompleted && !boardNowFull" in scene,
       "one song per landing: a bigger discovery replaces the smaller chimes")
 check(scene.count("refreshDiscoveries(celebrate: false)") >= 2, "rotation and sending a dot back re-notice quietly")
 check(re.search(r"token\.feltIndex == col \{ welcomeHome\(col", scene) is not None,
@@ -70,9 +70,11 @@ check("DropDotToken.roundFelts = DropDotToken.felts" in scene, "each visit start
 
 hand = re.search(r"enum DropDotsHand \{.*?\n\}\n", scene, re.S).group(0)
 discoveries = re.search(r"enum DropDotsDiscoveries \{.*?\n\}\n", scene, re.S).group(0)
+settling = re.search(r"enum DropDotsSettling \{.*?\n\}\n", scene, re.S).group(0)
 program = """
+import Foundation
 enum DropDotsScene { enum DropDotToken { static let felts = [0, 0, 0, 0] } }
-""" + hand + discoveries + """
+""" + hand + discoveries + settling + """
 var orders = Set<[Int]>()
 for _ in 0..<2000 {
     let h = DropDotsHand.deal()
@@ -109,6 +111,20 @@ precondition(!DropDotsDiscoveries.isSorted(almostSorted, handSize: 12), "a dot s
 var mixed = sorted
 mixed[0][1] = 1; mixed[1][1] = 0
 precondition(!DropDotsDiscoveries.isSorted(mixed, handSize: 12), "a dot in another colour's column: not sorted")
+// Each supporting dot responds after the one above, with less displacement.
+// Even at iPad scale the movement remains a tiny rigid compression, not a bounce.
+for radius: CGFloat in [18, 30, 52, 80] {
+    var priorDelay: TimeInterval = -1
+    var priorDisplacement: CGFloat = .greatestFiniteMagnitude
+    for depth in 0..<4 {
+        let delay = DropDotsSettling.delay(depth: depth)
+        let displacement = DropDotsSettling.displacement(radius: radius, depth: depth)
+        precondition(delay > priorDelay && displacement < priorDisplacement)
+        precondition(displacement > 0 && displacement <= 2.2)
+        precondition(delay + 0.075 + 0.42 < 0.8, "stack must finish returning to calm")
+        priorDelay = delay; priorDisplacement = displacement
+    }
+}
 print("deal ok")
 """
 with tempfile.TemporaryDirectory() as d:
@@ -119,4 +135,8 @@ with tempfile.TemporaryDirectory() as d:
     out = subprocess.run([str(d / "deal")], check=True, capture_output=True, text=True).stdout
     check("deal ok" in out, "2,000 deals of three per colour; home columns, rainbow rows and sorting detected")
 
-print(f"PASS: Drop Dots colour matching, {passed} checks")
+check("jiggleColumn" not in scene and "existing stack jiggles" not in scene, "hover and landing no longer add competing stack jiggles")
+check('withKey: "landingSettle"' in scene and 'body.position = .zero' in scene, "settling is replaceable and interruption restores its visual pose")
+check('grid[col][row] === token' in scene and '$0?.hasLanded == true' in scene, "only real arrivals can settle and discover patterns")
+check('token.position = dragTarget' in scene and 'updateDraggedToken()' in scene, "held dots follow touch without frame lag")
+print(f"PASS: Drop Dots colour matching and settling, {passed} checks")

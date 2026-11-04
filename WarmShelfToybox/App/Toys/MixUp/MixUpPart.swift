@@ -133,6 +133,8 @@ enum MixUpSoftMotion {
               let profile = profile(name: name, zone: zone) else { return }
         sprite.removeAction(forKey: actionKey)
         guard !AmbientAnimator.reduceMotion else { sprite.warpGeometry = nil; return }
+        // The authored mesh supplies the detail; no recursive SpriteKit refinement.
+        sprite.subdivisionLevels = 0
         if sprite.warpGeometry == nil { sprite.warpGeometry = grid(profile: profile, amount: 0) }
         let amount: Float = direction < 0 ? -1 : 1
         guard let notice = SKAction.warp(to: grid(profile: profile, amount: amount), duration: 0.16),

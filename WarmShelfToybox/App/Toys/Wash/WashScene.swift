@@ -753,6 +753,8 @@ private final class WashBrushColumn: SKNode {
         guard let texture = ToyArt.texture("wash-brush-tuft") else { return }
         for index in 0..<7 {
             let tuft = SKSpriteNode(texture: texture)
+            // Flex the authored grid directly, without SpriteKit subdivision.
+            tuft.subdivisionLevels = 0
             // Source has its attachment at y=.915; padding remains semantically transparent.
             tuft.size = CGSize(width: width, height: rowStep * 1.55)
             tuft.anchorPoint = CGPoint(x: 0.5, y: 0.915)

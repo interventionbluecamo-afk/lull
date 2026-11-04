@@ -2595,7 +2595,12 @@ final class GlowWindowScene: BaseToyScene {
                                                            travelOverWidth: (curtainRestX - windowRect.width * 0.16) / max(1, windowRect.width * 0.46))
         let geometry = SKWarpGeometryGrid(columns: 24, rows: 10,
                                           sourcePositions: Self.curtainMesh, destinationPositions: destinations)
-        curtainFabric.forEach { $0.warpGeometry = geometry }
+        curtainFabric.forEach {
+            // Render the authored cloth grid directly; avoid recursive renderer
+            // subdivision (the build 19 device crash was in add_subdivs).
+            $0.subdivisionLevels = 0
+            $0.warpGeometry = geometry
+        }
     }
 
     private func settleCurtainFabric(deltaTime: TimeInterval) {

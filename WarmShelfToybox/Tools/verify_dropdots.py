@@ -12,6 +12,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import struct
 
 root = Path(__file__).resolve().parents[1]
 scene = (root / "App/Toys/DropDots/DropDotsScene.swift").read_text()
@@ -68,13 +69,37 @@ check("self?.nextColourRound()" in scene and 'withKey: "dots.nextRound"' in scen
 check("ringTints.append((upper, lower))" in scene, "the rings re-tint with each set")
 check("DropDotToken.roundFelts = DropDotToken.felts" in scene, "each visit starts on the board's own felts")
 
+
+
+def production_block(marker):
+    start = scene.index(marker)
+    opening = scene.index("{", start)
+    depth, end = 1, opening + 1
+    while depth:
+        depth += (scene[end] == "{") - (scene[end] == "}")
+        end += 1
+    return scene[start:end]
+
+
+board_art = production_block("private enum BoardArt").replace("private ", "", 1)
+layout_metrics = production_block("enum DropDotsLayoutMetrics")
+landscape_layout = production_block("struct DropDotsLandscapeLayout")
+asset_root = root / "App/Resources/Assets.xcassets"
+def png_size(slot):
+    return struct.unpack(">II", (asset_root / (slot + ".imageset") / (slot + ".png")).read_bytes()[16:24])
+board_size = png_size("dropdots-board")
+tray_size = png_size("dropdots-tray")
+
 hand = re.search(r"enum DropDotsHand \{.*?\n\}\n", scene, re.S).group(0)
 discoveries = re.search(r"enum DropDotsDiscoveries \{.*?\n\}\n", scene, re.S).group(0)
 settling = re.search(r"enum DropDotsSettling \{.*?\n\}\n", scene, re.S).group(0)
 program = """
 import Foundation
+#if canImport(CoreGraphics)
+import CoreGraphics
+#endif
 enum DropDotsScene { enum DropDotToken { static let felts = [0, 0, 0, 0] } }
-""" + hand + discoveries + settling + """
+""" + "\n".join([hand, discoveries, settling, board_art, layout_metrics, landscape_layout]) + f"\nlet boardTextureSize = CGSize(width: {board_size[0]}, height: {board_size[1]})\nlet trayTextureSize = CGSize(width: {tray_size[0]}, height: {tray_size[1]})\n" + """
 var orders = Set<[Int]>()
 for _ in 0..<2000 {
     let h = DropDotsHand.deal()
@@ -125,6 +150,84 @@ for radius: CGFloat in [18, 30, 52, 80] {
         priorDelay = delay; priorDisplacement = displacement
     }
 }
+// Portrait is the approved design: pin representative existing cell sizes.
+precondition(abs(DropDotsLayoutMetrics.portraitCell(play: CGSize(width: 362, height: 697), artBoard: true, tablet: false) - 67.66990291262135) < 0.000001)
+precondition(abs(DropDotsLayoutMetrics.portraitCell(play: CGSize(width: 347, height: 555), artBoard: true, tablet: false) - 53.88349514563107) < 0.000001)
+precondition(abs(DropDotsLayoutMetrics.portraitCell(play: CGSize(width: 792, height: 1068), artBoard: true, tablet: true) - 103.6893203883495) < 0.000001)
+precondition(abs(DropDotsLayoutMetrics.portraitCell(play: CGSize(width: 362, height: 697), artBoard: false, tablet: false) - 73.36842105263158) < 0.000001)
+
+let sourceWidth = BoardArt.sourceWidth(cell: 1)
+let naturalHeight = boardTextureSize.height * sourceWidth / boardTextureSize.width
+let left = 1.5 + BoardArt.sourceCenter(0) * sourceWidth
+let right = 1.5 + (1 - BoardArt.sourceCenter(3)) * sourceWidth
+let boardHeight = (BoardArt.channelTopFy + 1 - BoardArt.channelFloorFy) * naturalHeight + 4.6 * DropDotsLayoutMetrics.tokenRadiusPerCell * 1.95
+let screens: [(CGSize, CGRect)] = [
+    (CGSize(width: 874, height: 402), CGRect(x: 62, y: 21, width: 750, height: 381)),
+    (CGSize(width: 852, height: 393), CGRect(x: 59, y: 21, width: 734, height: 372)),
+    (CGSize(width: 956, height: 440), CGRect(x: 62, y: 21, width: 832, height: 419)),
+    (CGSize(width: 667, height: 375), CGRect(x: 0, y: 0, width: 667, height: 375)),
+    (CGSize(width: 568, height: 320), CGRect(x: 0, y: 0, width: 568, height: 320)),
+    (CGSize(width: 1180, height: 820), CGRect(x: 0, y: 20, width: 1180, height: 776)),
+    (CGSize(width: 1024, height: 768), CGRect(x: 0, y: 20, width: 1024, height: 724)),
+    (CGSize(width: 1376, height: 1032), CGRect(x: 0, y: 20, width: 1376, height: 988))
+]
+var layoutChecks = 0
+for (screen, safe) in screens {
+    for authored in [true, false] {
+        let h = authored ? boardHeight : 5.388
+        let l = authored ? left : 2.26, r = authored ? right : 2.26
+        let layout = DropDotsLandscapeLayout(safeArea: safe, boardLeftPerCell: l, boardRightPerCell: r,
+                                             boardHeightPerCell: h, tablet: screen.height >= 700)
+        let c = layout.cell, radius = c * DropDotsLayoutMetrics.tokenRadiusPerCell
+        let board = CGRect(x: layout.boardCenterX - l * c, y: layout.boardTopY - h * c,
+                           width: (l + r) * c, height: h * c)
+        let home = CGRect(x: safe.minX + 12, y: safe.maxY - 64, width: 52, height: 52)
+        let epsilon = layout.contentRect.insetBy(dx: -0.001, dy: -0.001)
+        precondition(epsilon.contains(board), "full board must fit beside the Home column")
+        precondition(!board.intersects(home.insetBy(dx: -16, dy: -8)), "board overlaps shared Home")
+        let shadow = CGRect(x: board.midX - board.width * 0.55, y: board.minY - c * 0.05 - board.height * 0.15,
+                            width: board.width * 1.1, height: board.height * 0.3)
+        precondition(epsilon.contains(shadow), "contact shadow should fit without moving the board offscreen")
+        let rackHeight = board.height * (authored ? 0.85 : 0.96)
+        let fittedRackWidth = min(c * 1.4, rackHeight * trayTextureSize.height / trayTextureSize.width)
+        let spread = rackHeight * 0.82
+        var centers: [CGPoint] = []
+        for distance: CGFloat in [0.95, 2.25] {
+            let rackX = board.minX - c * distance
+            let rack = CGRect(x: rackX - c * 0.7, y: board.midY - rackHeight / 2, width: c * 1.4, height: rackHeight)
+            precondition(epsilon.contains(rack), "both full six-dot racks must remain visible")
+            precondition(!rack.intersects(home.insetBy(dx: -16, dy: -8)), "tray overlaps shared Home")
+            for i in 0..<6 {
+                let point = CGPoint(x: rackX, y: board.midY - (spread * CGFloat(i) / 5 - spread / 2))
+                let dot = CGRect(x: point.x - radius, y: point.y - radius, width: radius * 2, height: radius * 2)
+                precondition(rack.contains(dot), "a tray dot falls outside its physical rack")
+                precondition(radius * 2 <= fittedRackWidth * 0.72, "dot is wider than the tray's interior")
+                centers.append(point)
+            }
+        }
+        precondition(centers.count == 12, "all twelve hand slots remain available")
+        for i in centers.indices {
+            for j in centers.indices where j > i {
+                precondition(hypot(centers[i].x - centers[j].x, centers[i].y - centers[j].y) > radius * 2.05,
+                             "individual dots must remain separated and directly pickable")
+            }
+        }
+        if authored, screen.width == 874 {
+            precondition(c > 57 && radius * 2 > 36, "reported phone landscape must gain meaningful physical size")
+            precondition(board.height > 305 && board.height < safe.height, "board should fill the landscape height")
+            print("iPhone 874x402: cell=\(c), radius=\(radius), board=\(board.width)x\(board.height)")
+        }
+        layoutChecks += 1
+    }
+}
+// Insets can change after the orientation callback: the new frame must change
+// without changing the cell-relative registration or the twelve-slot topology.
+let early = DropDotsLandscapeLayout(safeArea: CGRect(x: 0, y: 34, width: 874, height: 321),
+                                    boardLeftPerCell: left, boardRightPerCell: right, boardHeightPerCell: boardHeight, tablet: false)
+let final = DropDotsLandscapeLayout(safeArea: screens[0].1,
+                                    boardLeftPerCell: left, boardRightPerCell: right, boardHeightPerCell: boardHeight, tablet: false)
+precondition(final.cell > early.cell && final.boardTopY > early.boardTopY, "final landscape insets must refit the toy")
+print("landscape geometry ok: \(layoutChecks) layout/asset cases; portrait sizes unchanged")
 print("deal ok")
 """
 with tempfile.TemporaryDirectory() as d:
@@ -133,10 +236,13 @@ with tempfile.TemporaryDirectory() as d:
     swiftc = ["xcrun", "swiftc"] if shutil.which("xcrun") else [str(Path(os.environ.get("SWIFT", "swift")).with_name("swiftc"))]
     subprocess.run(swiftc + ["-module-cache-path", str(d / "cache"), str(d / "main.swift"), "-o", str(d / "deal")], check=True)
     out = subprocess.run([str(d / "deal")], check=True, capture_output=True, text=True).stdout
+    print(out.strip())
+    check("landscape geometry ok" in out, "landscape board/shadow, both trays and all twelve dots fit safe bounds with unchanged portrait sizing")
     check("deal ok" in out, "2,000 deals of three per colour; home columns, rainbow rows and sorting detected")
 
 check("jiggleColumn" not in scene and "existing stack jiggles" not in scene, "hover and landing no longer add competing stack jiggles")
 check('withKey: "landingSettle"' in scene and 'body.position = .zero' in scene, "settling is replaceable and interruption restores its visual pose")
 check('grid[col][row] === token' in scene and '$0?.hasLanded == true' in scene, "only real arrivals can settle and discover patterns")
 check('token.position = dragTarget' in scene and 'updateDraggedToken()' in scene, "held dots follow touch without frame lag")
-print(f"PASS: Drop Dots colour matching and settling, {passed} checks")
+check("override func refreshSharedNavigationLayout()" in scene and "layoutSafeArea != landscapeSafeArea" in scene and "rebuild(gridSnap: gridSnap, traySnap: traySnap)" in scene, "final safe-area changes refit landscape while retaining grid and tray snapshots")
+print(f"PASS: Drop Dots colour matching, settling and landscape layout, {passed} checks")

@@ -304,6 +304,10 @@ final class CharacterNode: SKNode {
         }
         let gaze = CGPoint(x: attentionDirection.x * attention, y: attentionDirection.y * attention)
         if let art = artSprite, !gazeVertices.isEmpty {
+            // This authored grid already resolves the small eye regions. Further
+            // SpriteKit subdivision is unnecessary and enters the add_subdivs
+            // renderer path implicated in the build 19 device crash.
+            art.subdivisionLevels = 0
             if attention == 0 {
                 art.warpGeometry = nil
             } else {

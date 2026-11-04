@@ -298,6 +298,8 @@ final class DropDotsScene: BaseToyScene {
     private var railCenterY: CGFloat?
     private var railHeight: CGFloat = 0
     private var stackXs: [CGFloat] = []
+    private var layoutSize = CGSize.zero
+    private var layoutSafeArea = CGRect.null
     /// The pull answers on release (or a short downward pull), never on touch-down, so a
     /// palm resting on the lower screen can't pour the child's work out.
     private var tabTouch: UITouch?
@@ -343,7 +345,28 @@ final class DropDotsScene: BaseToyScene {
     override func didChangeSize(_ oldSize: CGSize) {
         super.didChangeSize(oldSize)
         guard size.width > 120, size.height > 120, cell > 1, oldSize != size else { return }
-        // Preserve the in-progress board across a rotation — a child must never lose their stack.
+        rebuildPreservingTokens()
+    }
+
+    override func refreshSharedNavigationLayout() {
+        super.refreshSharedNavigationLayout()
+        // Safe-area insets can arrive after the new landscape size. Refit the
+        // complete toy once those insets settle, retaining every occupied slot.
+        guard isLandscapeLayout, layoutSize == size, layoutSafeArea != landscapeSafeArea else { return }
+        rebuildPreservingTokens()
+    }
+
+    private var landscapeSafeArea: CGRect {
+        let safe = safeInsets
+        return CGRect(x: safe.left, y: safe.bottom,
+                      width: max(1, size.width - safe.left - safe.right),
+                      height: max(1, size.height - safe.top - safe.bottom))
+    }
+
+    private func rebuildPreservingTokens() {
+        guard grid.count == cols else { rebuild(); return }
+        // Preserve the in-progress board/tray through rotation and final safe-area
+        // reflow. The existing rebuild clears gestures and restores rigid poses.
         let gridSnap: [GridSnap] = (0..<cols).flatMap { c in
             (0..<rows).compactMap { r in grid[c][r].map { GridSnap(c: c, r: r, felt: $0.feltIndex, golden: $0.isGolden) } }
         }
@@ -355,6 +378,8 @@ final class DropDotsScene: BaseToyScene {
 
     private func rebuild(gridSnap: [GridSnap] = [], traySnap: [(felt: Int, golden: Bool)?] = []) {
         guard size.width > 120, size.height > 120 else { return }
+        layoutSize = size
+        layoutSafeArea = landscapeSafeArea
         cancelDiscoveryActions()
         [boardLayer, tokenLayer, frontLayer, particleLayer].forEach { $0.removeAllChildren() }
         columnRims.removeAll(); mouthRings.removeAll(); traySlots.removeAll(); trayTokens.removeAll()
@@ -373,12 +398,35 @@ final class DropDotsScene: BaseToyScene {
         // stands a little taller than the procedural one — the cell budget makes room.
         let artTex = ToyArt.texture("dropdots-board")
         let artBoard = artTex != nil
-        // The two-row tray needs a second rack beside the board (landscape) or a second
-        // trough under it (portrait).
-        let maxCellW = play.width / (CGFloat(cols) + (landscape ? 4.5 : 0.8))
-        let maxCellH = play.height / (CGFloat(rows) + (landscape ? (artBoard ? 3.4 : 2.6) : (artBoard ? 6.3 : 5.5)))
-        cell = min(maxCellW, maxCellH, isTabletLayout ? 132 : 88)
-        tokenR = cell * 0.32   // fit the channel INTERIOR (wood walls are thick) — founder: dots didn't fit
+        let landscapeFit: DropDotsLandscapeLayout?
+        if landscape {
+            // Fit the actual assembled artwork, including both racks and its
+            // shadow. The old 7.4-cell height budget shrank a 5.3-cell board.
+            let naturalHeightPerCell = artTex.map {
+                $0.size().height * BoardArt.sourceWidth(cell: 1) / max(1, $0.size().width)
+            } ?? 0
+            let stackPitchPerCell = DropDotsLayoutMetrics.tokenRadiusPerCell * 1.95
+            let boardHeightPerCell = artBoard
+                ? (BoardArt.channelTopFy + 1 - BoardArt.channelFloorFy) * naturalHeightPerCell + (CGFloat(rows) + 0.6) * stackPitchPerCell
+                : CGFloat(rows) + 0.92 + 0.26 * 1.8
+            let leftPerCell = artBoard
+                ? CGFloat(cols - 1) / 2 + BoardArt.sourceCenter(0) * BoardArt.sourceWidth(cell: 1)
+                : CGFloat(cols) / 2 + 0.26
+            let rightPerCell = artBoard
+                ? CGFloat(cols - 1) / 2 + (1 - BoardArt.sourceCenter(cols - 1)) * BoardArt.sourceWidth(cell: 1)
+                : CGFloat(cols) / 2 + 0.26
+            let fit = DropDotsLandscapeLayout(safeArea: landscapeSafeArea,
+                                              boardLeftPerCell: leftPerCell, boardRightPerCell: rightPerCell,
+                                              boardHeightPerCell: boardHeightPerCell,
+                                              tablet: isTabletLayout)
+            landscapeFit = fit
+            cell = fit.cell
+        } else {
+            landscapeFit = nil
+            // Keep the approved portrait size exactly: two troughs below the board.
+            cell = DropDotsLayoutMetrics.portraitCell(play: play.size, artBoard: artBoard, tablet: isTabletLayout)
+        }
+        tokenR = cell * DropDotsLayoutMetrics.tokenRadiusPerCell   // fit the channel INTERIOR (wood walls are thick) — founder: dots didn't fit
         frameT = cell * 0.26
         railCenterY = nil
 
@@ -400,10 +448,11 @@ final class DropDotsScene: BaseToyScene {
             boardH = (BoardArt.channelTopFy + (1 - BoardArt.channelFloorFy)) * artNatH + channelLen
         }
 
-        let totalH = landscape ? boardH + cell * 0.6 : boardH + trayH + trayRowGap + cell * 0.5
-        let boardCenterX = landscape ? play.midX + cell * 1.6 : play.midX   // the two racks sit to its left
-        // Toy centred in the play area (the second trough sits between the board and the front tray).
-        let boardTopY = play.minY + (play.height + totalH) / 2 - cell * 0.1
+        let totalH = boardH + trayH + trayRowGap + cell * 0.5
+        let boardCenterX = landscapeFit?.boardCenterX ?? play.midX
+        // Portrait keeps its original placement. Landscape centers the complete
+        // board/rack/shadow composition in the safe space beside Home.
+        let boardTopY = landscapeFit?.boardTopY ?? (play.minY + (play.height + totalH) / 2 - cell * 0.1)
         let boardBottomY = boardTopY - boardH
 
         gridOriginX = boardCenterX - boardInnerW / 2
@@ -435,7 +484,7 @@ final class DropDotsScene: BaseToyScene {
         let perRow = totalTokens / trayRowCount
         if landscape {
             // Two standing racks beside the board; the nearer one is the "front" row.
-            let rackH = min(boardRect.height * (artBoard ? 0.85 : 0.96), play.height * 0.92)
+            let rackH = boardRect.height * (artBoard ? 0.85 : 0.96)
             buildTray(centerX: boardRect.minX - cell * 0.95, y: boardRect.midY,
                       width: cell * 1.4, height: rackH, vertical: true, slots: 0..<perRow)
             buildTray(centerX: boardRect.minX - cell * 2.25, y: boardRect.midY,
@@ -1658,6 +1707,46 @@ final class DropDotsScene: BaseToyScene {
             self?.triggerReset()
         })
         return elements
+    }
+}
+
+/// The portrait cell budget is unchanged from the approved two-trough layout.
+enum DropDotsLayoutMetrics {
+    static let tokenRadiusPerCell: CGFloat = 0.32
+
+    static func portraitCell(play: CGSize, artBoard: Bool, tablet: Bool) -> CGFloat {
+        min(play.width / 4.8, play.height / (artBoard ? 10.3 : 9.5), tablet ? 132 : 88)
+    }
+}
+
+/// Landscape uses the complete measured composition instead of reserving an
+/// unused top band across the whole screen. Only Home's left-side column is kept
+/// clear. All dimensions scale together: circles, channels, caps and tray art.
+struct DropDotsLandscapeLayout {
+    let contentRect: CGRect
+    let cell: CGFloat
+    let boardCenterX: CGFloat
+    let boardTopY: CGFloat
+
+    init(safeArea: CGRect, boardLeftPerCell: CGFloat, boardRightPerCell: CGFloat,
+         boardHeightPerCell: CGFloat, tablet: Bool) {
+        // Home ends at safeArea.minX + 64 (12 inset + 52 target); add 16 pt.
+        let left = safeArea.minX + 80
+        let bottom = max(12, safeArea.minY) + 8
+        contentRect = CGRect(x: left, y: bottom,
+                             width: max(40, safeArea.maxX - 16 - left),
+                             height: max(40, safeArea.maxY - 12 - bottom))
+        // The farther rack is 2.25 cells left of the board, with a 1.4-cell
+        // nominal width. Its texture remains aspect-fitted inside those bounds.
+        let groupLeft = -boardLeftPerCell - 2.25 - 0.7 * 1.05
+        let groupRight = boardRightPerCell + (boardLeftPerCell + boardRightPerCell) * 0.05
+        // Exact lower extent of the existing soft board shadow sprite.
+        let shadowBelow = boardHeightPerCell * 0.15 + 0.05
+        let groupHeight = boardHeightPerCell + shadowBelow
+        cell = min(contentRect.width / (groupRight - groupLeft), contentRect.height / groupHeight,
+                   tablet ? 132 : 88)
+        boardCenterX = contentRect.midX - (groupLeft + groupRight) * cell / 2
+        boardTopY = contentRect.midY + groupHeight * cell / 2
     }
 }
 

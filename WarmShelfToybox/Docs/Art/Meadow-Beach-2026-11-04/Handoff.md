@@ -30,4 +30,13 @@ DEBUG-only `LULL_DEBUG_MEADOW_BEACH=1` starts at the sand and skips the introduc
 
 ## Delivery
 
-Release archive/upload in progress when this initial handoff was written. Record the actual Xcode result here before claiming delivery. Leave submitted **1.0 App Review untouched**. Do not change review metadata, prices, tester groups or What to Test notes as part of this beach update.
+**1.1 (21) uploaded successfully November 4 at 2:53:05 PM Central.** Xcode reported `Uploaded package is processing`, `Upload succeeded` and `EXPORT SUCCEEDED`. Processing completion/tester availability is not yet verified.
+
+- Source/art commit: `daeb2bd`, pushed to `claude/modest-bell-cjarqm` before upload.
+- Release archive succeeded; embedded Info.plist confirmed version 1.1, build 21, bundle `com.lull.toybox.a5ct5fk3sy`.
+- Archive: `/Users/User2/Library/Developer/Xcode/Archives/2026-11-04/Lull-1.1-21.xcarchive`.
+- Logs: `/private/tmp/lull-build21-archive.log` and `/private/tmp/lull-build21-upload.log`.
+- Options: `/private/tmp/lull-build21-export-options.plist`: app-store-connect upload, automatic signing, version/build preserved, symbols included, no internal-only flag.
+- No tester-group audit, What to Test changes, pricing/metadata edits or App Review resubmission performed.
+
+Leave submitted **1.0 App Review untouched**. Founder owns physical acceptance; upload success is not a gameplay acceptance result.

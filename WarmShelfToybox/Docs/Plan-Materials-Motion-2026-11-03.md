@@ -1,16 +1,16 @@
 # Lull materials and interactive moments plan
 
-November 3, 2026 plan; execution authorized by the founder's “go” and resumed November 4 after a Mac restart. All nine work packages are implemented locally; combined build and scene checks are in progress. Upload remains on hold and the pending 1.0 review remains untouched. Current implementation evidence is under `Docs/Art/Materials-Motion-2026-11-03/`.
+November 3, 2026 plan; execution authorized by the founder's “go” and resumed November 4 after a Mac restart. All nine work packages are implemented and pushed at `3e1405b`; combined Debug 1.1 (19) passes on iPhone 18 Pro / iOS 27 Simulator. Confirmed simulator captures are recorded in the current handoff; focused founder physical acceptance remains pending. Upload stays on hold and the 1.0 review remains untouched. Current status and evidence: [materials-and-motion handoff](Art/Materials-Motion-2026-11-03/Handoff.md).
 
 ## Outcome
 
 Lull should feel like a collection of handmade toys made by the same artist. Forms, light, contact and movement should agree. The child causes small discoveries, and each response returns to calm. All nine toys remain; their familiar main gestures stay intact.
 
-## Starting point
+## Starting point at planning — November 3
 
 - Build 18 is the uploaded baseline used for the founder's November 3 feedback.
-- Local build 19 compiles but is not archived or uploaded. Its Meadow shelter and shared lighting, Mix-Up attachment/save fixes, and Sleepy Box material experiment are starting work, not an approved final finish.
-- Sleepy Box's latest grain still reads flat and striped. Resolve this before calling that material work complete.
+- At plan creation, local build 19 contained initial Meadow lighting/shelter, Mix-Up attachment/save and Sleepy Box material work. The final implementation status is recorded above; build 19 remains unarchived and not uploaded.
+- The initial Sleepy Box grain read flat and striped. The implemented pass replaces it with quiet curved figure and consistent matte bevels; the founder's physical appearance review is still pending.
 - Existing source assets, prompts, previews and catalog inventory are indexed under `Docs/Art/README.md`. Do not rearrange production paths or delete historical sources to make the folders look tidier.
 
 ## Shared art and motion standard
@@ -56,11 +56,13 @@ Save exact prompts, references, originals, selected exports, attachment coordina
 
 November 4 addition from the founder: Meadow must remain playable after bringing all babies home, with more interest between landmarks. Implementation reuses five slots after a quiet pause, chooses fresh offscreen hiding locations, preserves house warmth and rotation state, and adds bounded low-contrast ground clusters below the flower trail. The extra scope has focused recurrence/placement checks.
 
-- [ ] **A — Establish the reference:** record scene camera/material/layer contracts; finish Meadow's composite; use it to establish the level of detail and restraint. Build one Wash brush interaction with its clean plate before multiplying fibres or adding water responses.
-- [ ] **B — Finish the physical toys:** complete Wash in both orientations, refine Sleepy Box materials and weight, finish Mix-Up's connected movement and cast registration.
-- [ ] **C — Add responsive character and fabric:** Feed anticipation, Window fabric, Drop Dots settling. Integrate into existing effects rather than leaving competing old and new reactions active.
-- [ ] **D — Refine sound-linked and small discoveries:** Hum and Bubbles, followed by a shelf-to-toy appearance check. Update shelf artwork only where the actual toy has visibly changed.
-- [ ] **E — Integrate and hand off:** targeted verification, one consolidated build, a concise founder device checklist, current asset inventory and Git handoff. Keep release on hold until the founder asks to upload.
+Checked stages mean their source implementation is complete. They do not mark the final visual/device acceptance conditions as passed.
+
+- [x] **A — Establish the reference:** scene material/layer contracts recorded; Meadow shelter layers and shared light implemented; Wash clean plates and separate brush interaction implemented.
+- [x] **B — Finish the physical toys:** Wash brush/water responses in both layouts, Sleepy Box materials/weight (including the bevel follow-up), and Mix-Up connected motion/save retention implemented.
+- [x] **C — Add responsive character and fabric:** Feed anticipation, anchored Window fabric and Drop Dots delayed settling implemented, with competing physical reactions removed or replaced.
+- [x] **D — Refine sound-linked and small discoveries:** Hum strike/face decay and visible Bubbles passengers implemented. Meadow's November 4 recurrence/route-detail addition is also implemented. The final shelf-to-toy appearance review belongs to stage E.
+- [ ] **E — Integrate and hand off — engineering complete, founder acceptance pending:** source is pushed at `3e1405b`; focused checks, combined Debug build, refreshed art inventory, documentation and confirmed captures are complete. Capture coverage includes all nine phone portrait scenes and shelf, Meadow day/night, Wash phone landscape and iPad Air M3 portrait/landscape, and Meadow iPad portrait/landscape. The accompanying docs/capture commit records the final evidence. Founder physical timing, audio, multitouch, Reduced Motion and VoiceOver acceptance remains pending, so this stage stays open. Keep release on hold until explicitly requested.
 
 Stages define implementation order, not separate permission gates. Share scene previews and brief progress updates as work lands; ask only if a consequential design decision cannot be resolved from this plan.
 

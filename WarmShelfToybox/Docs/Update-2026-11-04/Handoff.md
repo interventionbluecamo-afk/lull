@@ -23,7 +23,7 @@ Apple property reference: https://developer.apple.com/documentation/spritekit/sk
 - `python3 Tools/verify_warp_rendering.py`: 52 native macOS SpriteKit render/readback frames pass across production Feed, Window, Mix-Up and Wash mesh formulas, including mirrored cloth, seven simultaneous brush tufts and reset. Counts and finite coordinates are validated before constructing each grid. This is a renderer smoke test, not iOS device QA.
 - Swift parsing and whitespace checks pass.
 - A fresh simulator visual capture could not be completed: Device Hub controls timed out and Simulator stalled during installation. The captured image was the simulator home screen, not Lull, and was excluded from the evidence. Landscape appearance therefore remains for the founder’s device check; geometry checks and successful compilation are the verified evidence.
-- TestFlight receipt: pending below.
+- Release archive and TestFlight upload also succeeded; receipt below.
 
 ## Founder retest
 
@@ -31,3 +31,14 @@ Apple property reference: https://developer.apple.com/documentation/spritekit/sk
 2. Repeat the action that crashed build 19. If it recurs, report the toy and immediately preceding action, plus the new crash point. In particular, the changed renderer code is used by Feed gaze, Window curtains, Mix-Up soft accessories and Wash brushes.
 
 No broader acceptance review, tester audit, What to Test edits or App Review resubmission is part of this fix.
+
+
+## TestFlight receipt
+
+- **1.1 (20)** uploaded successfully November 4, 2026 at **2:21:26 PM Central**. Apple reported **Uploaded package is processing / Upload succeeded / EXPORT SUCCEEDED**.
+- Source: `0b2e465`, pushed to `claude/modest-bell-cjarqm` before upload.
+- Archive: `/Users/User2/Library/Developer/Xcode/Archives/2026-11-04/Lull-1.1-20.xcarchive`.
+- Logs: `/private/tmp/lull-build20-archive.log` and `/private/tmp/lull-build20-upload.log`.
+- Options: `/private/tmp/lull-build20-export-options.plist`, `app-store-connect` upload, automatic signing, build/version preserved, symbols included, no internal-only restriction.
+- Processing completion and installation on the founder's phone were not verified. No tester-group changes or What to Test edits were made. The founder installed build 19 successfully through the existing distribution setup.
+- The earlier local-only hold was already superseded by the founder's TestFlight request; this is the focused follow-up build. App Review, pricing and metadata were not changed.

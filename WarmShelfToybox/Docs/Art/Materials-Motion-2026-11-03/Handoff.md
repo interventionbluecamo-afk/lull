@@ -1,6 +1,6 @@
 # Lull materials and motion — current handoff
 
-November 4, 2026. All nine approved work packages are implemented in source, including the founder's continuation request for recurring Meadow discoveries and quieter detail along its routes. **Release remains on HOLD. Founder physical testing is pending.**
+November 4, 2026. All nine approved work packages are implemented in source, including the founder's continuation request for recurring Meadow discoveries and quieter detail along its routes. **TestFlight 1.1 (19) uploaded November 4 at 1:49 PM Central; Apple accepted the package and began processing. Founder physical testing is pending.**
 
 ## Current state
 
@@ -8,9 +8,9 @@ November 4, 2026. All nine approved work packages are implemented in source, inc
 - The combined **Debug 1.1 (19)** build passes for **iPhone 18 Pro / iOS 27 Simulator**, including the final Sleepy Box bevel-gradient correction.
 - Focused source, geometry, state and asset checks passed. Their scope and commands are recorded in the linked work-package notes; repeated model assertions are not live playtesting.
 - Root rendered, viewed and captured **all nine toys and the shelf in phone portrait**, including Meadow in day and night. Additional confirmed coverage is **Wash in phone landscape and iPad Air M3 portrait/landscape** and **Meadow on iPad in portrait and landscape**. See [preview records](Previews/README.md) and the coverage limits below.
-- No archive, export, TestFlight/App Store upload or store-setting change was made for build 19. The existing 1.0 review remains untouched; its live status was not rechecked by this handoff.
+- Release archive and TestFlight upload succeeded from source `cc4690a`. Xcode reported **Uploaded Lull / EXPORT SUCCEEDED** at 13:49:08 Central on November 4. Apple was processing the package at upload completion. No App Store submission or store-setting change was made; the existing 1.0 review remains untouched and its live status was not rechecked.
 
-The founder authorized execution of the [November 3 plan](../../Plan-Materials-Motion-2026-11-03.md) and resumed it after the Mac restart. Older notes describing these changes as proposed or implementation as paused are historical. This document governs the current implementation handoff; it does not authorize release.
+The founder authorized execution of the [November 3 plan](../../Plan-Materials-Motion-2026-11-03.md) and resumed it after the Mac restart. Older notes describing these changes as proposed or implementation as paused are historical. The founder subsequently asked “can you do testflight too please,” authorizing this archive/export/TestFlight upload. That supersedes the earlier local-build hold only; it does not authorize changing the pending 1.0 review or submitting 1.1 to App Review.
 
 ## What changed
 
@@ -69,6 +69,18 @@ Home, the parent timer and saved progress should remain usable throughout. Recor
 Source implementation, the combined Debug build, focused checks, refreshed art inventory, documentation and the confirmed simulator captures are complete. Source is pushed at `3e1405b`; the accompanying documentation/capture commit records the final evidence. This engineering handoff does not complete founder acceptance.
 
 1. Founder: complete the focused physical pass above. Timing, audio, multitouch, Reduced Motion, VoiceOver and sustained family-use results remain **pending**.
-2. Next Mac session: use the existing build/source and this focused checklist. Install on the founder’s device when available; do not repeat broad reviews. A later upload needs the founder’s release instruction.
+2. Founder: use **TestFlight → Lull → 1.1 (19)** once Apple finishes processing. If the build does not appear, check this build’s availability for the existing Fam group only; do not audit testers or create unsolicited testing notes.
+3. Leave the submitted 1.0 version untouched. The new upload is a TestFlight build for a later 1.1 update, not an App Review resubmission.
 
-**Keep build 19 local. No archive, export, upload, submission or store changes until the founder explicitly asks.**
+## TestFlight upload record — November 4
+
+- Source: `cc4690a` (implementation `3e1405b`); working tree was clean before archive.
+- Archived app Info.plist: `com.lull.toybox.a5ct5fk3sy`, version `1.1`, build `19`.
+- Xcode 27.2, Release, generic iOS destination, automatic signing, team `A5CT5FK3SY`, two build jobs.
+- Archive: `/Users/User2/Library/Developer/Xcode/Archives/2026-11-04/Lull-1.1-19.xcarchive`.
+- DerivedData: `/private/tmp/Lull-Materials19-Device`.
+- Export options: `/private/tmp/lull-materials19-export-options.plist`; `method=app-store-connect`, `destination=upload`, automatic signing, version/build preserved, symbols uploaded, no internal-only restriction.
+- Archive log: `/private/tmp/lull-materials19-archive.log` — **ARCHIVE SUCCEEDED**.
+- Upload log: `/private/tmp/lull-materials19-upload.log` — **Upload succeeded / Uploaded Lull / EXPORT SUCCEEDED** at 13:49:08 Central.
+- Apple’s last confirmed upload status: **Uploaded package is processing**. Processing completion / tester availability was not confirmed: the existing browser tab could be listed, but the browser control adapter failed to bind it (`browser.user is unavailable`). This did not affect the successful Xcode upload.
+- No tester-group changes, What to Test edits, App Review changes, pricing or metadata changes were made. Physical acceptance remains pending with the founder.

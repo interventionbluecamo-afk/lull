@@ -1,6 +1,6 @@
 # Materials and motion pass — November 3–4, 2026
 
-Read [Handoff.md](Handoff.md) for the current implementation, build status, release hold and founder checklist. Source implementation is pushed at `3e1405b`; all nine toys remain. Confirmed simulator coverage includes all nine phone portrait scenes and the shelf, Meadow day/night, Wash phone landscape and iPad Air M3 portrait/landscape, and Meadow iPad portrait/landscape. Founder physical acceptance remains pending.
+Read [Handoff.md](Handoff.md) for the current implementation, build/TestFlight status and founder checklist. Source implementation is pushed at `3e1405b`; all nine toys remain. Confirmed simulator coverage includes all nine phone portrait scenes and the shelf, Meadow day/night, Wash phone landscape and iPad Air M3 portrait/landscape, and Meadow iPad portrait/landscape. Founder physical acceptance remains pending.
 
 ## Navigation
 
@@ -36,6 +36,6 @@ No new production images were needed for the other seven toys. Their scoped note
 
 - [Approved plan](../../Plan-Materials-Motion-2026-11-03.md), [Brand](../../Brand.md), [Aliveness Principles](../../AlivenessPrinciples.md).
 - [Art navigation](../README.md), [catalog inventory](../Inventory.json), [asset map](../../AssetManifest.md), [source/staging guide](../../../Assets/README.md).
-- [Current project handoff](../../HANDOFF-CURRENT.md). Earlier release entries are historical and do not authorize a new upload.
+- [Current project handoff](../../HANDOFF-CURRENT.md). Earlier local-build holds are historical; the founder authorized the November 4 build 19 TestFlight upload. The current handoff records its result.
 
 Catalog presence does not establish runtime use, and matching hashes do not authorize deletion. The scoped notes preserve exact verification commands and limits; their large model-check counts must not be described as live play sessions.

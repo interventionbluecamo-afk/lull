@@ -1,6 +1,6 @@
 # Lull materials and interactive moments plan
 
-November 3, 2026 plan; execution authorized by the founder's “go” and resumed November 4 after a Mac restart. All nine work packages are implemented and pushed at `3e1405b`; combined Debug 1.1 (19) passes on iPhone 18 Pro / iOS 27 Simulator. Confirmed simulator captures are recorded in the current handoff; focused founder physical acceptance remains pending. Upload stays on hold and the 1.0 review remains untouched. Current status and evidence: [materials-and-motion handoff](Art/Materials-Motion-2026-11-03/Handoff.md).
+November 3, 2026 plan; execution authorized by the founder's “go” and resumed November 4 after a Mac restart. All nine work packages are implemented and pushed at `3e1405b`; combined Debug 1.1 (19) passes on iPhone 18 Pro / iOS 27 Simulator. Confirmed simulator captures are recorded in the current handoff; focused founder physical acceptance remains pending. The founder subsequently authorized TestFlight: Release archive and upload succeeded November 4 at 1:49 PM Central; Apple began processing 1.1 (19). The 1.0 review remains untouched. Current status and evidence: [materials-and-motion handoff](Art/Materials-Motion-2026-11-03/Handoff.md).
 
 ## Outcome
 
@@ -9,7 +9,7 @@ Lull should feel like a collection of handmade toys made by the same artist. For
 ## Starting point at planning — November 3
 
 - Build 18 is the uploaded baseline used for the founder's November 3 feedback.
-- At plan creation, local build 19 contained initial Meadow lighting/shelter, Mix-Up attachment/save and Sleepy Box material work. The final implementation status is recorded above; build 19 remains unarchived and not uploaded.
+- At plan creation, local build 19 contained initial Meadow lighting/shelter, Mix-Up attachment/save and Sleepy Box material work. The final implementation and subsequent TestFlight upload status are recorded above.
 - The initial Sleepy Box grain read flat and striped. The implemented pass replaces it with quiet curved figure and consistent matte bevels; the founder's physical appearance review is still pending.
 - Existing source assets, prompts, previews and catalog inventory are indexed under `Docs/Art/README.md`. Do not rearrange production paths or delete historical sources to make the folders look tidier.
 
@@ -62,7 +62,7 @@ Checked stages mean their source implementation is complete. They do not mark th
 - [x] **B — Finish the physical toys:** Wash brush/water responses in both layouts, Sleepy Box materials/weight (including the bevel follow-up), and Mix-Up connected motion/save retention implemented.
 - [x] **C — Add responsive character and fabric:** Feed anticipation, anchored Window fabric and Drop Dots delayed settling implemented, with competing physical reactions removed or replaced.
 - [x] **D — Refine sound-linked and small discoveries:** Hum strike/face decay and visible Bubbles passengers implemented. Meadow's November 4 recurrence/route-detail addition is also implemented. The final shelf-to-toy appearance review belongs to stage E.
-- [ ] **E — Integrate and hand off — engineering complete, founder acceptance pending:** source is pushed at `3e1405b`; focused checks, combined Debug build, refreshed art inventory, documentation and confirmed captures are complete. Capture coverage includes all nine phone portrait scenes and shelf, Meadow day/night, Wash phone landscape and iPad Air M3 portrait/landscape, and Meadow iPad portrait/landscape. The accompanying docs/capture commit records the final evidence. Founder physical timing, audio, multitouch, Reduced Motion and VoiceOver acceptance remains pending, so this stage stays open. Keep release on hold until explicitly requested.
+- [ ] **E — Integrate and hand off — engineering complete, founder acceptance pending:** source is pushed at `3e1405b`; focused checks, combined Debug build, refreshed art inventory, documentation and confirmed captures are complete. Capture coverage includes all nine phone portrait scenes and shelf, Meadow day/night, Wash phone landscape and iPad Air M3 portrait/landscape, and Meadow iPad portrait/landscape. The accompanying docs/capture commit records the final evidence. Founder physical timing, audio, multitouch, Reduced Motion and VoiceOver acceptance remains pending, so this stage stays open. The founder subsequently requested TestFlight; the Release archive/upload succeeded November 4. App Review submission remains outside this task.
 
 Stages define implementation order, not separate permission gates. Share scene previews and brief progress updates as work lands; ask only if a consequential design decision cannot be resolved from this plan.
 
@@ -81,5 +81,5 @@ Stages define implementation order, not separate permission gates. Share scene p
 - Inspect each changed composition at real play size, covering phone portrait/landscape and an iPad layout; check day/night only where the scene supports both. Check ordinary and Reduced Motion behavior for new movement.
 - One consolidated founder device pass covers touch feel, audio and family use. Do not repeat a broad nine-toy audit after every small asset edit.
 - A toy feels responsive without idle spectacle, preserves its main play loop, and returns cleanly to rest. Further ideas discovered during implementation go into a later backlog unless needed to make an accepted change work.
-- Save source/art/prompts and current handoff in Git. No change to pricing, onboarding, store metadata or the submitted 1.0 build is included in this art/motion scope. No TestFlight or App Store upload is authorized by this planning turn.
+- Save source/art/prompts and current handoff in Git. No change to pricing, onboarding, store metadata or the submitted 1.0 build is included in this art/motion scope. The planning turn did not authorize upload; the founder subsequently authorized the completed November 4 TestFlight upload. No App Review submission is authorized.
 

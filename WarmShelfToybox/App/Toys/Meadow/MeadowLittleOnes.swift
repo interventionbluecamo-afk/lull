@@ -221,6 +221,7 @@ final class MeadowLittleOnesNode: SKNode {
     private var leaves: [SKNode] = []
     private let house = SKNode()
     private var houseGlow: SKNode?
+    private var houseDoor = CGPoint.zero
     private var finaleDone: Bool
     private var motions: [MeadowFollowerMotion] = []
     struct Snapshot {
@@ -258,12 +259,20 @@ final class MeadowLittleOnesNode: SKNode {
         house.zPosition = 0.2
         let fit = CGSize(width: size, height: size)
         if let art = ToyArt.sprite("meadow-leaf-house", fit: fit) {
+            MeadowMaterialLight.apply(to: art, night: night)
             house.addChild(art)
-            if let glow = ToyArt.sprite("meadow-leaf-house-glow", fit: fit) {
-                glow.alpha = 0
-                house.addChild(glow)
-                houseGlow = glow
-            }
+            // High-angle leaf shelter: the entrance is under the lower edge of its roof.
+            // Only the doorway warms as babies arrive; never overlay the old daytime house.
+            houseDoor = CGPoint(x: -art.size.width * 0.015, y: -art.size.height * 0.34)
+            let glow = SKSpriteNode(texture: ProceduralTexture.softRadialGlow)
+            glow.size = CGSize(width: art.size.width * 0.34, height: art.size.height * 0.18)
+            glow.position = houseDoor
+            glow.color = UIColor(hex: 0xFFD092)
+            glow.colorBlendFactor = 1
+            glow.alpha = 0
+            glow.zPosition = 0.01
+            house.addChild(glow)
+            houseGlow = glow
         } else {
             // Stand-in until the felt art lands: a curled sage leaf with a round, dark door.
             let w = size * 0.8, h = size * 0.62
@@ -284,6 +293,7 @@ final class MeadowLittleOnesNode: SKNode {
             door.lineWidth = 2
             door.position = CGPoint(x: w * 0.12, y: -h * 0.08)
             house.addChild(door)
+            houseDoor = door.position
             let light = SKShapeNode(ellipseOf: CGSize(width: w * 0.24, height: h * 0.34))
             light.fillColor = UIColor(hex: 0xFFC979)
             light.strokeColor = .clear
@@ -292,8 +302,9 @@ final class MeadowLittleOnesNode: SKNode {
             house.addChild(light)
             houseGlow = light
         }
-        let shadow = SKSpriteNode(texture: ProceduralTexture.softClayShadow(size: CGSize(width: size * 0.9, height: size * 0.4)))
-        shadow.position = CGPoint(x: 0, y: -size * 0.28)
+        let shadow = SKSpriteNode(texture: ProceduralTexture.softClayShadow(size: CGSize(width: size * 0.96, height: size * 0.56)))
+        shadow.position = CGPoint(x: size * 0.025, y: -size * 0.16)
+        shadow.alpha = night ? 0.85 : 0.95
         shadow.zPosition = -0.1
         house.addChild(shadow)
         addChild(house)
@@ -310,9 +321,11 @@ final class MeadowLittleOnesNode: SKNode {
         let body: SKNode
         if let art = ToyArt.sprite("meadow-baby-ladybug", fit: fit) {
             art.zRotation = -.pi / 2 // Bundled artwork faces up; movement heading zero faces right.
+            MeadowMaterialLight.apply(to: art, night: night)
             body = art
         } else if let mother = ToyArt.sprite("meadow-ladybug-top", fit: fit) {
             mother.zRotation = -.pi / 2
+            MeadowMaterialLight.apply(to: mother, night: night)
             body = mother   // stand-in: her own felt art, small
         } else {
             let shell = SKShapeNode(circleOfRadius: babySize * 0.42)
@@ -335,6 +348,7 @@ final class MeadowLittleOnesNode: SKNode {
 
         let leaf: SKNode
         if let art = ToyArt.sprite("meadow-hide-leaf", fit: CGSize(width: babySize * 1.9, height: babySize * 1.9)) {
+            MeadowMaterialLight.apply(to: art, night: night)
             leaf = art
         } else {
             let shape = SKShapeNode(ellipseOf: CGSize(width: babySize * 1.9, height: babySize * 1.15))
@@ -381,7 +395,7 @@ final class MeadowLittleOnesNode: SKNode {
         babyBodies[i].position = CGPoint(x: 0, y: lift * babySize * 0.12)
     }
 
-    private var glowLevel: CGFloat { CGFloat(model.homeCount) / CGFloat(MeadowLittleOnesModel.count) * 0.9 }
+    private var glowLevel: CGFloat { CGFloat(model.homeCount) / CGFloat(MeadowLittleOnesModel.count) * (night ? 0.70 : 0.40) }
 
     /// A hidden little one sits mostly under its leaf, just its head showing.
     private func peekPosition(_ i: Int) -> CGPoint {
@@ -464,7 +478,7 @@ final class MeadowLittleOnesNode: SKNode {
     private func goHome(_ i: Int, delay: TimeInterval) {
         let baby = babies[i]
         baby.removeAllActions()
-        let door = CGPoint(x: model.house.x + babySize * 0.3, y: model.house.y - babySize * 0.2)
+        let door = CGPoint(x: model.house.x + houseDoor.x, y: model.house.y + houseDoor.y)
         let level = glowLevel
         let reduce = AmbientAnimator.reduceMotion
         let hopIn = SKAction.move(to: door, duration: reduce ? 0.4 : 0.32)
@@ -480,14 +494,14 @@ final class MeadowLittleOnesNode: SKNode {
 
     /// All five home: the house glows warm, and a few soft sparks rise from the doorway.
     private func finale() {
-        houseGlow?.run(.sequence([.fadeAlpha(to: 1, duration: 0.5), .fadeAlpha(to: 0.9, duration: 0.8)]))
+        houseGlow?.run(.sequence([.fadeAlpha(to: night ? 0.85 : 0.55, duration: 0.5), .fadeAlpha(to: glowLevel, duration: 0.8)]))
         guard !AmbientAnimator.reduceMotion else { return }
         house.run(.sequence([.scale(to: 1.08, duration: 0.3), .scale(to: 1, duration: 0.5)]))
         for n in 0..<7 {
             let spark = SKShapeNode(circleOfRadius: CGFloat.random(in: 2...3.5))
             spark.fillColor = UIColor(hex: 0xFFD98A)
             spark.strokeColor = .clear
-            spark.position = CGPoint(x: model.house.x + CGFloat.random(in: -14...14), y: model.house.y)
+            spark.position = CGPoint(x: model.house.x + houseDoor.x + CGFloat.random(in: -10...10), y: model.house.y + houseDoor.y)
             spark.zPosition = 1
             spark.alpha = 0
             addChild(spark)

@@ -1,4 +1,89 @@
 import SpriteKit
+import UIKit
+
+
+/// The sorter and its pieces share soft, hand-finished wood. Grain is baked once per
+/// colour/size, not animated or layered over the faces; the shared cutout paths stay exact.
+enum SleepyWoodMaterial {
+    private static let cache: NSCache<NSString, SKTexture> = {
+        let cache = NSCache<NSString, SKTexture>()
+        cache.countLimit = 48
+        cache.totalCostLimit = 16 * 1024 * 1024
+        return cache
+    }()
+
+    private static func blend(_ base: UIColor, with tint: UIColor, amount: CGFloat) -> UIColor {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 1
+        var tr: CGFloat = 0, tg: CGFloat = 0, tb: CGFloat = 0
+        base.getRed(&r, green: &g, blue: &b, alpha: &a)
+        tint.getRed(&tr, green: &tg, blue: &tb, alpha: nil)
+        return UIColor(red: r + (tr - r) * amount, green: g + (tg - g) * amount,
+                       blue: b + (tb - b) * amount, alpha: a)
+    }
+
+    static func apply(to node: SKShapeNode, base: UIColor, size: CGSize, painted: Bool = false) {
+        let w = max(8, (size.width / 8).rounded() * 8)
+        let h = max(8, (size.height / 8).rounded() * 8)
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, alpha: CGFloat = 1
+        base.getRed(&r, green: &g, blue: &b, alpha: &alpha)
+        let key = String(format: "%.0fx%.0f-%.3f-%.3f-%.3f-%d", w, h, r, g, b, painted ? 1 : 0)
+        if let texture = cache.object(forKey: key as NSString) {
+            node.fillColor = UIColor(white: 1, alpha: alpha)
+            node.fillTexture = texture
+            return
+        }
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 2
+        format.opaque = true
+        let image = UIGraphicsImageRenderer(size: CGSize(width: w, height: h), format: format).image { context in
+            let cg = context.cgContext
+            let lit = blend(base, with: WarmShelfPalette.paperHighlight, amount: painted ? 0.16 : 0.12)
+            let shade = blend(base, with: WarmShelfPalette.cocoa, amount: painted ? 0.18 : 0.15)
+            let colours = [lit.cgColor, base.cgColor, shade.cgColor] as CFArray
+            if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colours,
+                                         locations: [0, 0.48, 1]) {
+                cg.drawLinearGradient(gradient, start: CGPoint(x: w * 0.12, y: 0),
+                                      end: CGPoint(x: w * 0.86, y: h),
+                                      options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
+            }
+            // Deterministic fine grain; painted pieces show less of the wood underneath.
+            var seed: UInt64 = 0x6C756C6C
+            func random() -> CGFloat {
+                seed = seed &* 6364136223846793005 &+ 1442695040888963407
+                return CGFloat((seed >> 40) & 0xFFFFFF) / CGFloat(0xFFFFFF)
+            }
+            let lineCount = max(12, Int(h / (painted ? 1.3 : 1.1)))
+            cg.setLineCap(.round)
+            for line in 0..<lineCount {
+                let y = (CGFloat(line) + random()) / CGFloat(lineCount) * h
+                let bend = (random() - 0.5) * min(h * 0.12, 9)
+                let x = -w * 0.1 + random() * w * 0.2
+                let length = w * (0.55 + random() * 0.7)
+                let light = line.isMultiple(of: 3)
+                let ink = light ? WarmShelfPalette.paperHighlight : WarmShelfPalette.cocoa
+                cg.setStrokeColor(ink.withAlphaComponent((painted ? 0.035 : 0.065) * (0.4 + random())).cgColor)
+                cg.setLineWidth(0.35 + random() * 0.45)
+                cg.move(to: CGPoint(x: x, y: y))
+                cg.addCurve(to: CGPoint(x: x + length, y: y + bend * 0.3),
+                            control1: CGPoint(x: x + length * 0.34, y: y + bend),
+                            control2: CGPoint(x: x + length * 0.68, y: y - bend * 0.45))
+                cg.strokePath()
+            }
+            // Tiny matte pores break up a perfectly smooth computer gradient.
+            let poreCount = min(900, max(100, Int(w * h / 18)))
+            for index in 0..<poreCount {
+                let ink = index.isMultiple(of: 2) ? WarmShelfPalette.paperHighlight : WarmShelfPalette.cocoa
+                cg.setFillColor(ink.withAlphaComponent(painted ? 0.035 : 0.045).cgColor)
+                let d = 0.25 + random() * 0.4
+                cg.fillEllipse(in: CGRect(x: random() * w, y: random() * h, width: d, height: d))
+            }
+        }
+        let texture = SKTexture(image: image)
+        cache.setObject(texture, forKey: key as NSString, cost: Int(w * h * 4 * format.scale * format.scale))
+        node.fillColor = UIColor(white: 1, alpha: alpha)
+        node.fillTexture = texture
+    }
+}
 
 /// A little tactile treasure the child posts into the Sleepy Drop Box. Four distinct, cute,
 /// readable silhouettes — a round ball, a triangle, a soft square, and an upright star — each with
@@ -71,68 +156,10 @@ final class DropTreasureNode: SKNode {
         body.zPosition = 0
         addChild(body)
         if let box = body.path?.boundingBoxOfPath {
-            ProceduralTexture.applyClayFill(to: body, base: color, size: box.size)
+            SleepyWoodMaterial.apply(to: body, base: color, size: box.size, painted: true)
         }
-
-        // A soft static highlight, sized to the silhouette.
-        // Matte clay light: one soft, broad sheen — no hard white specular, which read as plastic.
-        let glint = SKShapeNode(ellipseOf: CGSize(width: r * 0.9, height: r * 0.6))
-        glint.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.12)
-        glint.strokeColor = .clear
-        glint.position = CGPoint(x: -r * 0.28, y: r * 0.32)
-        glint.zRotation = -0.5
-        glint.zPosition = 0.3
-        body.addChild(glint)
-        // A whisper of reflected warmth along the lower edge grounds the piece like real clay.
-        let underGlow = SKShapeNode(ellipseOf: CGSize(width: r * 1.1, height: r * 0.34))
-        underGlow.fillColor = WarmShelfPalette.cocoa.withAlpha(0.1)
-        underGlow.strokeColor = .clear
-        underGlow.position = CGPoint(x: 0, y: -r * 0.52)
-        underGlow.zPosition = 0.28
-        body.addChild(underGlow)
-
-        switch kind {
-        case .triangle:
-            // A soft highlight along the upper-left edge so the wedge reads chunky and lit.
-            let hi = SKShapeNode()
-            let p = CGMutablePath()
-            p.move(to: CGPoint(x: -r * 0.36, y: r * 0.08))
-            p.addQuadCurve(to: CGPoint(x: r * 0.0, y: r * 0.78), control: CGPoint(x: -r * 0.26, y: r * 0.48))
-            hi.path = p
-            hi.strokeColor = WarmShelfPalette.paperHighlight.withAlpha(0.4)
-            hi.lineWidth = max(2, r * 0.1)
-            hi.lineCap = .round
-            hi.fillColor = .clear
-            hi.zPosition = 0.4
-            body.addChild(hi)
-        case .cube:
-            // A lighter top face so the block reads chunky and dimensional.
-            let s = r * 1.66
-            let topFace = SKShapeNode(rect: CGRect(x: -s * 0.38, y: s * 0.1, width: s * 0.76, height: s * 0.26), cornerRadius: s * 0.12)
-            topFace.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.10)
-            topFace.strokeColor = .clear
-            topFace.zPosition = 0.35
-            body.addChild(topFace)
-            // A soft shaded right side so the block reads three-dimensional, not a flat square.
-            let sideShade = SKShapeNode(rect: CGRect(x: s * 0.1, y: -s * 0.42, width: s * 0.34, height: s * 0.74), cornerRadius: s * 0.12)
-            sideShade.fillColor = WarmShelfPalette.cocoa.withAlpha(0.12)
-            sideShade.strokeColor = .clear
-            sideShade.zPosition = 0.34
-            body.addChild(sideShade)
-        case .star:
-            break   // the sleepy face is the star's charm; no extra marking needed
-        case .berry:
-            // A few darker speckles — a matte berry, not a shiny plastic ball.
-            for _ in 0..<5 {
-                let speck = SKShapeNode(circleOfRadius: r * 0.05)
-                speck.fillColor = WarmShelfPalette.cocoa.withAlpha(0.16)
-                speck.strokeColor = .clear
-                let a = CGFloat.random(in: 0..<(.pi * 2)), rr = CGFloat.random(in: 0.6...0.82) * r
-                speck.position = CGPoint(x: cos(a) * rr, y: sin(a) * rr)
-                speck.zPosition = 0.32
-                body.addChild(speck)
-            }
-        }
+        // Light and fine grain belong to one continuous surface, clipped to the exact
+        // matching silhouette. Separate glossy ellipses/stripes made these look like icons.
 
         buildSleepyFace()
     }

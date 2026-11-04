@@ -5,11 +5,23 @@ child touched them, and settle back to calm afterward.** `StackScene` was the fi
 this law spreads that grammar to everything. `LullHostNode` (the capstone clay friend) is the
 canonical implementation.
 
-## The Four States
-Every alive object — a toy piece, a critter, a bubble, the host — moves through four states:
+## Production interpretation — November 3, 2026
 
-1. **Rest.** Alive *before* any touch: slow breathing, an occasional sigh or blink. The
-   world is already living; the child is joining it, not starting it.
+The signature is **quick to notice, slow to settle**. It is a timing and cause-and-effect rule, not a requirement to animate or put a face on every object. Quiet scenery can remain still. A part that visibly invites touch should answer that touch consistently.
+
+- Follow the finger immediately during direct manipulation. Give release a material-specific settle: felt bends, cloth lags from an anchored seam, wood carries weight with very little flex, water spreads outward.
+- Prefer one readable response with a complete ending. One reaction per object at a time; repeated touches update it instead of queuing performances.
+- Give a small discovery a cause the child can understand: a brush bends where rubbed, a friend notices food approaching, a bubble’s visible passenger flies free when popped.
+- Keep discoveries optional. No timer-driven spectacle, attention bait, reward ladder or obligation to tap every decoration. Use sound sparingly; the motion must read when muted.
+- Preserve geometry during movement: collars and waists stay joined, shadows stay on the surface, curtain tops stay attached, hands keep holding their tools.
+- Reduced Motion uses an immediate state change or a restrained fade. Pause, rotation and backgrounding clear transient gestures and cannot leave an object deformed.
+- Judge each addition in the running scene, at normal play size. Check both relevant lighting modes and orientations; source code having an animation does not prove it reads well.
+
+## The Four States
+An object chosen to feel alive uses four states:
+
+1. **Rest.** A comfortable resting pose. A creature may occasionally breathe or blink;
+   scenery and unused objects can remain still.
 2. **Notice.** A quick perk toward the child's touch or approach. ~0.16–0.20s, ease-out.
    Eyes peek open — this is the *waking* beat, the thing a 2-year-old falls in love with.
 3. **Respond.** Warm, readable cause-and-effect to the child's action: a smile widening, a
@@ -21,8 +33,9 @@ Every alive object — a toy piece, a critter, a bubble, the host — moves thro
 as twitchy and mechanical; the slow exhale back to calm is what makes Lull *breathe*. Most
 kids' apps nail the wake and forget the settle. **The settle is the brand.**
 
-## Montessori constraints (never violated)
-No timers. No failure. No score. No "wrong." Big forgiving targets. The child's action must
+## Child experience constraints
+No timed challenges, competitive scores or punitive failure. Big forgiving targets.
+The grown-up play timer is a separate family setting. The child's action must
 create real, visible cause-and-effect. The deepest loop is autonomy: *I touched it, and the
 world answered.*
 

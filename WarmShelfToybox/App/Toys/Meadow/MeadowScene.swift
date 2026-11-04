@@ -2,6 +2,20 @@ import SpriteKit
 import QuartzCore
 import UIKit
 
+/// The meadow's objects share one ambient light, rather than keeping the independent
+/// studio highlights baked into each illustration. Tinting leaves their fibre detail intact.
+enum MeadowMaterialLight {
+    static func apply(to sprite: SKSpriteNode, night: Bool) {
+        sprite.color = UIColor(hex: night ? 0x314E54 : 0xADB49F)
+        sprite.colorBlendFactor = night ? 0.44 : 0.09
+    }
+
+    static func flowerColor(_ color: UIColor, night: Bool) -> UIColor {
+        color.blended(with: UIColor(hex: night ? 0x49666A : 0xADB49F),
+                      fraction: night ? 0.56 : 0.06)
+    }
+}
+
 /// Meadow — the ladybug who carries spring. A top-down endless-feeling meadow, dormant
 /// pale winter felt as far as the eye can see. Lead her anywhere and her aura paints
 /// moss, flowers, and warmth directly into the world. No loop to understand; the verb is
@@ -536,7 +550,7 @@ final class MeadowScene: BaseToyScene {
 
         let shadow = SKSpriteNode(texture: ProceduralTexture.softClayShadow(size: CGSize(width: s * 2.6, height: s * 2.0)))
         shadow.position = CGPoint(x: s * 0.1, y: -s * 0.15)
-        shadow.alpha = 0.7
+        shadow.alpha = isNight ? 0.48 : 0.7
         shadow.zPosition = -1
         snailRoot.addChild(shadow)
 
@@ -544,6 +558,7 @@ final class MeadowScene: BaseToyScene {
         // crisp heading, no teal history), the snail as the faithful fallback.
         let ladybug = ToyArt.sprite("meadow-ladybug-top", fit: CGSize(width: s * 2.2, height: s * 2.2))
         if let art = ladybug ?? ToyArt.sprite("meadow-snail-top", fit: CGSize(width: s * 3.0, height: s * 2.6)) {
+            MeadowMaterialLight.apply(to: art, night: isNight)
             art.zPosition = 1
             if ladybug != nil {
                 // Her head points UP in the art; the body faces +X in motion space.
@@ -916,11 +931,10 @@ final class MeadowScene: BaseToyScene {
         for slot in 0..<MeadowFlowerTrail.capacity {
             let flower = SKNode()
             let color = palette[slot % palette.count]
-            let bloomColor = isNight
-                ? color.blended(with: UIColor(hex: 0x6E7287), fraction: 0.5) : color
+            let bloomColor = MeadowMaterialLight.flowerColor(color, night: isNight)
             if let art = ToyArt.sprite("meadow-rosette", fit: CGSize(width: 21, height: 21)) {
                 art.color = bloomColor
-                art.colorBlendFactor = 0.55
+                art.colorBlendFactor = isNight ? 0.78 : 0.62
                 flower.addChild(art)
             } else {
                 for petalIndex in 0..<5 {
@@ -933,7 +947,7 @@ final class MeadowScene: BaseToyScene {
                     flower.addChild(petal)
                 }
                 let heart = SKShapeNode(circleOfRadius: 2.4)
-                heart.fillColor = WarmShelfPalette.paperHighlight
+                heart.fillColor = MeadowMaterialLight.flowerColor(WarmShelfPalette.paperHighlight, night: isNight)
                 heart.strokeColor = .clear
                 flower.addChild(heart)
             }
@@ -1151,13 +1165,11 @@ final class MeadowScene: BaseToyScene {
         let flower = SKNode()
         flower.position = p
         flower.zPosition = 0.5
-        // Flowers fold their colour in for the night, like real ones do.
-        let bloomColor = isNight
-            ? color.blended(with: UIColor(hex: 0x6E7287), fraction: 0.5)
-            : color
+        // The same ambient light reaches the trail and the garden's planted blooms.
+        let bloomColor = MeadowMaterialLight.flowerColor(color, night: isNight)
         if let art = ToyArt.sprite("meadow-rosette", fit: CGSize(width: r * 2.6, height: r * 2.6)) {
             art.color = bloomColor
-            art.colorBlendFactor = 0.7
+            art.colorBlendFactor = isNight ? 0.78 : 0.7
             flower.addChild(art)
         } else {
             for i in 0..<6 {
@@ -1170,7 +1182,7 @@ final class MeadowScene: BaseToyScene {
                 flower.addChild(petal)
             }
             let core = SKShapeNode(circleOfRadius: r * 0.4)
-            core.fillColor = WarmShelfPalette.paperHighlight
+            core.fillColor = MeadowMaterialLight.flowerColor(WarmShelfPalette.paperHighlight, night: isNight)
             core.strokeColor = .clear
             core.zPosition = 0.1
             flower.addChild(core)
@@ -1256,6 +1268,7 @@ final class MeadowScene: BaseToyScene {
 
         let b = SKNode()
         if let art = ToyArt.sprite("meadow-butterfly", fit: CGSize(width: 44, height: 36)) {
+            MeadowMaterialLight.apply(to: art, night: isNight)
             b.addChild(art)
             if !AmbientAnimator.reduceMotion {
                 art.run(.repeatForever(.sequence([.scaleX(to: 0.6, duration: 0.14), .scaleX(to: 1.0, duration: 0.16)])))
@@ -1285,6 +1298,7 @@ final class MeadowScene: BaseToyScene {
         let puff = SKNode()
         // The pass-2 dandelion is a round puff seen from above, like the rest of the meadow.
         if let art = ToyArt.sprite("meadow-dandelion", fit: CGSize(width: 84, height: 84)) {
+            MeadowMaterialLight.apply(to: art, night: isNight)
             puff.addChild(art)
         } else {
             let head = SKShapeNode(circleOfRadius: 22)
@@ -1574,9 +1588,9 @@ private final class MeadowLandmark: SKNode {
             let size = hasArt ? CGSize(width: kind.fit.width * 1.02, height: kind.fit.height * 0.96)
                               : CGSize(width: 130, height: 110)
             let shadow = SKSpriteNode(texture: ProceduralTexture.softClayShadow(size: size))
-            shadow.position = hasArt ? CGPoint(x: kind.fit.width * 0.05, y: -kind.fit.height * 0.07) : .zero
+            shadow.position = hasArt ? CGPoint(x: kind.fit.width * 0.035, y: -kind.fit.height * 0.045) : .zero
             shadow.zPosition = -1
-            shadow.alpha = hasArt ? (night ? 0.35 : 0.5) : (night ? 0.5 : 0.8)
+            shadow.alpha = hasArt ? (night ? 0.44 : 0.62) : (night ? 0.5 : 0.8)
             addChild(shadow)
         }
 
@@ -1584,7 +1598,7 @@ private final class MeadowLandmark: SKNode {
         // painted -awake plate with the real face. Procedural bodies are the
         // emergency understudies only.
         if let art = ToyArt.sprite(kind.slot, fit: kind.fit) {
-            if night { art.color = UIColor(hex: 0x2A2E4A); art.colorBlendFactor = 0.35 }
+            MeadowMaterialLight.apply(to: art, night: night)
             body.addChild(art)
             artSprite = art
             hasAuthoredFaces = ToyArt.texture("\(kind.slot)-awake") != nil

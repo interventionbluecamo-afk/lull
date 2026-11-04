@@ -66,6 +66,7 @@ final class SleepyDropBoxScene: BaseToyScene {
     private var didSlideThisPull = false
     private var drawerTouchStartY: CGFloat = 0
     private var drawerDragStartY: CGFloat = 0
+    private var lastDrawerUpdateTime: TimeInterval?
 
     private var lastTone: [String: TimeInterval] = [:]
     private let woodWarm = UIColor(hex: 0xCFB18A)   // quiet birch bulk
@@ -140,6 +141,7 @@ final class SleepyDropBoxScene: BaseToyScene {
         guard size.width > 160, size.height > 160 else { return }
         removeAction(forKey: "box.exchange")
         changingBox = false
+        lastDrawerUpdateTime = nil
         frontLayer.removeAllActions(); panelLayer.removeAllActions()
         frontLayer.position = .zero; panelLayer.position = .zero
         frontLayer.alpha = 1; panelLayer.alpha = 1
@@ -681,10 +683,7 @@ final class SleepyDropBoxScene: BaseToyScene {
         body.lineWidth = 2
         body.zPosition = 0
         drawer.addChild(body)
-        ProceduralTexture.applyClayFill(to: body, base: woodTop, size: CGSize(width: drawerW, height: drawerH))
-        let dHi = SKShapeNode(rect: CGRect(x: -drawerW * 0.42, y: drawerH * 0.26, width: drawerW * 0.84, height: max(3, drawerH * 0.05)), cornerRadius: 2)
-        dHi.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.32); dHi.strokeColor = .clear; dHi.zPosition = 0.2
-        body.addChild(dHi)
+        SleepyWoodMaterial.apply(to: body, base: woodTop, size: CGSize(width: drawerW, height: drawerH))
         // A recessed felt-lined well sunk into the drawer front, with a shaded bottom and a lit near
         // lip — so the drawer reads as a shallow tray that visibly holds the shapes, not a flat patch.
         let wellRect = CGRect(x: -drawerW * 0.4, y: -drawerH * 0.32, width: drawerW * 0.8, height: drawerH * 0.64)
@@ -711,10 +710,8 @@ final class SleepyDropBoxScene: BaseToyScene {
         knob.position = CGPoint(x: 0, y: -drawerH * 0.04)
         knob.zPosition = 1
         drawer.addChild(knob)
-        let knobHi = SKShapeNode(ellipseOf: CGSize(width: drawerH * 0.24, height: drawerH * 0.18))
-        knobHi.fillColor = WarmShelfPalette.paperHighlight.withAlpha(0.36); knobHi.strokeColor = .clear
-        knobHi.position = CGPoint(x: -drawerH * 0.07, y: drawerH * 0.05); knobHi.zPosition = 1.1
-        knob.addChild(knobHi)
+        SleepyWoodMaterial.apply(to: knob, base: woodDark,
+                                 size: CGSize(width: drawerH * 0.6, height: drawerH * 0.6))
         drawerKnobLocalY = -drawerH * 0.04
 
         drawer.position = CGPoint(x: faceCenter.x, y: drawerClosedY)
@@ -748,7 +745,7 @@ final class SleepyDropBoxScene: BaseToyScene {
         dishBack.position = CGPoint(x: size.width / 2, y: dishY)
         dishBack.zPosition = 0.4
         boxLayer.addChild(dishBack)
-        ProceduralTexture.applyClayFill(to: dishBack, base: woodWarm, size: CGSize(width: dishW, height: dishH))
+        SleepyWoodMaterial.apply(to: dishBack, base: woodWarm, size: CGSize(width: dishW, height: dishH))
         // The hollow interior floor (darker felt) the pieces actually rest on.
         let dishFloor = SKShapeNode(rect: CGRect(x: -dishW / 2 + 7, y: -dishH * 0.42, width: dishW - 14, height: dishH * 0.74), cornerRadius: dishH * 0.32)
         dishFloor.fillColor = UIColor(hex: 0x8A5A28).withAlpha(0.4)
@@ -764,6 +761,8 @@ final class SleepyDropBoxScene: BaseToyScene {
         dishLip.position = dishBack.position
         dishLip.zPosition = 0.46
         boxLayer.addChild(dishLip)
+        SleepyWoodMaterial.apply(to: dishLip, base: woodTop,
+                                 size: CGSize(width: dishW - 10, height: dishH * 0.14))
 
         playSpots = (0..<n).map { i in
             CGPoint(x: size.width / 2 - spread / 2 + spread * CGFloat(i) / CGFloat(n - 1), y: trayY)
@@ -1325,6 +1324,11 @@ final class SleepyDropBoxScene: BaseToyScene {
     override func update(_ currentTime: TimeInterval) {
         super.update(currentTime)
         guard boxW > 0 else { return }
+        // Match the existing 60 Hz feel at every refresh rate. Clamp long gaps after a
+        // pause so resuming cannot snap the drawer through its release threshold.
+        let elapsed = lastDrawerUpdateTime.map { max(0, min(currentTime - $0, 0.05)) } ?? 1.0 / 60.0
+        lastDrawerUpdateTime = currentTime
+        let drawerFollow = 1 - pow(0.72, CGFloat(elapsed) * 60)
 
         // Dragged treasure follows the finger with a soft lag; magnet-aligns near a hole.
         if let piece = dragPiece {
@@ -1356,7 +1360,7 @@ final class SleepyDropBoxScene: BaseToyScene {
         // Drawer eases toward its target with soft friction.
         let dy = drawerTargetY - drawer.position.y
         if abs(dy) > 0.3 {
-            drawer.position.y += dy * 0.28
+            drawer.position.y += dy * drawerFollow
             // One soft slide per pull; the drawer's travel and the treasures inside are felt,
             // not heard (it used to repeat every quarter second with a rattle on top).
             if drawerTouch != nil, !didSlideThisPull {

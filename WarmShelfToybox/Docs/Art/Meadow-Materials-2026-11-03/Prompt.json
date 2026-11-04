@@ -1,0 +1,33 @@
+{
+  "date": "2026-11-03",
+  "tool": "built-in image_gen",
+  "prompt": "Use case: stylized-concept. Production transparent PNG game sprite for Lull's calm felt meadow. Create ONE replacement leaf shelter, not a scene. Reference 1 is the OLD HOUSE to redesign radically; reference 2 is the ladybug and establishes the simple handmade wool material and overhead tabletop game camera. The old house is too upright, ornate, glossy and like a collectible on a display base. New house: a low, squat little shelter made from TWO overlapping thick sage-green felt leaves, gently domed like a low tent, broad rounded silhouette, blunt softly curled leaf tip, only a few slightly uneven hand-sewn veins in muted thread. View from high above, camera about 65 degrees down toward the ground (mostly looking at the roof), near orthographic, no horizon, very little visible vertical wall. A small dark flattened oval/crescent doorway opens at the BOTTOM CENTER toward the viewer; the entrance should be visibly tucked UNDER the leaf roof, no separate wooden door frame. Roof dominates 80 percent of the visible form. The shelter sits directly on the ground when composited. No base, plinth, wooden tray, steps, moss pile, flowers, pebbles, fence, chimney, windows, turret, tall spiral, face, text or scenery. Broad quiet forms, tactile soft matted wool fibres, gently uneven sewn edges, a small amount of handmade asymmetry; no razor sharp micro-detail and no plastic CGI shine. Restrained muted sage with warm olive seams; keep neutral diffuse soft overcast lighting, very mild upper-left highlight, no rim light, no theatrical spotlight or dramatic baked shadow. This single neutral asset will be tinted for day and night in code. True transparent background, no shadow outside silhouette, no opaque ground. Fill about 78 percent of a square canvas, centered with full soft edges intact. Keep proportions roughly 1.15 wide to 1 tall, with a low overhead footprint rather than a tall front elevation. Transparent RGBA output.",
+  "transparent_background": true,
+  "references": [
+    {
+      "role": "old house to redesign",
+      "repository_copy": "Docs/Art/Build10/Source/meadow-leaf-house.png"
+    },
+    {
+      "role": "overhead viewpoint and felt material",
+      "repository_copy": "App/Resources/Assets.xcassets/meadow-ladybug-top.imageset/meadow-ladybug-top.png"
+    }
+  ],
+  "output": {
+    "production_asset": "App/Resources/Assets.xcassets/meadow-leaf-house.imageset/meadow-leaf-house.png",
+    "width": 1345,
+    "height": 1169,
+    "mode": "RGBA",
+    "processing": "Unmodified generated output copied into production asset slot. Original remains in Codex generated_images.",
+    "sha256": "7a84aea08b073def6c2ebdb55021913b0903fce949e256a02677e37e9dc4f215"
+  },
+  "integration": {
+    "camera": "High-angle leaf shelter; doorway beneath bottom roof edge",
+    "doorway_normalized_from_center": [
+      -0.015,
+      -0.34
+    ],
+    "night": "Shared MeadowMaterialLight tint; separate procedural doorway glow",
+    "superseded": "Old house source preserved under Build10. Old meadow-leaf-house-glow is retained in catalog but no longer referenced by house renderer."
+  }
+}

@@ -1,6 +1,10 @@
 # Lull — North Star (Final Product Vision)
 
-*Status: governing doc for the final-product push, June 2026. Where this conflicts with
+*Historical concept document, June 2026. The November 3 production rules in `Brand.md`,
+`AlivenessPrinciples.md`, and current handoff supersede this document. Stack has been replaced
+by Little Wash; old free-toy, hero and lineup claims below are historical.
+
+Original status: governing doc for the final-product push, June 2026. Where this conflicts with
 `TopChartsRoadmap.md` or `ThreeWeekShipPlan.md`, this wins. The current build is the
 prototype — "the vision visualized." Everything in it, including mechanics, may change.
 The brand laws in `Brand.md` and the child-safety promises do not change.*

@@ -1,5 +1,21 @@
 # Lull — Brand
 
+## Current art direction — November 3, 2026
+
+The founder’s device feedback takes precedence over the older concept language below. Lull should feel like a small collection of handmade toys that share an artist’s hand. The first repair pass is Meadow, Sleepy Box and Mix-Up; the nine-toy priorities live in `Docs/Art/Meadow-Materials-2026-11-03/Handoff.md`.
+
+### Visual rules for production
+
+- **Simple forms, tactile surfaces.** Felt has broad matted fibres and a few uneven stitches; painted wood has restrained grain and softened edges. Detail must still read at play size. Avoid ornate miniature dioramas, glossy studio rendering and a noisy grain filter over the screen.
+- **One camera inside each toy.** Establish the play plane before generating an object. Meadow uses an overhead view; the house must belong to that view. Sleepy Box uses one shallow box perspective, with pieces and sockets sharing geometry. A new asset must match the camera already used by its neighbours.
+- **One light inside each toy.** Neutral source art receives the scene’s ambient colour. Night changes the objects as well as the ground. Warm light belongs to a lamp, doorway or other visible source; a bright daytime cutout cannot stand in for night art.
+- **Objects have weight and contact.** Contact shadows sit close to their footprints and stay grounded during a lift. Parts retain their joints while reacting. Decorative pedestals and baked shadows are avoided when the object should sit directly on a play surface.
+- **Generate usable parts.** Keep a quiet room plate separate from a movable brush, curtain, face, limb or glow. Write the intended movement, camera, anchor and light into the prompt. Generate one neutral asset where code can handle lighting; keep semantic transparency.
+- **Colour directs touch.** Environments stay subdued. Manipulable pieces are clear without becoming neon. A material mismatch is corrected in the material or lighting, not by adding decoration around it.
+- **Preserve what works.** Hum, Bubbles and the best character art need careful timing and composition, not automatic replacement. Each toy is assessed from its actual implementation; an untested idea is marked proposed.
+
+See `AlivenessPrinciples.md` for the matching motion rules and `AssetManifest.md` for the asset index. Older pricing, toy-lineup and marketing examples below are historical; current product and release documents govern those details.
+
 ## The name
 **Lull** (verb): to soothe, to calm, to quiet toward rest. The whole product is the verb made
 real — including the room that warms and dims toward bedtime.
@@ -7,17 +23,17 @@ real — including the room that warms and dims toward bedtime.
 ## One line
 **Calm toys, made for little hands.**
 
-(App Store subtitle candidate: *"A gentle toybox for ages 2–4. No ads, no scores — just play."*)
+(App Store subtitle candidate: *"A gentle toybox for ages 2–6. No ads, no scores — just play."*)
 
 ## What Lull is
 A small, beautiful shelf of living digital toys for toddlers and preschoolers. Each toy is a
-self-contained world that responds to touch like a creature, not a button. Open-ended. No goals,
-no timers, no winning. A digital version of a well-loved wooden toybox.
+self-contained world that responds to touch like a creature, not a button. Open-ended, without competitive scores or timed challenges. A parent-controlled play timer
+provides a natural stopping point. A digital version of a well-loved wooden toybox.
 
 ## What Lull is not
 Not a learning app with quizzes. Not a reward loop. Not loud, flashing, or busy. Not ad-supported.
-Not a subscription trap: three toys stay free forever, Lull Family is easy to cancel, and Keep
-Forever is one payment. Children never see a price, a lock, or a streak.
+Purchases and plan management belong to grown-ups. Lull Family and Keep Forever are
+the two access options; current terms live in the purchase and submission documents. Children never see a price, a lock, or a streak.
 
 ## Voice
 - **To the child:** silent. No text, no narration, no instructions. The toys speak in motion and sound.

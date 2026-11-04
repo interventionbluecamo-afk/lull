@@ -12,6 +12,7 @@ struct MixUpPart {
     let baseName: String
     let seed: UInt64?
     let isRare: Bool
+    let usesJointAnchors: Bool
     let build: (_ scale: CGFloat) -> SKNode
 
     init(
@@ -19,12 +20,14 @@ struct MixUpPart {
         baseName: String? = nil,
         seed: UInt64? = nil,
         isRare: Bool = false,
+        usesJointAnchors: Bool = false,
         build: @escaping (_ scale: CGFloat) -> SKNode
     ) {
         self.name = name
         self.baseName = baseName ?? name
         self.seed = seed
         self.isRare = isRare
+        self.usesJointAnchors = usesJointAnchors
         self.build = build
     }
 }
@@ -202,21 +205,22 @@ enum MixUpLibrary {
         let bounds = source.rect
         let paintedTexture = SKTexture(rect: source.unitRect, in: texture)
         paintedTexture.filteringMode = .linear
-        return MixUpPart(name: name) { s in
+        return MixUpPart(name: name, usesJointAnchors: true) { s in
             let n = SKNode()
             let sprite = SKSpriteNode(texture: paintedTexture)
             switch zone {
             case .head:
                 sprite.size = CGSize(width: 90 * s, height: 90 * bounds.height / bounds.width * s)
-                sprite.position = CGPoint(x: 0, y: -66 * s + sprite.size.height / 2)
+                // Collar pivot: the chin overlaps the torso instead of turning around the forehead.
+                sprite.position = CGPoint(x: 0, y: -10 * s + sprite.size.height / 2)
             case .body:
-                // Shared collar at +30, waist at -44; adjoining pieces overlap.
-                sprite.size = CGSize(width: 120 * s, height: 74 * s)
-                sprite.position = CGPoint(x: 0, y: -7 * s)
+                // Waist pivot. A small hem overlap hides padded alpha edges on every cast member.
+                sprite.size = CGSize(width: 120 * s, height: 78 * s)
+                sprite.position = CGPoint(x: 0, y: 35 * s)
             case .legs:
-                // At the scene's -88 offset: waist -42, every sole -98.
+                // Shared waist pivot at scene -44: top -42, every sole stays -98.
                 sprite.size = CGSize(width: 86 * s, height: 56 * s)
-                sprite.position = CGPoint(x: 0, y: 18 * s)
+                sprite.position = CGPoint(x: 0, y: -26 * s)
             }
             n.addChild(sprite)
             return n

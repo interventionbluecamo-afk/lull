@@ -1,7 +1,48 @@
-# Warm Shelf Asset Manifest
+# Lull asset map
 
-This is the source of truth for Warm Shelf assets. Add real app files here as they land,
-and keep non-shipping source or staging art in the top-level `Assets` workspace.
+Updated November 3, 2026. The production image catalog is `App/Resources/Assets.xcassets`;
+[`Art/Inventory.json`](Art/Inventory.json) records what its manifests declare. Start with
+[`Art/README.md`](Art/README.md) for prompts, sources, previews and historical batches.
+Existing asset names and paths have not been reorganized or renamed.
+
+**Catalog membership means bundled, not proven active at runtime.** Scenes also draw art
+in code and resolve texture names dynamically. Preserve historical/fallback assets until
+an explicit usage check supports removal; duplicate hashes alone do not justify deletion.
+
+## Current catalog navigation
+
+| Toy / area | Catalog slot names | Scene/source location |
+| --- | --- | --- |
+| Bubbles | `bubbles-*`, `bubble-*` | `App/Toys/Bubbles/` |
+| Drop Dots | `dropdots-*` | `App/Toys/DropDots/` |
+| Hum | `hum-*` | `App/Toys/Hum/` |
+| Feed | `feed-*` (including `feed-cast-*`) | `App/Toys/FeedThePeople/` |
+| Mix-Up | `mixup-*`, character `*-head`, `*-body`, `*-legs` | `App/Toys/MixUp/` |
+| Meadow | `meadow-*` | `App/Toys/Meadow/` |
+| Window | `window-*` | `App/Toys/GlowWindow/` |
+| Sleepy Box | `sleepybox-*` | `App/Toys/SleepyDropBox/` |
+| Little Wash | `wash-*` | `App/Toys/Wash/` |
+| Shared / shelf / brand | `shelf-*`, `shelfroom-*`, `wren-*`, `AppIcon`, `BrandHero`, `LaunchBackground` | `App/Shared/` and app resources |
+
+Some retired toy slots (for example `stack-*`) remain in the catalog. The generated
+inventory groups unmatched names as **Legacy or unclassified**, not “safe to delete.”
+`meadow-leaf-house-glow` is a specific known historical slot: it is still bundled but the
+new house renderer uses a code-drawn doorway glow. Original source remains in
+`Docs/Art/Build10/Source/`.
+
+Regenerate the inventory with `python3 Tools/Art/inventory_assets.py` from
+`WarmShelfToybox/`. It records PNG dimensions, file sizes, SHA-256 hashes, missing declared
+files and duplicate groups without changing artwork. Exact-byte reference matches and
+unverified filename candidates are listed separately.
+
+---
+
+## Historical planning notes and examples
+
+The material below is retained from the original Warm Shelf prototype. Its folder map,
+“shipping” examples, retired toy names and proposed audio are **historical planning**, not
+a current runtime asset list or a new implementation checklist. Use the catalog inventory
+and current scene code for present-day facts.
 
 ## Asset Principles
 
@@ -36,7 +77,7 @@ and keep non-shipping source or staging art in the top-level `Assets` workspace.
 candidates, and source-only art in `Assets/Staging` until a final asset is intentionally
 promoted.
 
-## Shipping Assets
+## Historical shipping examples
 
 | File | Type | Used By | Notes |
 | --- | --- | --- | --- |
@@ -50,7 +91,7 @@ promoted.
 | `App/Resources/Audio/FeedThePeople/feed-chew-soft-1.mp3` | audio | Feed the People | Occasional soft chew accent after successful feeding. |
 | `App/Resources/Audio/FeedThePeople/feed-chew-crunch-1.mp3` | audio | Feed the People | Occasional crunchy chew accent for apple/carrot. |
 
-## Needed Next
+## Historical proposed additions
 
 ### Audio
 

@@ -9,6 +9,7 @@ final class MixUpScene: BaseToyScene {
 
     private var stage = SKNode()
     private var root = SKNode()
+    private var headAttachment = SKNode()
     private var slots: [MixUpZone: SKNode] = [:]
     private var chevrons: [(zone: MixUpZone, dir: CGFloat, node: SKNode)] = []
     private var indices: [MixUpZone: Int] = [.head: 0, .body: 0, .legs: 0]
@@ -33,12 +34,22 @@ final class MixUpScene: BaseToyScene {
     private var lastBowedMatch: String?             // the bow fires once per match, re-armed when it breaks
     private weak var stageLightPool: SKShapeNode?
 
+    private var usesJointedArt: Bool {
+        MixUpLibrary.parts(for: .head).first?.usesJointAnchors == true
+    }
+
+    /// Resting registration in root coordinates; minis and the live rig share these joins.
+    private func registeredY(_ zone: MixUpZone) -> CGFloat {
+        if usesJointedArt { return zone == .head ? 30 : -44 }
+        return zone == .head ? 92 : zone == .body ? 0 : -88
+    }
+
     /// The character and its controls have separate space. A circular control is
     /// finger-sized on a phone, rather than growing with the clay character.
     private lazy var characterEnvelope: CGRect = {
         var bounds = CGRect.null
         for zone in MixUpZone.allCases {
-            let offset: CGFloat = zone == .head ? 92 : zone == .body ? 0 : -88
+            let offset = registeredY(zone)
             for part in MixUpLibrary.parts(for: zone) {
                 let frame = part.build(1).calculateAccumulatedFrame().offsetBy(dx: 0, dy: offset)
                 bounds = bounds.union(frame)
@@ -115,6 +126,7 @@ final class MixUpScene: BaseToyScene {
     }
 
     private func slotLocalY(_ zone: MixUpZone) -> CGFloat {
+        if usesJointedArt { return zone == .head ? 0 : -44 * mixScale }
         switch zone {
         case .head: return 92 * mixScale
         case .body: return 0
@@ -178,6 +190,9 @@ final class MixUpScene: BaseToyScene {
         root.zPosition = 10
         stage.addChild(root)
         slots.removeAll()
+        headAttachment = SKNode()
+        headAttachment.position = CGPoint(x: 0, y: 30 * mixScale)
+        if usesJointedArt { root.addChild(headAttachment) }
 
         for zone in [MixUpZone.legs, .body, .head] {
             let slot = SKNode()
@@ -185,7 +200,8 @@ final class MixUpScene: BaseToyScene {
             // Big z gaps between zones so a body part's internal layers (collar, arms) can never
             // poke in front of the head — the head always reads cleanly on top.
             slot.zPosition = zone == .head ? 10 : (zone == .body ? 5 : 1)
-            root.addChild(slot)
+            if usesJointedArt, zone == .head { headAttachment.addChild(slot) }
+            else { root.addChild(slot) }
             slots[zone] = slot
             installPart(in: zone)
             addChevrons(for: zone)
@@ -270,7 +286,22 @@ final class MixUpScene: BaseToyScene {
     }
 
     private func saveKeepsake() {
-        guard !savingKeepsake, let view = self.view, let ledge = creationsLedge else { return }
+        guard !savingKeepsake, flipping.isEmpty, let view = self.view, let ledge = creationsLedge else { return }
+        let recipe = currentRecipe()
+        if MixUpCreationStore.promoteExisting(recipe) {
+            buildCreationsShelf()
+            if let frame = creationFrames.last(where: { $0.recipe == recipe })?.node {
+                let acknowledge: SKAction = AmbientAnimator.reduceMotion
+                    ? .sequence([.fadeAlpha(to: 0.72, duration: 0.18), .fadeIn(withDuration: 0.28)])
+                    : .sequence([.scale(to: 1.06, duration: 0.16), .scale(to: 1, duration: 0.28)])
+                frame.run(acknowledge, withKey: "savedLookAcknowledgement")
+            }
+            HapticsManager.shared.softTap()
+            if UIAccessibility.isVoiceOverRunning {
+                UIAccessibility.post(notification: .announcement, argument: "This look is already saved. Its frame is at the front.")
+            }
+            return
+        }
         savingKeepsake = true
 
         // Press the heart: quick squash in, slow ease out (the asymmetry law made tactile).
@@ -301,7 +332,6 @@ final class MixUpScene: BaseToyScene {
         let texSize = texture.size()
         let fit = min(innerW / max(1, texSize.width), innerH / max(1, texSize.height))
 
-        let recipe = currentRecipe()
         let newCount = min(MixUpCreationStore.load().count + 1, creationDisplayCapacity)
         let slots = shelfSlotPositions(count: newCount)
         let target = CGPoint(x: ledge.position.x + (slots.last?.x ?? 0),
@@ -362,14 +392,28 @@ final class MixUpScene: BaseToyScene {
             }
             return migrated
         }
-        static func append(_ creation: MixUpCreation) {
+        /// A repeated press reuses a saved portrait. Old duplicate saves are retained.
+        @discardableResult
+        static func promoteExisting(_ creation: MixUpCreation) -> Bool {
             var list = load()
-            list.append(creation)
-            if list.count > capacity { list.removeFirst(list.count - capacity) }
+            guard let index = list.lastIndex(of: creation) else { return false }
+            let existing = list.remove(at: index)
+            list.append(existing)
+            persist(list)
+            return true
+        }
+        private static func persist(_ list: [MixUpCreation]) {
             if let data = try? JSONEncoder().encode(list) {
                 UserDefaults.standard.set(data, forKey: key)
                 UserDefaults.standard.set(castVersion, forKey: castVersionKey)
             }
+        }
+        static func append(_ creation: MixUpCreation) {
+            guard !promoteExisting(creation) else { return }
+            var list = load()
+            list.append(creation)
+            if list.count > capacity { list.removeFirst(list.count - capacity) }
+            persist(list)
         }
     }
 
@@ -489,11 +533,7 @@ final class MixUpScene: BaseToyScene {
     }
 
     private func zoneMiniY(_ zone: MixUpZone, scale s: CGFloat) -> CGFloat {
-        switch zone {
-        case .head: return 92 * s
-        case .body: return 0
-        case .legs: return -88 * s
-        }
+        registeredY(zone) * s
     }
 
     private func creationFrameHit(at point: CGPoint) -> (node: SKNode, recipe: MixUpCreation)? {
@@ -890,8 +930,10 @@ final class MixUpScene: BaseToyScene {
     /// character gets a gentle, non-strobing response. The physical page-flip and the
     /// character's personality reaction carry the drama; the light just kisses the change.
     private func transformationFlourish(zone: MixUpZone) {
-        let local = CGPoint(x: 0, y: slotLocalY(zone))
-        let scenePoint = CGPoint(x: root.position.x, y: root.position.y + slotLocalY(zone))
+        // The flourishes sit at each visible section, independent of its attachment pivot.
+        let visualY: CGFloat = (zone == .head ? 92 : zone == .body ? 0 : -88) * mixScale
+        let local = CGPoint(x: 0, y: visualY)
+        let scenePoint = root.convert(local, to: self)
         let rare = currentPart(zone)?.isRare == true
         let accent = rare ? WarmShelfPalette.rhubarb : WarmShelfPalette.butter
 
@@ -1249,7 +1291,7 @@ final class MixUpScene: BaseToyScene {
         glow.colorBlendFactor = 1
         glow.blendMode = .add
         glow.size = CGSize(width: 150 * mixScale, height: 150 * mixScale)
-        glow.position = CGPoint(x: 0, y: -22 * mixScale)   // the robot's face, inside the head slot
+        glow.position = CGPoint(x: 0, y: (usesJointedArt ? 40 : -22) * mixScale)   // the robot's face, inside the head slot
         glow.zPosition = -9                                 // behind every part band, above the room
         glow.alpha = 0
         head.addChild(glow)
@@ -1543,6 +1585,20 @@ final class MixUpScene: BaseToyScene {
 
     // MARK: - Idle life
 
+    override func didEvaluateActions() {
+        super.didEvaluateActions()
+        guard usesJointedArt, let body = slots[.body] else { return }
+        // Body reactions lift the collar and carry the head with them. Keep the head
+        // independent during a book-page flip so changing a shirt never folds the face.
+        if flipping.contains(.body) {
+            headAttachment.position = CGPoint(x: 0, y: 30 * mixScale)
+            headAttachment.zRotation = 0
+        } else {
+            headAttachment.position = body.convert(CGPoint(x: 0, y: 74 * mixScale), to: root)
+            headAttachment.zRotation = body.zRotation
+        }
+    }
+
     override func update(_ currentTime: TimeInterval) {
         super.update(currentTime)
         let delta = lastUpdate == 0 ? 0 : currentTime - lastUpdate
@@ -1591,7 +1647,8 @@ final class MixUpScene: BaseToyScene {
         if keepsakeButton.parent != nil {
             elements.append(makeActivatableAccessibilityElement(
                 in: view,
-                label: "Keep this look — frame it on the wall",
+                label: MixUpCreationStore.load().contains(currentRecipe())
+                    ? "Look already saved — bring its frame forward" : "Keep this look — frame it on the wall",
                 scenePosition: keepsakeButton.position,
                 size: CGSize(width: 76, height: 76),
                 traits: .button

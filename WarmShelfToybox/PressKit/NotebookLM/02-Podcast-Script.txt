@@ -1,0 +1,86 @@
+LULL PODCAST — A SMALL TOYBOX WITH ROOM TO REST
+Draft two-host script, approximately 5–6 minutes depending on delivery.
+For an adult audience. This is proposed narration, not quotes from the founder, customer testimony or a recording of actual hosts. Use 01-Lull-Overview.txt as the factual source of truth.
+
+HOST A:
+A muddy truck, a hungry little friend, a ladybug leaving flowers behind her. Those are three of the ways into Lull, a quiet digital toybox for children aged two to six.
+
+But the feature I want to start with is what happens when it is time to stop. A grown-up can set a play timer. When that sitting's time is up, the toybox rests behind a calm moon screen.
+
+HOST B:
+That tells you something about the design. The stopping point is part of the experience. The parent still makes the decision, but the app gives that decision a visible form.
+
+And it is worth being precise: this is not a promise that every child will put down the phone happily. It is a practical feature that a family can make part of its routine.
+
+HOST A:
+So what is actually inside the toybox?
+
+HOST B:
+Nine activities. Each has a simple way in. In Little Wash, you scrub and rinse a muddy vehicle. In Feed, you offer food to an expressive friend. In Sleepy Box, you match a shape to an opening and open the drawer to get the pieces back.
+
+Those actions make sense before a child can read. There is something to touch, a visible response, and a reason to try it again.
+
+HOST A:
+Meadow is more about wandering. You guide a ladybug, leave a trail of flowers, and lead little ones home. You choose where to go. The pleasure comes from making a route and discovering what is along it.
+
+Then there is Hum, for making notes; Drop Dots, for sorting and pouring; Mix-Up, for combining character parts; Window, for exploring curtains, light and the scene beyond them; and Bubbles, for that very direct pleasure of touching something and seeing it pop.
+
+HOST B:
+Lull is aiming for a collection of toys, rather than a list of tasks to complete. There are no competitive scores or streaks asking a child to keep up. Repeating a satisfying action is allowed to be enough.
+
+HOST A:
+And the artwork is a big part of that invitation. Soft felt, warm wood, simple shapes—materials you almost want to reach through the screen and touch.
+
+HOST B:
+The important word there is “touch.” The design ambition is that the materials answer the hand. Felt gives a little. Fabric settles from where it is attached. Wood has weight. A reaction arrives quickly, then takes its time returning to rest.
+
+The team calls that “quick to notice, slow to settle.” It is a useful description of the tone they are trying to create.
+
+HOST A:
+The app is described as Montessori-inspired. What does that mean here?
+
+HOST B:
+The inspiration is in choosing, trying, repeating and seeing the effect of your own action. It is a design approach, not a Montessori certification or a claim that an app replaces real materials and real people.
+
+So I would describe the activities themselves: matching shapes, sorting colors, making music, pretending to care for a vehicle or a friend. We do not need to turn those things into unsupported promises about development.
+
+HOST A:
+Let us go back to the parent side, because Lull has two different ideas people might combine in their heads: the play timer and the wind-down hour.
+
+HOST B:
+The timer sets the allowance for a sitting. It counts time while the app is in the foreground, and quickly closing and reopening Lull does not reset it. A grown-up can wake the toybox; an hour away also starts a fresh sitting.
+
+The wind-down hour is a different setting. It makes the rooms warmer and dimmer in the evening. That is a visual cue, not a sleep treatment or a device-wide lock.
+
+HOST A:
+Parents can also choose which toys are on the shelf, adjust sound and haptics, and choose calmer motion. Those controls and the purchase options sit behind a grown-up check.
+
+HOST B:
+And the privacy story is fairly concrete. There are no ads, no Lull accounts, no social chat and no third-party analytics in the app. The toys run locally using bundled content. There is no AI conversation happening with the child.
+
+Apple still handles purchases and access through the App Store, and a parent who emails support sends a support message. So “privacy” here means specific choices about how the app works, not a sweeping claim that no information is ever processed by anyone.
+
+HOST A:
+How does Lull support itself if it is not showing ads?
+
+HOST B:
+Through grown-up purchases. There is an annual Lull Family plan with a one-week introductory trial for eligible subscribers, or a one-time Keep Forever option. The exact terms and availability belong in the current purchase flow. The annual plan renews unless canceled; the one-time option does not have a recurring subscription charge.
+
+That is why we are not treating the free week as unlimited free access. It is a chance to try the paid toybox under the offer's terms.
+
+HOST A:
+There is also a family story behind the work. The founder has been watching his son play, noticing what he returns to and what gets in his way. Meadow and Little Wash have been favorites. More vehicles came out of that kind of feedback.
+
+HOST B:
+Which is a good reminder that the revealing moments are often small. Can a little finger pick that shape up? Does the world still respond when the ladybug reaches a different surface? Does a sound feel soft when it repeats?
+
+Lull is still being refined around those observations. We should not confuse a beautiful illustration or a successful software build with a finished experience in a child's hands.
+
+HOST A:
+So the idea is simple: a place to choose a toy, try something, repeat it—and have a grown-up decide when the toybox rests.
+
+HOST B:
+That is Lull: calm toys, made for little hands. You can explore the app and find the latest details at lulltoybox dot pages dot dev.
+
+PRODUCTION NOTE, NOT SPOKEN:
+Keep the pace warm and conversational, with pauses. No cartoon baby voice, synthetic child testimonial, exaggerated sound effects or promises of better sleep. Use genuine app audio only when supplied and labeled. Check the final generated audio against 01-Lull-Overview.txt before publishing. Public release status and price are deliberately omitted from the spoken script.

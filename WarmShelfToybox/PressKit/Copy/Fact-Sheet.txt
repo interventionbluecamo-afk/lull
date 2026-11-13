@@ -1,0 +1,27 @@
+LULL — FACT SHEET
+Prepared November 13, 2026. Product description, not a launch announcement.
+
+NAME: Lull: Quiet Toybox
+SHORT NAME / PRONUNCIATION: Lull; rhymes with “dull.”
+TAGLINE: Calm toys, made for little hands.
+CATEGORY: Children's digital toybox / quiet play.
+INTENDED AUDIENCE: Children aged 2–6; purchases and settings for grown-ups.
+PLATFORMS: iPhone and iPad. Project deployment target: iOS/iPadOS 16 or later.
+TOYS: Bubbles, Drop Dots, Hum, Little Wash, Feed, Window, Mix-Up, Sleepy Box, Meadow.
+VISUAL LANGUAGE: Simple tactile-looking felt and wood, softened forms, restrained detail, consistent perspective and contact shadows within each toy.
+PLAY: Visual choices, touch/drag interaction, repetition, no competitive score or streak system. Montessori-inspired approach; no certification or proven learning-outcome claim.
+FAMILY CONTROLS: Play timer, wind-down hour, sound, haptics, calmer motion, shelf toy selection and a grown-up check.
+TIMER: Foreground play per sitting; Off/15/30/45/60 minutes. A calm moon-rest screen pauses play. A grown-up can wake Lull; an hour away starts a fresh sitting.
+WIND-DOWN: Evening warmth/dimming. Separate from the timer; not a sleep treatment or device lock.
+PRIVACY: No ads, third-party analytics or Lull accounts; no developer collection of children's play data. Local storage and Apple StoreKit purchase services have distinct roles. Voluntary support email is used for correspondence.
+OFFLINE: Core toys use bundled assets and run locally. App Store product loading, purchases and restoration need connectivity.
+ACCESS MODEL: All nine toys require paid access or an eligible subscription trial. Lull Family is annual/auto-renewing; Keep Forever is a non-consumable one-time purchase. Family Sharing is supported in the documented configuration.
+PRICE / PUBLIC AVAILABILITY: Not freshly verified for this kit. Use the current Apple purchase flow for terms. Do not publish a price, release date or “available now” based only on this file.
+WEBSITE: https://lulltoybox.pages.dev/
+PRIVACY: https://lulltoybox.pages.dev/privacy
+SUPPORT: https://lulltoybox.pages.dev/support
+CONTACT: lullios@proton.me
+SUGGESTED IMAGE CREDIT: Courtesy of Lull.
+
+ASSET NOTE
+The kit includes brand illustrations, toy cutouts, dated development screenshots, and a separate historical App Store-composite group. Labels in Asset-Catalog.csv identify their source and status. Illustrations are not gameplay screenshots. Development captures must not be presented as the currently released App Store build. The Meadow beach and Ladybug Kraft are not launch claims in this kit.

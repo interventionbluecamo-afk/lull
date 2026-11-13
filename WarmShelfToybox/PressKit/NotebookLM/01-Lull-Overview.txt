@@ -1,0 +1,82 @@
+LULL: QUIET TOYBOX — SOURCE OVERVIEW
+Prepared November 13, 2026. Pronunciation: “lull,” rhyming with “dull.”
+Audience for this source: adult listeners, parents, carers, journalists and creative collaborators.
+
+IDENTITY
+Lull is a calm digital toybox designed for children aged 2–6 on iPhone and iPad. Its core collection contains nine activities, expressed through soft felt, wood and other tactile-looking materials. Children choose an activity, touch or drag something, and see the world answer. Grown-ups manage access, settings and purchases.
+
+The short description: Calm toys, made for little hands.
+The fuller promise: Nine quiet toys to explore, with no advertising, a parent-set play timer and a separate grown-up area.
+
+Lull is an app, not a set of physical toys. “Handmade” describes the visual language; artwork includes AI-assisted illustrations and code-drawn elements. AI is part of its development process, not a service a child talks to during play.
+
+WHY IT EXISTS
+The design problem is ordinary family life: a child wants to explore, a parent wants an experience they can understand and trust, and eventually it is time to put the device down. Lull makes the play and its stopping point part of the same product.
+
+The design intent is to offer gentle, self-directed play without scores, competitive rankings, advertising interruptions or pressure to maintain a streak. This is an intention supported by product choices, not evidence that using Lull reduces tantrums, improves sleep or produces a developmental outcome. Children respond differently, and a parent still decides what suits their family.
+
+THE NINE TOYS
+1. Little Wash: scrub and rinse muddy vehicles with a sponge and hose. Dirt gives way to a clean vehicle; another visit offers a new turn at the same understandable action. This is pretend care and satisfying visible cause and effect.
+2. Meadow: guide a ladybug, leave a flower trail, explore small discoveries and lead hidden baby ladybugs home. The child chooses a route rather than following written instructions.
+3. Feed: offer food to expressive friends and watch their reactions. Giving, receiving and repeating form the central pretend-play interaction.
+4. Sleepy Box: match chunky shapes to their openings, post them into the box and open the drawer to bring the pieces back. A clear physical analogy makes repetition understandable.
+5. Mix-Up: swap character heads, bodies and legs to make combinations, and save creations locally. The pleasure is making something amusing or familiar, not achieving the one correct answer.
+6. Drop Dots: drag colored dots into a wooden sorting board, explore arrangements, and pour them out to begin again.
+7. Hum: tap or sweep across musical keys to make gentle notes. The child creates the sequence; it is not a timed music challenge.
+8. Window: interact with a window, curtains and the changing scene beyond it, exploring light, time of day and small visitors.
+9. Bubbles: touch and pop bubbles, including occasional little surprises. It is a simple, repeatable cause-and-effect toy.
+
+These descriptions summarize the established toy identities. They are not a claim that every current development detail appears in the publicly released version.
+
+WHAT THE CHILD EXPERIENCES
+The shelf makes choices visual. Core play does not depend on reading instructions. A touch should give a quick response, followed by a gentler return to rest. This timing is a design principle: quick to notice, slow to settle. The intention is that felt feels soft, cloth moves from an attachment point, wood feels substantial, and water spreads.
+
+Lull's visual direction uses simple silhouettes, softened edges, restrained stitching and grain, believable contact shadows, and consistent perspective within each toy. It should feel like one maker's collection, while giving each toy its own small space. Some artwork and interactions remain under refinement; do not describe every element as perfected or award-winning.
+
+MONTESSORI-INSPIRED, WITH A CLEAR LIMIT
+The inspiration is in choice, independent exploration, repetition, simple manipulation and feedback a child can see. It is not a certification, a formal Montessori curriculum, or a substitute for hands-on materials, human interaction or outdoor play. No measured educational, therapeutic or developmental benefit is established by this source. Prefer descriptions of what a child does—sorting, matching, making music, pretending and exploring—over promises about what the child will learn.
+
+PARENTS SET THE RHYTHM
+The grown-up area includes a play timer, wind-down hour, toy selection, sound, haptics and calmer-motion settings. Purchases and external links are behind a grown-up check.
+
+The PLAY TIMER is a foreground-play allowance per sitting. A grown-up can choose Off, 15, 30, 45 or 60 minutes. When the allowance is reached, a calm moon-rest screen pauses play. Closing and quickly reopening the app does not restart the allowance. A grown-up can wake Lull; an hour away also begins a fresh sitting. This is an app feature, not an operating-system screen-time lock.
+
+The WIND-DOWN HOUR is separate. After the selected evening hour, Lull's rooms become warmer and dimmer. This is a visual cue for a family's routine. It does not claim to make children sleepy, treat sleep difficulties, block every app or switch the device off.
+
+Parents can choose which toys appear on the shelf and adjust the sensory settings. An adult check helps separate those controls from play; it is not identity verification or a guarantee that no child can pass it. Apple's Guided Access is a separate device setting a parent may use to reduce accidental exits; Lull does not turn that restriction on automatically.
+
+PRIVACY AND TRUST
+Lull contains no advertising, third-party analytics SDK, public social feed, chat or Lull account-registration system. Core gameplay uses bundled assets and native Apple frameworks. There is no developer-operated gameplay backend and no runtime AI service. The app does not send children's gameplay, saved creations or device identifiers to a developer analytics service.
+
+Settings and saved Mix-Up creations are stored in Lull's local device storage. They may be included in a family's own device backup. Apple StoreKit handles purchases, access status, restoration and Family Sharing. The app receives the information needed to determine access; it does not receive payment-card details or Apple Account credentials. Apple services remain subject to Apple's own policies.
+
+Optional support is different from gameplay: a grown-up who emails support sends the address and message needed for that correspondence. The support/privacy website is hosted on Cloudflare Pages and support email uses Proton Mail. An optional trial reminder is a local notification. Do not broaden “no tracking in gameplay” into “no information is ever processed anywhere.”
+
+Gameplay runs locally with bundled content. Purchases, product loading and purchase restoration require App Store connectivity. Avoid promising an unconditional offline purchase or perpetual subscription access without verification.
+
+ACCESS AND BUSINESS MODEL
+Lull uses paid access managed by grown-ups: Lull Family is an annual auto-renewing subscription, with a one-week introductory trial for eligible subscribers; Keep Forever is a one-time purchase. There is no permanent set of free toys in the current access model. An eligible trial is a subscription offer, not a no-strings-attached local demo.
+
+Both options are intended to open the full toybox and support Family Sharing. Purchase details, eligibility, regional availability and displayed prices are determined through Apple's purchase flow. For evergreen audio, say “an annual plan or a one-time purchase” and direct listeners to current terms. Do not present a recorded price as today's verified offer.
+
+ORIGIN STORY
+The founder has been shaping Lull through ordinary family play and feedback from his son. Two especially loved activities are Meadow and Little Wash. Requests for more wash vehicles, reports of accidental edge swipes, and observations about size, sound and the beach path have informed the work. This is a real development story supplied by the founder, not a research study or a fabricated customer testimonial. Do not invent the founder's biography, employer history, qualifications, quotes, launch results or a child's words. Refer to the child as “the founder's son” unless the founder deliberately supplies a public name and consented media.
+
+WHAT MAKES THE STORY INTERESTING
+- The same product pays attention to both the joy of play and the moment of stopping.
+- Tactile-looking materials are meant to behave, not just decorate the screen.
+- The child chooses the activity; the grown-up chooses the family settings.
+- The business model is paid access rather than advertising around children's attention.
+- Feedback comes from real use at home, including the moments that do not work yet.
+
+VERSION AND PUBLICATION BOUNDARY
+This pack describes Lull's core product and uses dated material from its development. Public App Store availability has not been freshly confirmed for this pack. Build 1.1 (21) was uploaded to TestFlight on November 4, 2026; that is a historical upload fact, not a launch announcement. The new Meadow beach is a development-preview feature with a reported trail/control issue under review. Do not promote it as polished or publicly available. The separate Ladybug Kraft prototype is not Lull and is not part of this source.
+
+Do not claim an Apple award, Apple endorsement, a review score, sales total, user count, Montessori certification, proven tantrum prevention, guaranteed sleep improvement or a release date. Do not promise a schedule of future toys. Use the calm website CTA below until current availability is confirmed.
+
+PUBLIC CONTACTS
+Website: https://lulltoybox.pages.dev/
+Privacy: https://lulltoybox.pages.dev/privacy
+Support: https://lulltoybox.pages.dev/support
+Email: lullios@proton.me
+Suggested closing: “Explore Lull and find the latest details at lulltoybox.pages.dev.”

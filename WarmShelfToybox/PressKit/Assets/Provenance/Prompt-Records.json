@@ -1,0 +1,200 @@
+{
+  "description": "Selected exact existing generation prompts for the copied assets. Prompt wording is unmodified. Reference paths are repository-relative where possible; unrelated local absolute paths are replaced by generation basenames. These are provenance records, not requests to generate artwork or a rights certification.",
+  "records": [
+    {
+      "id": "icon-stone",
+      "source_record": "ArtDrops/2026-10-07/icon-stone.prompt.json",
+      "source_record_sha256": "9c197a065056da1feb030c193384759a00b8a1d65ff758eac954e4c215234fe6",
+      "selector": "whole record",
+      "exact_prompt": "Use case: precise-object-edit. Asset type: transparent square app-icon foreground layer, 1024 by 1024. The input image is the edit target and exact character reference. Preserve this signature rounded terracotta clay stone, its butter-yellow capstone, closed dark arc eyes, tiny calm smile, rosy cheeks, material, proportions, straight-on camera and upper-left soft light. Remove the cream crescent from its belly entirely, repairing it with matching plain terracotta clay; no markings on belly. Remove all beige scenery, floor, vignette and cast shadow. The complete isolated stone and capstone centred together, occupying about 70% of the square. Genuine transparent alpha background with clean natural clay edges, no teal or coloured fringe. No extra objects or text.",
+      "notes": "Component prompt associated with the documented October 7 icon composition; not a complete prompt for the copied final raster.",
+      "reference_assets": [
+        "App/Resources/Assets.xcassets/AppIcon.appiconset/Icon-1024.png"
+      ]
+    },
+    {
+      "id": "icon-bg",
+      "source_record": "ArtDrops/2026-10-07/icon-bg.prompt.json",
+      "source_record_sha256": "703d8d3db2c172f79e184ece0b72ef19cd96b637a8ca5cf3ab42d6ac302da297",
+      "selector": "whole record",
+      "exact_prompt": "Use case: stylized-concept. Asset type: square opaque app-icon background layer, 1024 by 1024. Soft 3D clay-and-felt children's toy illustration, stop-motion still. Matte clay, warm wood where specified, hand-felted wool, soft key light from upper left, muted warm palette, cozy serene mood. No text, no logos. A calm dusk sky made of felt fills the entire square edge to edge: deep indigo at top fading to soft plum-lavender near bottom, a few tiny cream felt stars scattered in the upper left, a small cream felt crescent moon in the upper right with faint warm glow, one low wide rounded felt hill in muted slate-blue along the bottom edge. Centre left empty for a character. Simple large masses, restrained wool texture, readable at tiny icon size. Full canvas, square, no rounded-corner mask, no character, no teal key background.",
+      "notes": "Component prompt associated with the documented October 7 icon composition; not a complete prompt for the copied final raster.",
+      "reference_assets": []
+    },
+    {
+      "id": "shelf-bubbles-v2",
+      "source_record": "Docs/Art/Build7/Imagegen-prompts.json",
+      "source_record_sha256": "45586ef46babf191078ca2d529ec9cd8f7b3ee69866fc4237d8006bfa6842467",
+      "selector": "shelfCorrections[id=shelfBubbles]",
+      "exact_prompt": "Edit the reference into a shelf invitation for a calm bubble toy: remove the bowl and the wooden wand entirely. Five softly pearly iridescent bubbles in a compact playful cluster, two large and three smaller, delicate round translucent surfaces with pale pink, butter and water-blue reflections, warm upper-left soft light. Same handcrafted premium miniature world, no hard plastic gloss. Native transparent background; no environment, stand, text, hands, shadow or face. Fully visible 1024 square, cluster fills central80%, keep margins.",
+      "notes": "Current app export is an existing production derivative; Build 7 source/preparation recorded in Docs/Art/Build7/Additional-art-source.json.",
+      "reference_assets": [
+        "App/Resources/Assets.xcassets/shelf-bubbles-v2.imageset/shelf-bubbles-v2.png"
+      ]
+    },
+    {
+      "id": "shelf-wash-v2",
+      "source_record": "Docs/Art/Build7/Imagegen-prompts.json",
+      "source_record_sha256": "45586ef46babf191078ca2d529ec9cd8f7b3ee69866fc4237d8006bfa6842467",
+      "selector": "feedAndShelf[id=shelfWash]",
+      "exact_prompt": "Handmade needle-felt toy for a calm premium children's app. Wool fibres, soft hand-dyed colors, chunky simple silhouette, stitched seams, warm diffuse upper-left light, no glossy plastic. Native transparent background; no writing, logos, facial features, shadow or background. Use reference1 for composition, lighting, transparent framing and small wood/felt miniature scale. Replace its stack of stones with a compact tomato-red felt fire truck on a thin wooden wash platform, facing right, cream stripe, short ladder. Pale-blue front cab window at upper right is plain BLANK; no eyes or face. Separate cream-hub charcoal wheels. Half the back of truck covered with small fluffy white foam patches; yellow felt sponge beside it. Keep canvas1024 square and subject central, unobstructed; vehicle dominates, no background shelf or wall.",
+      "notes": "Current app export is an existing production derivative; Build 7 source/preparation recorded in Docs/Art/Build7/Additional-art-source.json.",
+      "reference_assets": [
+        "App/Resources/Assets.xcassets/shelf-stack-v2.imageset/shelf-stack-v2.png",
+        "exec-8ed0df40-c8ba-4946-aeb6-6800367fec62.png (original generation filename; local absolute path omitted)"
+      ]
+    },
+    {
+      "id": "shelf-dropdots-v2",
+      "source_record": "Docs/Art/Build7/Imagegen-prompts.json",
+      "source_record_sha256": "45586ef46babf191078ca2d529ec9cd8f7b3ee69866fc4237d8006bfa6842467",
+      "selector": "feedAndShelf[id=shelfDropDots]",
+      "exact_prompt": "Handmade needle-felt toy for a calm premium children's app. Wool fibres, soft hand-dyed colors, chunky simple silhouette, stitched seams, warm diffuse upper-left light, no glossy plastic. Native transparent background; no writing, logos, facial features, shadow or background. Edit this wooden dot toy shelf image to accurately show FOUR wide vertical channels only (not five), evenly spaced. Four large round holes/rings at top, colors in order muted rust-red, butter-yellow, water-blue, lavender. Four colored felt balls correspond to those exact colors, one inside each channel. A compact warm wood cabinet with rounded edges, same camera angle and lighting and transparent composition as reference; simple continuous channels, no extra holes, no scattered balls, no greens. Felt ring centers must appear as openings. No face, no text.",
+      "notes": "Current app export is an existing production derivative; Build 7 source/preparation recorded in Docs/Art/Build7/Additional-art-source.json.",
+      "reference_assets": [
+        "App/Resources/Assets.xcassets/shelf-dropdots-v2.imageset/shelf-dropdots-v2.png"
+      ]
+    },
+    {
+      "id": "shelf-feed-v2",
+      "source_record": "Assets/DesignPass-01/shelf-art-manifest.json",
+      "source_record_sha256": "836cac72a28622cb3dd39d5db70c24931868ecb763bcffbe66d3c3a05bc117d8",
+      "selector": "key=shelf-feed-v2",
+      "exact_prompt": "Use case: stylized-concept. Asset type: SINGLE production toy-shelf sprite for the Lull app ages 2–6. Genuine transparent background. Fixed straight-on orthographic camera, contemporary handmade miniature, satin pale birch and matte painted clay, low-detail material grain, broad soft light from upper left, clean readable silhouette at 80pt wide. Generous clear padding, no floor, no baked cast shadow, no text, no UI, no extra props, no vignette, no glow, no excessive fuzz. Warm-neutral construction, restrained terracotta, ochre, sage and cornflower-blue accents only on playable pieces. Primary subject: a tiny pale birch farm-stand counter with a very simple canopy, one kind round terracotta clay person peeking from BEHIND the counter, and three clearly visible pieces of food on the counter: red apple, orange carrot, yellow banana. Character torso stays behind counter. Compact inviting toy stand, minimal detail.",
+      "notes": "Current app resource is byte-identical to the DesignPass-01 file named in this record.",
+      "reference_assets": []
+    },
+    {
+      "id": "shelf-hum-v2",
+      "source_record": "Assets/DesignPass-01/shelf-art-manifest.json",
+      "source_record_sha256": "836cac72a28622cb3dd39d5db70c24931868ecb763bcffbe66d3c3a05bc117d8",
+      "selector": "key=shelf-hum-v2",
+      "exact_prompt": "Use case: background-extraction. Edit target: the attached generated xylophone sprite. Remove EVERY bit of background, colored ambient glow and baked cast shadow, leaving ONLY the six bars, wooden rails, wooden side supports and mallet. Preserve their exact shape, arrangement, material, colors and proportions. Clean edges. No opaque or translucent backdrop around or between parts. Genuine transparent alpha background across all empty areas. No new objects.",
+      "notes": "Current app resource is byte-identical to the DesignPass-01 file named in this record.",
+      "reference_assets": []
+    },
+    {
+      "id": "shelf-window-v2",
+      "source_record": "Assets/DesignPass-01/shelf-art-manifest.json",
+      "source_record_sha256": "836cac72a28622cb3dd39d5db70c24931868ecb763bcffbe66d3c3a05bc117d8",
+      "selector": "key=shelf-window-v2",
+      "exact_prompt": "Use case: stylized-concept. Asset type: SINGLE production toy-shelf sprite for the Lull app ages 2–6. Genuine transparent alpha background. Fixed straight-on orthographic camera, contemporary handmade miniature, satin pale birch and matte painted clay, very restrained soft material grain, broad soft upper-left daylight, clean readable silhouette at 80pt wide. Generous clear padding, NO floor or backdrop, NO cast shadow, NO glow behind object, NO text, NO UI, NO vignette, no excessive fuzz. Warm-neutral wood with restrained terracotta, ochre, sage and cornflower-blue manipulables. Primary subject: one small arched birch day/night window toy, single rounded arch frame, left half quiet pale blue sky with a simple golden sun, right half quiet slate-blue sky with a cream crescent moon and three tiny stars; one chunky small round birch turning knob centered at bottom. Minimal beautiful coherent toy, no shutters, no plants, no cat, no curtain, no shelves.",
+      "notes": "Current app resource is byte-identical to the DesignPass-01 file named in this record.",
+      "reference_assets": []
+    },
+    {
+      "id": "shelf-mixup-v2",
+      "source_record": "Docs/Art/Build7/Imagegen-prompts.json",
+      "source_record_sha256": "45586ef46babf191078ca2d529ec9cd8f7b3ee69866fc4237d8006bfa6842467",
+      "selector": "shelfCorrections[id=shelfMixup]",
+      "exact_prompt": "Edit reference1 to match the felt character game in reference2. Preserve the warm wooden little theatre silhouette, stage platform and muted terracotta FELT curtains, framing and upper-left warm light. REMOVE both crowns: top emblem becomes a small cream felt button medallion, and the crowned royal child is replaced by one unmistakably mix-and-match felt friend: the cream bunny head with pink ears from reference2, rust bear overalls/body in its middle column, and blue bird shorts/yellow feet from its right column. Three chunky separate sections aligned neatly as a single toy, small natural seams between sections. Soft wool fibers, sweet calm face as shown, no neck gaps or duplicated parts. Native transparent background beyond theatre/opening; no wall, text or logos. Fully visible1024square with clear margins.",
+      "notes": "Current app export is an existing production derivative; Build 7 source/preparation recorded in Docs/Art/Build7/Additional-art-source.json.",
+      "reference_assets": [
+        "App/Resources/Assets.xcassets/shelf-mixup-v2.imageset/shelf-mixup-v2.png",
+        "App/Resources/Assets.xcassets/mixup-friends-a.imageset/mixup-friends-a.png"
+      ]
+    },
+    {
+      "id": "shelf-sleepybox-v2",
+      "source_record": "Assets/DesignPass-01/shelf-art-manifest.json",
+      "source_record_sha256": "836cac72a28622cb3dd39d5db70c24931868ecb763bcffbe66d3c3a05bc117d8",
+      "selector": "key=shelf-sleepybox-v2",
+      "exact_prompt": "Use case: stylized-concept. Asset type: one production thumbnail sprite for the Lull children's toy shelf, genuine transparent background. Fixed straight-on orthographic camera, contemporary handcrafted miniature, satin pale birch wood and matte painted clay, subtle low-detail material texture, broad soft light from upper left, clean silhouette, beautiful restrained construction, generous transparent padding, no floor, no baked cast shadow, no text, no UI, no vignette, no excessive fuzz, no glitter, no unrelated objects. Colors are muted but clearly distinct terracotta, ochre, sage, cornflower blue. The toy must read clearly at 80pt wide. Primary subject: one small chunky pale birch shape-sorter box with four unmistakable recessed openings in a two-by-two arrangement: circle, upright triangle, rounded square, upright five-point star. One integrated pale wooden drawer front at bottom with a small finger scoop. No colored slot rims. Very small closed sleepy eyes between holes and drawer. Near-square front panel, single coherent object.",
+      "notes": "Current app resource is byte-identical to the DesignPass-01 file named in this record.",
+      "reference_assets": []
+    },
+    {
+      "id": "shelf-meadow-v2",
+      "source_record": "Assets/DesignPass-01/shelf-art-manifest.json",
+      "source_record_sha256": "836cac72a28622cb3dd39d5db70c24931868ecb763bcffbe66d3c3a05bc117d8",
+      "selector": "key=shelf-meadow-v2",
+      "exact_prompt": "Use case: stylized-concept. Asset type: SINGLE production toy-shelf sprite for the Lull app ages 2–6. Genuine transparent alpha background. Fixed straight-on orthographic camera, contemporary handmade miniature, satin pale birch and matte painted clay, very restrained soft material grain, broad soft upper-left daylight, clean readable silhouette at 80pt wide. Generous clear padding, NO floor or backdrop, NO cast shadow, NO glow behind object, NO text, NO UI, NO vignette, no excessive fuzz. Warm-neutral wood with restrained terracotta, ochre, sage and cornflower-blue manipulables. Primary subject: one tiny oval pale-birch miniature meadow tray with low felt-sage grass, a SINGLE unmistakable little red-and-black ladybug as the focus, and two very simple small wildflowers (ochre and cream) growing beside it. Compact physical toy that reads as lead-the-ladybug discovery, restrained grass detail, no large foliage, no trees, no sky.",
+      "notes": "Current app resource is byte-identical to the DesignPass-01 file named in this record.",
+      "reference_assets": []
+    },
+    {
+      "id": "lull-app-store-header",
+      "source_record": "Docs/Marketing/2026-10-17/Prompts.json",
+      "source_record_sha256": "279807a481c1bece4bf04e52a6eefa810a44c073b803b384451b42403c75a9f5",
+      "selector": "name=lull-app-store-header",
+      "exact_prompt": "Use case: ads-marketing. Adapt the supplied Lull brand artwork into a polished finished campaign image. References are existing Lull character/toy identity and material references, not screenshots. Preserve their distinctive rounded forms and friendly faces. Tactile matte felt, warm pale wood, restrained soft lighting, fine fibers, generous breathing room, premium editorial composition. Warm cream #F8F3E9, dark cocoa #49352A, terracotta, butter yellow, sage and deep twilight navy. No photoreal people, no fake app UI, no phone mockups, no badges, no extra brands, no claims of awards, no purchase button, no price or invented feature. This is an illustration, not a gameplay screenshot. Avoid busy nursery clutter, shiny plastic and oversaturated colors.\nAsset type: App Store product-page header artwork. Wide panoramic 21:9 composition intended for 3840 x 1646 output, opaque. Create a beautifully art-directed still life in Lull's world: the exact terracotta rounded felt mascot with butter-yellow cap is a modest central focal point, nestling a cream crescent. On either side are the real Lull wooden pastel xylophone and sleepy wooden shape-sorter, grouped close to the mascot in the middle 60% of the frame. Small felt shapes, a few pearly bubbles and a tiny red felt ladybug lend a sense of quiet playful life. Everything sits naturally on one pale warm linen surface; an extremely subtle soft navy twilight curve at the back right connects to the existing icon. Warm mostly-cream background. Not a gallery of separate cards. Eye-level miniature set photography, gently asymmetrical, enough depth to feel handmade and alive. Let the outer 15% edges and top/bottom margins breathe so this crops gracefully. Objects do not touch or clip frame edges. NO TEXT at all: Apple supplies the app title in the interface. Make the existing toys recognizable and carefully proportioned, no extra vehicles or invented toy types.",
+      "notes": "Existing destination export; native generated dimensions differ.",
+      "reference_assets": [
+        "App/Resources/Assets.xcassets/AppIcon.appiconset/Icon-1024.png",
+        "App/Resources/Assets.xcassets/BrandHero.imageset/brand-hero.png",
+        "App/Resources/Assets.xcassets/shelf-hum-v2.imageset/shelf-hum-v2.png",
+        "App/Resources/Assets.xcassets/shelf-sleepybox-v2.imageset/shelf-sleepybox-v2.png"
+      ]
+    },
+    {
+      "id": "lull-social-play-then-rest",
+      "source_record": "Docs/Marketing/2026-10-17/Prompts.json",
+      "source_record_sha256": "279807a481c1bece4bf04e52a6eefa810a44c073b803b384451b42403c75a9f5",
+      "selector": "name=lull-social-play-then-rest",
+      "exact_prompt": "Use case: ads-marketing. Adapt the supplied Lull brand artwork into a polished finished campaign image. References are existing Lull character/toy identity and material references, not screenshots. Preserve their distinctive rounded forms and friendly faces. Tactile matte felt, warm pale wood, restrained soft lighting, fine fibers, generous breathing room, premium editorial composition. Warm cream #F8F3E9, dark cocoa #49352A, terracotta, butter yellow, sage and deep twilight navy. No photoreal people, no fake app UI, no phone mockups, no badges, no extra brands, no claims of awards, no purchase button, no price or invented feature. This is an illustration, not a gameplay screenshot. Avoid busy nursery clutter, shiny plastic and oversaturated colors.\nAsset type: finished Instagram/Facebook portrait feed poster, 4:5, intended 1080 x 1350. Strong readable mobile typography and sophisticated simple layout.\nExact text, no additional copy:\nsmall brand at top: \"lull\"\nlarge elegant dark-cocoa serif headline, two lines: \"Play, then rest.\"\nsupporting text below in a clean friendly sans serif: \"Set a play limit. Lull rests when time is up.\"\nsmall footer: \"A quiet toybox for ages 2–6\"\nKeep all type at least 8% inside image edges, solid clean letterforms, high contrast. Top 40% warm cream with lots of space for typography. Bottom 60% a beautifully lit tactile illustration of the reference terracotta felt mascot hugging the cream crescent on a soft deep-navy felt mound. Mascot exactly matches yellow cap, dark closed eyes, small smile and coral cheeks of reference. A few softly stitched stars, not a busy sky. Cream-to-twilight backdrop. The moon is the emotional hero: gentle end to play, not a bedtime or sleep promise. No clock face, no progress UI, no sleeping child, no extra text.",
+      "notes": "Existing destination export; native generated dimensions differ.",
+      "reference_assets": [
+        "App/Resources/Assets.xcassets/AppIcon.appiconset/Icon-1024.png",
+        "App/Resources/Assets.xcassets/BrandHero.imageset/brand-hero.png"
+      ]
+    },
+    {
+      "id": "lull-social-grown-up-controls",
+      "source_record": "Docs/Marketing/2026-10-17/Prompts.json",
+      "source_record_sha256": "279807a481c1bece4bf04e52a6eefa810a44c073b803b384451b42403c75a9f5",
+      "selector": "name=lull-social-grown-up-controls",
+      "exact_prompt": "Use case: ads-marketing. Adapt the supplied Lull brand artwork into a polished finished campaign image. References are existing Lull character/toy identity and material references, not screenshots. Preserve their distinctive rounded forms and friendly faces. Tactile matte felt, warm pale wood, restrained soft lighting, fine fibers, generous breathing room, premium editorial composition. Warm cream #F8F3E9, dark cocoa #49352A, terracotta, butter yellow, sage and deep twilight navy. No photoreal people, no fake app UI, no phone mockups, no badges, no extra brands, no claims of awards, no purchase button, no price or invented feature. This is an illustration, not a gameplay screenshot. Avoid busy nursery clutter, shiny plastic and oversaturated colors.\nAsset type: finished Instagram/Facebook portrait feed poster, 4:5, intended 1080 x 1350. It must belong to the same Lull campaign as a warm cream and navy felt moon poster.\nExact text:\nsmall brand at top: \"lull\"\nlarge dark-cocoa elegant serif headline, comfortably arranged over 3 lines: \"Little hands play.\" then \"Grown-ups set\" then \"the pace.\"\nsmaller clean sans-serif supporting copy: \"Choose their toys, sound and motion.\" then \"Settings stay behind a grown-up check.\"\nsmall footer: \"Thoughtful controls for your family.\"\nLayout: upper 48% is warm cream negative space with crisply readable typography, no crowding. Lower part a small curated arrangement of Lull's reference sleepy wooden shape-sorter and wooden pastel xylophone, plus one soft sage felt leaf and a cream crescent, resting on a curved pale wooden shelf. Reference orange capped mascot peeks gently from behind the left of the shelf, smaller than the toys and with unchanged identity. Calm confident editorial still life, warm daylight, elegant shadow under shelf, not a chaotic toy pile. One very subtle navy backdrop arc for depth. No locks, keys, fabricated settings panels, toggle switches or app screen. Keep the real toys' visual designs faithful. All text and key objects safely 8% from edges.",
+      "notes": "Existing destination export; native generated dimensions differ.",
+      "reference_assets": [
+        "App/Resources/Assets.xcassets/BrandHero.imageset/brand-hero.png",
+        "App/Resources/Assets.xcassets/shelf-hum-v2.imageset/shelf-hum-v2.png",
+        "App/Resources/Assets.xcassets/shelf-sleepybox-v2.imageset/shelf-sleepybox-v2.png"
+      ]
+    },
+    {
+      "id": "lull-social-nine-toys",
+      "source_record": "Docs/Marketing/2026-10-17/Prompts.json",
+      "source_record_sha256": "279807a481c1bece4bf04e52a6eefa810a44c073b803b384451b42403c75a9f5",
+      "selector": "name=lull-social-nine-toys",
+      "exact_prompt": "Use case: ads-marketing. Adapt the supplied Lull brand artwork into a polished finished campaign image. References are existing Lull character/toy identity and material references, not screenshots. Preserve their distinctive rounded forms and friendly faces. Tactile matte felt, warm pale wood, restrained soft lighting, fine fibers, generous breathing room, premium editorial composition. Warm cream #F8F3E9, dark cocoa #49352A, terracotta, butter yellow, sage and deep twilight navy. No photoreal people, no fake app UI, no phone mockups, no badges, no extra brands, no claims of awards, no purchase button, no price or invented feature. This is an illustration, not a gameplay screenshot. Avoid busy nursery clutter, shiny plastic and oversaturated colors.\nAsset type: finished Instagram/Facebook portrait feed poster, 4:5, intended 1080 x 1350, coordinated Lull campaign.\nExact text:\nsmall brand at top: \"lull\"\nlarge warm-cream elegant serif headline on navy: \"Nine toys.\" then \"Their own way to play.\"\nsupporting sans-serif copy: \"Wash, sort, make music and explore.\"\nsmall footer: \"No ads. No tracking.\"\nUse a rich soft twilight navy felt background with gentle studio light, no hard gradients. Upper 38% reserved for flawless spacious readable typography, keep headline suitably sized to fit. In lower 60%, an artful small scene on one warm cream linen island: the orange capped Lull mascot, the reference real pastel xylophone and sleepy wooden shape-sorter, a few pearly bubbles and one tiny felt ladybug. The illustration suggests the varied toybox without pretending it shows all nine activities. Toys retain their reference forms. One cream felt crescent floats just behind the group, grounded shadows and fiber detail make it lovable and tactile. Restrained composition, no extra icons, no fake gameplay screen, no numbered labels, no sales CTA. All copy and main objects within 8% safe margin.",
+      "notes": "Existing destination export; native generated dimensions differ.",
+      "reference_assets": [
+        "App/Resources/Assets.xcassets/AppIcon.appiconset/Icon-1024.png",
+        "App/Resources/Assets.xcassets/BrandHero.imageset/brand-hero.png",
+        "App/Resources/Assets.xcassets/shelf-hum-v2.imageset/shelf-hum-v2.png",
+        "App/Resources/Assets.xcassets/shelf-sleepybox-v2.imageset/shelf-sleepybox-v2.png"
+      ]
+    },
+    {
+      "id": "parent-campaign-01-toybox-rest",
+      "source_record": "Docs/Marketing/2026-11-03-parent-campaign/Prompts.json",
+      "source_record_sha256": "d8e7637d40bf197f05ad703f1c7b34cb0521ae11901b4a396deb7f977c2abef0",
+      "selector": "id=01-toybox-rest",
+      "exact_prompt": "Use case: ads-marketing. Create one polished standalone Instagram/Facebook campaign card for Lull, a calm digital toybox for children ages 2–6, aimed at parents. Portrait 4:5 aspect ratio. Input reference is a brand STYLE AND CHARACTER reference only; create a NEW composition. Preserve the recognizable terracotta-orange soft felt mascot with a golden-yellow beret, tiny felt arms, round rosy cheeks and simple face. Not a photograph of a real family and not a screenshot of the app. Art direction: crafted felt and pale wood, joyful yet gentle premium children's publishing, bright warm buttercream top with soft apricot light, muted warm sky blue along bottom. NO dark navy blanket filling the image. Main scene in lower 55%: the mascot sits beside a little wooden toybox, affectionately holding a soft cream crescent moon; a small wool ladybug and three tidy rounded wooden/felt blocks nearby. It feels like a satisfying pause after play, not a sad or exhausted child. One small stitched golden star, plenty of breathing room. Light from upper left, delicate real felt fibers, tactile shadows but no gray cast. Upper 40% clean readable typography, small recognizable lowercase rounded \"lull\" brand at top. Exact main headline, two lines, generous dark-cocoa serif: \"Even toyboxes\" / \"need a rest.\" Exact supporting line in clear dark-cocoa sans-serif: \"Set the play timer.\" / \"Lull rests when time is up.\" Small bottom footer verbatim: \"A quiet toybox for ages 2–6\". All text perfectly legible and correctly spelled. No device, no fake interface, no price, no download badges, no testimonial, no claims about tantrums or sleep. Friendly charming campaign graphic with professionally balanced typography.",
+      "notes": "",
+      "reference_assets": [
+        "Docs/Marketing/2026-10-17/lull-social-play-then-rest.png"
+      ]
+    },
+    {
+      "id": "parent-campaign-02-little-adventures",
+      "source_record": "Docs/Marketing/2026-11-03-parent-campaign/Prompts.json",
+      "source_record_sha256": "d8e7637d40bf197f05ad703f1c7b34cb0521ae11901b4a396deb7f977c2abef0",
+      "selector": "id=02-little-adventures",
+      "exact_prompt": "Use case: ads-marketing. Create one polished standalone Instagram/Facebook campaign card for Lull, a digital felt-and-wood toybox for children ages 2–6, aimed at parents. Portrait 4:5 aspect ratio. Use supplied image only as brand STYLE and CHARACTER reference, creating an original brighter campaign layout. Recognizable mascot: terracotta-orange felt with yellow beret, rosy circular cheeks, tiny felt arms, friendly simple face; this time eyes OPEN and delighted, curious personality. Upper 38% clean warm ivory with large perfectly legible dark cocoa serif headline exactly \"Little adventures.\" / \"No ad breaks.\" Small rounded lowercase \"lull\" brand centered at top. Under headline smaller clean dark cocoa sans-serif exactly: \"Nine quiet toys for curious hands.\" Main lower scene: a sunny pale wooden play surface with the orange mascot leaning curiously towards a small ladybug, a miniature red felt fire truck, a compact rainbow wooden/felt xylophone, and two translucent bubbles. These are expressive illustrative symbols of our toys, not a screenshot, not an actual physical toy product. Use restrained beautiful warm coral, golden butter yellow and fresh soft sky blue; avoid desaturated gray, dull sepia and dark navy. Background is softly layered tactile pale-blue and buttercream felt curves, bright diffuse window light, generous spacing and charming handcrafted material. Do not crowd objects. Bottom footer verbatim \"No ads. No tracking. No accounts.\" Art must feel alive, playful, tactile and premium without neon or overstimulation. No photographs of children, no device or fake UI, no app-store badge, no fabricated review or metrics, no medical/learning outcome claims.",
+      "notes": "",
+      "reference_assets": [
+        "Docs/Marketing/2026-10-17/lull-social-nine-toys.png"
+      ]
+    },
+    {
+      "id": "parent-campaign-03-privacy",
+      "source_record": "Docs/Marketing/2026-11-03-parent-campaign/Privacy-prompt.txt",
+      "source_record_sha256": "58ab12d31c94ec0f013b638d061bd952b2f8d31f6c17f0b94e0af6317e465b45",
+      "selector": "whole text",
+      "exact_prompt": "Use case: ads-marketing. Create a premium friendly Instagram/Facebook portrait 4:5 campaign poster for Lull, a calm digital toybox for children ages 2–6, aimed at parents. Use the reference image only for the established mascot, materials and brand styling, not composition. It must match the sunny cream / apricot / soft-blue campaign, avoiding a heavy dark navy sky. Recognizable main character: terracotta orange round felt mascot with golden-yellow beret, two rosy round cheeks, simple OPEN friendly eyes and tiny soft arms. Main scene lower half: mascot seated comfortably in a broad soft cream felt alcove surrounded by a few carefully spaced tactile wooden toys, a simple rainbow xylophone, a little ladybug, and one golden star. Behind it, broad pale sky-blue and warm apricot felt layers suggest a gentle protected space without literal fortress imagery. Warm bright natural light, appealing tactile wool and natural wood, hand-crafted detail, happy, calm and trustworthy. The emotional message is parent peace of mind, not cyber-security alarm. Generous clean upper half for typography. Small rounded lowercase brand at top, text exactly \"lull\". Main dark-cocoa serif headline, two lines, exactly \"Their play.\" / \"Their privacy.\" Below in highly readable sans-serif, text exactly \"No ads. No tracking. No accounts.\" Further supporting line exactly \"Purchases and settings stay\" / \"behind a grown-up check.\" Footer exactly \"A quiet toybox for ages 2–6\". Make these words unambiguous and beautifully spaced. No real people, no fake app UI or screens, no shield seal/checkmark/certification badge, no padlock security certificate, no claim of absolute safety, no claim of Apple approval, no prices, no download badge, no testimonial. This is a social brand illustration, not a screenshot. Preserve the character's distinctive appearance from the reference.",
+      "notes": "",
+      "reference_assets": []
+    }
+  ]
+}

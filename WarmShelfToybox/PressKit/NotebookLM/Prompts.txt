@@ -1,0 +1,23 @@
+LULL — GENERATION PROMPTS
+Use 01-Lull-Overview.txt as the factual source. Use 02-Podcast-Script.txt only when you want that proposed structure/tone. These prompts are production instructions, not additional product evidence.
+
+PODCAST / AUDIO OVERVIEW
+Create a warm, thoughtful conversation for parents about Lull: Quiet Toybox. Pronounce Lull to rhyme with dull. Aim for about five minutes, with two adult hosts and natural pauses; actual generated duration may vary. Open with the parent-set play timer, then explain the nine-toy experience using Little Wash, Meadow and Sleepy Box as concrete examples. Distinguish the play timer from the evening wind-down hour. Explain privacy in specific terms and acknowledge Apple's purchase services. Describe Montessori inspiration without claiming certification or proven developmental benefits. Use the founder's family-testing story only as documented, without inventing quotations or firsthand use. Paid access is annual or one-time; an eligible trial is not permanent free access. Do not state current prices, release status, awards, customer numbers, guaranteed sleep or tantrum outcomes, or future feature schedules. Treat the beach as a development preview, not a promoted finished feature. Close with the website. The hosts must not imply they personally tested Lull, are independent reviewers, or have children who used it.
+
+SHORT AUDIO
+Make a one-minute adult-facing introduction to Lull. Begin with “a quiet digital toybox for little hands.” Explain three concrete play moments, the parent-set timer, no ads and the separate grown-up area. Use only the supplied source facts. Close with the website; omit unverified price and availability. No fake testimonial or exaggerated benefit claim.
+
+VIDEO / VISUAL EXPLAINER
+Create an adult-facing explainer outline about Lull, using the supplied overview and the asset catalog. Distinguish real app screenshots from promotional illustrations. Show Little Wash, Feed, Meadow and the parent controls. Do not synthesize a phone screen, purchase flow, timer screen, or gameplay that is not present in the supplied captures. If the necessary real footage is missing, mark a capture needed in the shot list. Keep the straight-down camera for Meadow assets, simple felt/wood forms and restrained motion. No stock neon educational imagery. Use large readable captions. Omit public-release claims and prices unless a newer verified source supplies them. End with the website.
+
+INSTAGRAM CAROUSEL
+Draft a five-slide parent-facing carousel on one message only: [play timer / quiet play / privacy / founder story]. For each slide give a short headline, one sentence and a specific asset filename from the catalog. Respect each asset's build and promotional/screenshot label. Do not claim guaranteed behavior, sleep or learning improvements. End with a gentle website CTA. If a required real screen is absent, mark “capture needed,” rather than inventing it.
+
+FAQ
+Write ten concise parent questions and answers from 01-Lull-Overview.txt. Include ages, the nine toys, reading, timer versus wind-down, privacy, offline limits, paid access, grown-up controls and how to find current terms. Say when a fact is not established by the source.
+
+FOUNDER INTERVIEW
+Prepare six questions that bring out the documented family-testing story. Do not invent the founder's answers, career or credentials. Prefer concrete moments of observing play to generic startup questions. Leave room for the founder's own recorded answers to become a future source.
+
+SLIDE DECK / INFOGRAPHIC
+Create a six-panel outline: what Lull is, three toy examples, family rhythm, privacy, design principles, website. Pull facts only from the overview and use original kit assets. Separate illustrated scenes from actual gameplay. Keep copy brief, warm and specific; no unverified metrics or launch claims.

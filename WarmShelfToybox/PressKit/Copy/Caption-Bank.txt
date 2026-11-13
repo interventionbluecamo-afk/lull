@@ -1,0 +1,37 @@
+LULL — SOCIAL AND EXPLAINER COPY
+These are drafts for parent-facing posts, not claims of measured outcomes. Pair with the asset catalog's version and media-type labels. Use a current availability CTA only after checking it.
+
+1. PLAY TIMER
+Hook: Even toyboxes need a rest.
+Caption: A grown-up sets the playtime. When that sitting's time is up, Lull rests behind a calm moon screen. Nine quiet toys, with a stopping point built into the app.
+Visual: Illustrated rest card + genuine recording of the timer setting and moon-rest screen.
+
+2. QUIET PLAY
+Hook: Little adventures. No ad breaks.
+Caption: Wash a muddy truck, make a few notes, or follow a ladybug through the meadow. Lull is a quiet digital toybox for ages 2–6, with no ads interrupting play.
+Visual: Actual Little Wash, Hum and Meadow captures; label development previews where applicable.
+
+3. PRIVACY
+Hook: Their play. Their privacy.
+Caption: No ads, no third-party analytics and no Lull accounts. Core gameplay runs locally; purchases and external links sit behind a grown-up check. Find the details in Lull's privacy policy.
+Visual: Existing privacy illustration + app icon. Do not add safety certification logos.
+
+4. WIND-DOWN
+Hook: A warmer room for the evening.
+Caption: Lull's wind-down hour gently warms and dims its rooms. A small visual cue for your family's routine, separate from the play timer.
+Visual: Matching day/night captures from the same build. No before-and-after sleep claim.
+
+5. FOUNDER
+Hook: The smallest hands give the clearest feedback.
+Caption: Watching my son play has shaped Lull—from the vehicles he wants to wash to the way a tool follows his finger. We are making a quiet toybox, one real moment of play at a time.
+Note: Proposed founder-voice copy; the founder should adopt or edit it, not attribute it as an existing quote.
+Visual: Founder-selected genuine family photo/clip, or actual game capture. No synthetic customer endorsement.
+
+6. THE COLLECTION
+Hook: Nine ways to say, “What happens if I touch this?”
+Caption: Music, bubbles, shapes, muddy vehicles and tiny discoveries. Lull gives little hands room to choose, try and repeat, while grown-ups set the family controls.
+Visual: Nine toy cutouts; clearly call these illustrations, not screen captures.
+
+7. SIMPLE 30-SECOND EXPLAINER
+Narration: “Meet Lull: a quiet digital toybox for little hands. Wash a muddy truck. Feed a friend. Make a little music. Nine activities invite children aged two to six to choose and explore. A grown-up sets the sound, motion and playtime, with a calm moon rest when the timer is up. No ads. No Lull accounts. Explore Lull at lulltoybox dot pages dot dev.”
+Shots: Actual Little Wash → Feed → Hum → shelf → real grown-up timer → real moon-rest screen → icon and website. The parent/timer recordings are not included yet; capture the real screens before producing this edit.

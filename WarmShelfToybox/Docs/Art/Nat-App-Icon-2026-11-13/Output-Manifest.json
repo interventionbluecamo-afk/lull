@@ -1,0 +1,38 @@
+[
+  {
+    "file": "Outputs/lull-nat-icon-option-1.png",
+    "pixels": [
+      1024,
+      1024
+    ],
+    "format": "PNG RGB, no alpha channel",
+    "sha256": "0fd9ea2f59326e2f981e883cd84744b6fc77f0d325bcb03527493264edc16eee"
+  },
+  {
+    "file": "Outputs/lull-nat-icon-option-2.png",
+    "pixels": [
+      1024,
+      1024
+    ],
+    "format": "PNG RGB, no alpha channel",
+    "sha256": "5e487483b9ef7a6931916941a29d821d47215462cbc46821db347e024c4d221c"
+  },
+  {
+    "file": "Outputs/lull-nat-icon-option-3.png",
+    "pixels": [
+      1024,
+      1024
+    ],
+    "format": "PNG RGB, no alpha channel",
+    "sha256": "cdce1347d9390d7f8eb2c46d15ac126cf2a5dc1f3ab6b22dc0215cdaa3f10d93"
+  },
+  {
+    "file": "Outputs/lull-nat-icon-option-4.png",
+    "pixels": [
+      1024,
+      1024
+    ],
+    "format": "PNG RGB, no alpha channel",
+    "sha256": "6aaf3f231642ae69fd00086da72ab3b056a01055a1df39e764ca7f536118a0f3"
+  }
+]

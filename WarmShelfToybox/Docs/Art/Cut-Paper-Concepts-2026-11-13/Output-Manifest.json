@@ -1,0 +1,252 @@
+{
+  "package": "Lull cut-paper design concepts",
+  "created_date": "2026-11-13",
+  "generation_tool": "built-in image_gen",
+  "purpose": "AI-generated review concepts, not implemented application screenshots or publishable production replacements.",
+  "copy_verification": "Each copied PNG is byte-identical to its generated source, verified by SHA-256. Dimensions were read from PNG IHDR metadata. No resizing, cropping, compositing, or raster alteration was performed.",
+  "review_observation_source": "Visual review caveats supplied by the coordinating task; this packaging step reads PNG metadata only.",
+  "implementation_authority": "The original source controls, camera, framing, toy identity, proportions, and geometry remain authoritative. Generated outputs are not pixel exact and require visual approval and reconstruction as layered code before production use.",
+  "global_limitations": [
+    "Generated dimensions and aspect ratios differ from the supplied sources.",
+    "No app, App Store, or PressKit assets were changed."
+  ],
+  "outputs": [
+    {
+      "number": 1,
+      "toy": "Bubbles",
+      "generated_source_path": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-d1435658-88c7-4da5-a3d3-ef2eb40180ba.png",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Cut-Paper-Concepts-2026-11-13/Outputs/01-bubbles-cut-paper-concept.png",
+      "package_relative_path": "Outputs/01-bubbles-cut-paper-concept.png",
+      "generated_source_sha256": "27a67e7445ebaf1813a9530c6c60a430d7b01740392a507a036bb178b8150764",
+      "copied_sha256": "27a67e7445ebaf1813a9530c6c60a430d7b01740392a507a036bb178b8150764",
+      "byte_identical_copy": true,
+      "bytes": 2178122,
+      "dimensions_px": {
+        "width": 784,
+        "height": 2007
+      },
+      "input_dimensions_px": {
+        "width": 1206,
+        "height": 2622
+      },
+      "same_pixel_dimensions_as_input": false,
+      "same_aspect_ratio_as_input": false,
+      "aspect_ratio_relative_difference_percent": -15.0714,
+      "review_limitations": [
+        "Generated pixel dimensions differ from the source. This concept is not pixel exact.",
+        "Generated aspect ratio differs from the source; preserve the source frame and geometry in implementation.",
+        "The generated bubbles have solid rims and shadows. Do not implement these as literal paper bubbles; the source bubbles and their behavior remain authoritative."
+      ]
+    },
+    {
+      "number": 2,
+      "toy": "Feed",
+      "generated_source_path": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-1e69504a-c3cf-4e1f-a863-d0b841b252f2.png",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Cut-Paper-Concepts-2026-11-13/Outputs/02-feed-cut-paper-concept.png",
+      "package_relative_path": "Outputs/02-feed-cut-paper-concept.png",
+      "generated_source_sha256": "60eb98ee4e41bace4ff4994f05589c297c4cc79962553521da38c0f84fc90b13",
+      "copied_sha256": "60eb98ee4e41bace4ff4994f05589c297c4cc79962553521da38c0f84fc90b13",
+      "byte_identical_copy": true,
+      "bytes": 2351104,
+      "dimensions_px": {
+        "width": 851,
+        "height": 1848
+      },
+      "input_dimensions_px": {
+        "width": 1206,
+        "height": 2622
+      },
+      "same_pixel_dimensions_as_input": false,
+      "same_aspect_ratio_as_input": false,
+      "aspect_ratio_relative_difference_percent": 0.1182,
+      "review_limitations": [
+        "Generated pixel dimensions differ from the source. This concept is not pixel exact.",
+        "Generated aspect ratio differs from the source; preserve the source frame and geometry in implementation."
+      ]
+    },
+    {
+      "number": 3,
+      "toy": "Little Wash",
+      "generated_source_path": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-bcc16c92-d787-4135-8efd-09b4ece42e7f.png",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Cut-Paper-Concepts-2026-11-13/Outputs/03-little-wash-cut-paper-concept.png",
+      "package_relative_path": "Outputs/03-little-wash-cut-paper-concept.png",
+      "generated_source_sha256": "afae020fdda9db066c76b1bee86b63f41d0923f25b75ee3ecea1b46f08f4bda9",
+      "copied_sha256": "afae020fdda9db066c76b1bee86b63f41d0923f25b75ee3ecea1b46f08f4bda9",
+      "byte_identical_copy": true,
+      "bytes": 2386419,
+      "dimensions_px": {
+        "width": 851,
+        "height": 1849
+      },
+      "input_dimensions_px": {
+        "width": 1206,
+        "height": 2622
+      },
+      "same_pixel_dimensions_as_input": false,
+      "same_aspect_ratio_as_input": false,
+      "aspect_ratio_relative_difference_percent": 0.064,
+      "review_limitations": [
+        "Generated pixel dimensions differ from the source. This concept is not pixel exact.",
+        "Generated aspect ratio differs from the source; preserve the source frame and geometry in implementation."
+      ]
+    },
+    {
+      "number": 4,
+      "toy": "Sleepy Box",
+      "generated_source_path": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-5a4571a8-4a62-4194-aace-9a76f7cfb394.png",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Cut-Paper-Concepts-2026-11-13/Outputs/04-sleepy-box-cut-paper-concept.png",
+      "package_relative_path": "Outputs/04-sleepy-box-cut-paper-concept.png",
+      "generated_source_sha256": "6fe67cf09ba6c2490a0dbbdd61668f1f722a30f04c710691e8510ccc2f9919da",
+      "copied_sha256": "6fe67cf09ba6c2490a0dbbdd61668f1f722a30f04c710691e8510ccc2f9919da",
+      "byte_identical_copy": true,
+      "bytes": 2128282,
+      "dimensions_px": {
+        "width": 851,
+        "height": 1849
+      },
+      "input_dimensions_px": {
+        "width": 1206,
+        "height": 2622
+      },
+      "same_pixel_dimensions_as_input": false,
+      "same_aspect_ratio_as_input": false,
+      "aspect_ratio_relative_difference_percent": 0.064,
+      "review_limitations": [
+        "Generated pixel dimensions differ from the source. This concept is not pixel exact.",
+        "Generated aspect ratio differs from the source; preserve the source frame and geometry in implementation."
+      ]
+    },
+    {
+      "number": 5,
+      "toy": "Window",
+      "generated_source_path": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-b76befa1-d93e-476b-b8c5-a15d5407382b.png",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Cut-Paper-Concepts-2026-11-13/Outputs/05-window-cut-paper-concept.png",
+      "package_relative_path": "Outputs/05-window-cut-paper-concept.png",
+      "generated_source_sha256": "561a87dabab091ced9b562cc9945d84cb71ddf0127d94b6480c68d6483aa6b51",
+      "copied_sha256": "561a87dabab091ced9b562cc9945d84cb71ddf0127d94b6480c68d6483aa6b51",
+      "byte_identical_copy": true,
+      "bytes": 2327066,
+      "dimensions_px": {
+        "width": 851,
+        "height": 1848
+      },
+      "input_dimensions_px": {
+        "width": 1206,
+        "height": 2622
+      },
+      "same_pixel_dimensions_as_input": false,
+      "same_aspect_ratio_as_input": false,
+      "aspect_ratio_relative_difference_percent": 0.1182,
+      "review_limitations": [
+        "Generated pixel dimensions differ from the source. This concept is not pixel exact.",
+        "Generated aspect ratio differs from the source; preserve the source frame and geometry in implementation."
+      ]
+    },
+    {
+      "number": 6,
+      "toy": "Drop Dots",
+      "generated_source_path": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-5ba5eb29-3f30-4c25-9033-3d0d8c7d1b6c.png",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Cut-Paper-Concepts-2026-11-13/Outputs/06-drop-dots-cut-paper-concept.png",
+      "package_relative_path": "Outputs/06-drop-dots-cut-paper-concept.png",
+      "generated_source_sha256": "5c01868b399f2fccadcabdecb08804b2e95cbad81f2c1059cc77e12d682e69d7",
+      "copied_sha256": "5c01868b399f2fccadcabdecb08804b2e95cbad81f2c1059cc77e12d682e69d7",
+      "byte_identical_copy": true,
+      "bytes": 2386656,
+      "dimensions_px": {
+        "width": 784,
+        "height": 2007
+      },
+      "input_dimensions_px": {
+        "width": 1206,
+        "height": 2622
+      },
+      "same_pixel_dimensions_as_input": false,
+      "same_aspect_ratio_as_input": false,
+      "aspect_ratio_relative_difference_percent": -15.0714,
+      "review_limitations": [
+        "Generated pixel dimensions differ from the source. This concept is not pixel exact.",
+        "Generated aspect ratio differs from the source; preserve the source frame and geometry in implementation."
+      ]
+    },
+    {
+      "number": 7,
+      "toy": "Mix-Up",
+      "generated_source_path": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-1dbe816f-6f9a-4da7-9848-e24be159eac3.png",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Cut-Paper-Concepts-2026-11-13/Outputs/07-mix-up-cut-paper-concept.png",
+      "package_relative_path": "Outputs/07-mix-up-cut-paper-concept.png",
+      "generated_source_sha256": "6127aed2eed4cbf57468524a0308434b2d2c2f79b7717de1daa43670e2fe3dce",
+      "copied_sha256": "6127aed2eed4cbf57468524a0308434b2d2c2f79b7717de1daa43670e2fe3dce",
+      "byte_identical_copy": true,
+      "bytes": 2748727,
+      "dimensions_px": {
+        "width": 784,
+        "height": 2007
+      },
+      "input_dimensions_px": {
+        "width": 1206,
+        "height": 2622
+      },
+      "same_pixel_dimensions_as_input": false,
+      "same_aspect_ratio_as_input": false,
+      "aspect_ratio_relative_difference_percent": -15.0714,
+      "review_limitations": [
+        "Generated pixel dimensions differ from the source. This concept is not pixel exact.",
+        "Generated aspect ratio differs from the source; preserve the source frame and geometry in implementation.",
+        "The bunny proportions drifted. Reconstruct from the source character proportions and geometry."
+      ]
+    },
+    {
+      "number": 8,
+      "toy": "Hum",
+      "generated_source_path": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-e108a047-8e49-482e-850d-d9f169a3584d.png",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Cut-Paper-Concepts-2026-11-13/Outputs/08-hum-cut-paper-concept.png",
+      "package_relative_path": "Outputs/08-hum-cut-paper-concept.png",
+      "generated_source_sha256": "679db2dc69205f2feb107a64e6250db13bf177541e3e6fe9d5da06c96823e0a9",
+      "copied_sha256": "679db2dc69205f2feb107a64e6250db13bf177541e3e6fe9d5da06c96823e0a9",
+      "byte_identical_copy": true,
+      "bytes": 2260646,
+      "dimensions_px": {
+        "width": 784,
+        "height": 2007
+      },
+      "input_dimensions_px": {
+        "width": 1206,
+        "height": 2622
+      },
+      "same_pixel_dimensions_as_input": false,
+      "same_aspect_ratio_as_input": false,
+      "aspect_ratio_relative_difference_percent": -15.0714,
+      "review_limitations": [
+        "Generated pixel dimensions differ from the source. This concept is not pixel exact.",
+        "Generated aspect ratio differs from the source; preserve the source frame and geometry in implementation."
+      ]
+    },
+    {
+      "number": 9,
+      "toy": "Meadow beach",
+      "generated_source_path": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-607ffed8-6c79-4d9b-98d9-8ae2c310eaf7.png",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Cut-Paper-Concepts-2026-11-13/Outputs/09-meadow-beach-cut-paper-concept.png",
+      "package_relative_path": "Outputs/09-meadow-beach-cut-paper-concept.png",
+      "generated_source_sha256": "edfc5e7f4128f4880418e299e33331cfd5ab7a3069a775eae87af0d211de5434",
+      "copied_sha256": "edfc5e7f4128f4880418e299e33331cfd5ab7a3069a775eae87af0d211de5434",
+      "byte_identical_copy": true,
+      "bytes": 2514441,
+      "dimensions_px": {
+        "width": 1849,
+        "height": 851
+      },
+      "input_dimensions_px": {
+        "width": 1748,
+        "height": 804
+      },
+      "same_pixel_dimensions_as_input": false,
+      "same_aspect_ratio_as_input": false,
+      "aspect_ratio_relative_difference_percent": -0.064,
+      "review_limitations": [
+        "Generated pixel dimensions differ from the source. This concept is not pixel exact.",
+        "Generated aspect ratio differs from the source; preserve the source frame and geometry in implementation.",
+        "The generated water has two dominant visible bands rather than the requested three overlapping sheets."
+      ]
+    }
+  ]
+}

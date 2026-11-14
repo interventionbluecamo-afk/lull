@@ -1,0 +1,92 @@
+{
+  "created_date": "2026-11-13",
+  "inputs": [
+    {
+      "original_path": "/Users/User2/Desktop/Nat Parts Library/nat-sitting.png",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Nat-Cut-Paper-2026-11-13/Inputs/nat-sitting.png",
+      "package_relative_path": "Inputs/nat-sitting.png",
+      "original_sha256": "c0cd388709e02c9e47b6d3631fdf15c501e90b013ddeb25ebf8ed5156c46de39",
+      "copied_sha256": "c0cd388709e02c9e47b6d3631fdf15c501e90b013ddeb25ebf8ed5156c46de39",
+      "byte_identical_copy": true,
+      "bytes": 512403,
+      "dimensions_px": {
+        "width": 1024,
+        "height": 1024
+      }
+    },
+    {
+      "original_path": "/Users/User2/Desktop/Nat Parts Library/nat-peeking.png",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Nat-Cut-Paper-2026-11-13/Inputs/nat-peeking.png",
+      "package_relative_path": "Inputs/nat-peeking.png",
+      "original_sha256": "29b65d6961d7721cac7bbe991107f35e87066069a7c0e3c5b264f10e3dcd45fa",
+      "copied_sha256": "29b65d6961d7721cac7bbe991107f35e87066069a7c0e3c5b264f10e3dcd45fa",
+      "byte_identical_copy": true,
+      "bytes": 690886,
+      "dimensions_px": {
+        "width": 1024,
+        "height": 1024
+      }
+    },
+    {
+      "original_path": "/Users/User2/Desktop/Nat Parts Library/nat-sleeping.png",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Nat-Cut-Paper-2026-11-13/Inputs/nat-sleeping.png",
+      "package_relative_path": "Inputs/nat-sleeping.png",
+      "original_sha256": "b80da8f000f39332e8aa40c61cfad67c019f73ad5ef65d5bdb6f4952a1dd7dbb",
+      "copied_sha256": "b80da8f000f39332e8aa40c61cfad67c019f73ad5ef65d5bdb6f4952a1dd7dbb",
+      "byte_identical_copy": true,
+      "bytes": 688672,
+      "dimensions_px": {
+        "width": 1024,
+        "height": 1024
+      }
+    },
+    {
+      "original_path": "/Users/User2/Desktop/Nat Parts Library/nat-standing.png",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Nat-Cut-Paper-2026-11-13/Inputs/nat-standing.png",
+      "package_relative_path": "Inputs/nat-standing.png",
+      "original_sha256": "b99e73632e53e3011b2e93694f5763823c3bd082fa13355815be56abf1dd744e",
+      "copied_sha256": "b99e73632e53e3011b2e93694f5763823c3bd082fa13355815be56abf1dd744e",
+      "byte_identical_copy": true,
+      "bytes": 646474,
+      "dimensions_px": {
+        "width": 1024,
+        "height": 1024
+      }
+    },
+    {
+      "original_path": "/Users/User2/Desktop/Nat Parts Library/nat-walking.png",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Nat-Cut-Paper-2026-11-13/Inputs/nat-walking.png",
+      "package_relative_path": "Inputs/nat-walking.png",
+      "original_sha256": "a1d2f4c0e4d26aac7e664f9aaad5ecc7bc98aad76d348cc98ccb12c137ca216e",
+      "copied_sha256": "a1d2f4c0e4d26aac7e664f9aaad5ecc7bc98aad76d348cc98ccb12c137ca216e",
+      "byte_identical_copy": true,
+      "bytes": 650806,
+      "dimensions_px": {
+        "width": 1024,
+        "height": 1024
+      }
+    },
+    {
+      "original_path": "/Users/User2/Desktop/Nat Parts Library/nat-sitting-closed.png",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Nat-Cut-Paper-2026-11-13/Inputs/nat-sitting-closed.png",
+      "package_relative_path": "Inputs/nat-sitting-closed.png",
+      "original_sha256": "848c887908ee72c7c2e83494f2d69819bf74131e8e92fb535ec4b51d636e90f6",
+      "copied_sha256": "848c887908ee72c7c2e83494f2d69819bf74131e8e92fb535ec4b51d636e90f6",
+      "byte_identical_copy": true,
+      "bytes": 523274,
+      "dimensions_px": {
+        "width": 1024,
+        "height": 1024
+      }
+    },
+    {
+      "original_path": "/Users/User2/.codex/attachments/ab2fb10b-f1bf-44a6-a3de-7dd8a2d9827e/Pasted text.txt",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Nat-Cut-Paper-2026-11-13/Inputs/Original-Brief.txt",
+      "package_relative_path": "Inputs/Original-Brief.txt",
+      "original_sha256": "59387436624b6c9b9bf12aec3c5f1dd2ea6c3741773027adc6e656bba60fec2a",
+      "copied_sha256": "59387436624b6c9b9bf12aec3c5f1dd2ea6c3741773027adc6e656bba60fec2a",
+      "byte_identical_copy": true,
+      "bytes": 5709
+    }
+  ]
+}

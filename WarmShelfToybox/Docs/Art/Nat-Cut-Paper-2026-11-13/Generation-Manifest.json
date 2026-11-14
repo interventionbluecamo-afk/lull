@@ -1,0 +1,39 @@
+{
+  "date": "2026-11-13",
+  "tool": "built-in image_gen",
+  "transparent_background": true,
+  "requested_size": [
+    1024,
+    1024
+  ],
+  "entries": [
+    {
+      "number": 1,
+      "output": "Outputs/nat-sitting-eyeless.png",
+      "source": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-1b020215-0b82-4236-9d62-780c623b9531.png",
+      "target": "nat-sitting.png",
+      "prompt": "Asset type: a production-source transparent game sprite, single separate character. Use the attached source as the exact identity and pose reference. Preserve original geometry and paper-layer arrangement; this is a material-and-colour redraw plus specified eye removal. Clear space around the entire silhouette. Attached is Nat, my cut-paper cat mascot. Redraw him for my iOS toddler app, Lull. Keep his design exactly: the same round head, one tall pointed ear on the left, one folded-over ear on the right, tiny triangle nose, two round cheek dots, curled tail, the same proportions and the same simple shapes. Style: a real cut-paper collage photographed flat. Heavy matte construction paper with clearly visible fibres and tooth, clean scissor-cut edges, each layer casting a small soft shadow on the layer beneath, light from the upper left. Colours: body warm charcoal (#2B2523), not pure black; folded ear ochre (#D9A84E) with a slightly lighter underside; cheeks clay pink (#D99B7E); nose tan. No outlines, no gloss, no gradients, no text, no ground shadow, nothing else in the picture.\n\nPose: sitting and facing the viewer, exactly as in the attached picture. Important: leave the eyes out completely. The face has only the nose and the two cheek dots, and the place where the eyes were is plain charcoal paper.\n\nOutput: 1024x1024 PNG with a fully transparent background. The whole character is centred with clear space on every side and nothing cropped."
+    },
+    {
+      "number": 2,
+      "output": "Outputs/nat-peeking-eyeless.png",
+      "source": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-60c22f16-204b-4fd8-b605-ef8bf513c75e.png",
+      "target": "nat-peeking.png",
+      "prompt": "Asset type: separate transparent game sprite source art. First reference specifies the exact pose/proportions; second reference (eyeless sitting cat) specifies the approved charcoal/ochre/clay paper material, grain scale, lighting and colour. Match the second reference material across this set. Clear alpha background, no ground shadow. Attached is Nat, my cut-paper cat mascot, peeking over an edge. Redraw him for my iOS toddler app, Lull. Keep his design exactly: the same wide rounded head, one tall pointed ear on the left, one folded-over ear on the right, two round front paws resting on the edge, the same proportions and the same simple shapes. Style: a real cut-paper collage photographed flat. Heavy matte construction paper with clearly visible fibres and tooth, clean scissor-cut edges, each layer casting a small soft shadow on the layer beneath, light from the upper left. Colours: body and paws warm charcoal (#2B2523), not pure black; folded ear ochre (#D9A84E) with a slightly lighter underside. No outlines, no gloss, no gradients, no text, no ground shadow, nothing else in the picture.\n\nPose: exactly as in the attached picture, with the bottom of the character ending in one perfectly straight horizontal cut. Important: leave the eyes out completely; the place where the eyes were is plain charcoal paper. Keep the two paws as separate paper layers on top of the head.\n\nOutput: 1024x1024 PNG with a fully transparent background. The character is centred with clear space on the top and sides and nothing cropped."
+    },
+    {
+      "number": 3,
+      "output": "Outputs/nat-sleeping.png",
+      "source": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-24384aec-9070-4e86-9648-e1f4d2b4497b.png",
+      "target": "nat-sleeping.png",
+      "prompt": "Asset type: separate transparent game sprite source art. First reference specifies the exact pose/proportions; second reference (eyeless sitting cat) specifies the approved charcoal/ochre/clay paper material, grain scale, lighting and colour. Match the second reference material across this set. Clear alpha background, no ground shadow. Attached is Nat, my cut-paper cat mascot, asleep. Redraw him for my iOS toddler app, Lull. Keep his design exactly: curled up with his tail wrapped in a spiral, one tall pointed ear, one folded-over ear, two closed eyes drawn as thin downward-curving crescents, tiny triangle nose, two round cheek dots, two front paws tucked under his chin, the same proportions and the same simple shapes. Style: a real cut-paper collage photographed flat. Heavy matte construction paper with clearly visible fibres and tooth, clean scissor-cut edges, each layer casting a small soft shadow on the layer beneath, light from the upper left. Colours: body warm charcoal (#2B2523), not pure black; folded ear ochre (#D9A84E) with a slightly lighter underside; cheeks clay pink (#D99B7E); closed eyes cream (#FBF7EF); nose tan. No outlines, no gloss, no gradients, no text, no ground shadow, nothing else in the picture.\n\nPose: exactly as in the attached picture, eyes closed.\n\nOutput: 1024x1024 PNG with a fully transparent background. The whole character is centred with clear space on every side and nothing cropped."
+    },
+    {
+      "number": 4,
+      "output": "Outputs/nat-eye-pieces.png",
+      "source": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-ff582d83-b374-466d-9fe7-57a903b95da0.png",
+      "target": "nat-sitting.png",
+      "prompt": "Asset type: separate transparent game sprite source art. First reference specifies the exact pose/proportions; second reference (eyeless sitting cat) specifies the approved charcoal/ochre/clay paper material, grain scale, lighting and colour. Match the second reference material across this set. Clear alpha background, no ground shadow. Make three separate cut-paper pieces for the eyes of the cat in the attached picture, for my iOS toddler app, Lull. Place them side by side in one row with wide gaps between them, not touching or overlapping. Piece one: a cream paper disc (#FBF7EF), the white of one eye. Piece two: a warm charcoal paper disc (#2B2523), about 60 percent as wide as piece one, with one small cream paper dot stuck on its upper right; this is the pupil. Piece three: a thin cream paper crescent curving downward like a closed sleeping eyelid, about as wide as piece one. Style: a real cut-paper collage photographed flat. Heavy matte construction paper with clearly visible fibres and tooth, clean scissor-cut edges, light from the upper left; the small dot casts a tiny soft shadow on the pupil. No outlines, no gloss, no gradients, no text, no ground shadow, nothing else in the picture.\n\nOutput: 1024x1024 PNG with a fully transparent background, the three pieces centred with clear space around each."
+    }
+  ]
+}

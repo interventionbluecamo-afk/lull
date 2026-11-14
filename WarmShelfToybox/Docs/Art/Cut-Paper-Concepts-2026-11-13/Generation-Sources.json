@@ -1,0 +1,60 @@
+{
+  "tool": "built-in image_gen",
+  "date": "2026-11-13",
+  "sources": [
+    {
+      "number": 1,
+      "name": "bubbles",
+      "source": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-d1435658-88c7-4da5-a3d3-ef2eb40180ba.png",
+      "output": "Outputs/01-bubbles-cut-paper-concept.png"
+    },
+    {
+      "number": 2,
+      "name": "feed",
+      "source": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-1e69504a-c3cf-4e1f-a863-d0b841b252f2.png",
+      "output": "Outputs/02-feed-cut-paper-concept.png"
+    },
+    {
+      "number": 3,
+      "name": "little-wash",
+      "source": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-bcc16c92-d787-4135-8efd-09b4ece42e7f.png",
+      "output": "Outputs/03-little-wash-cut-paper-concept.png"
+    },
+    {
+      "number": 4,
+      "name": "sleepy-box",
+      "source": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-5a4571a8-4a62-4194-aace-9a76f7cfb394.png",
+      "output": "Outputs/04-sleepy-box-cut-paper-concept.png"
+    },
+    {
+      "number": 5,
+      "name": "window",
+      "source": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-b76befa1-d93e-476b-b8c5-a15d5407382b.png",
+      "output": "Outputs/05-window-cut-paper-concept.png"
+    },
+    {
+      "number": 6,
+      "name": "drop-dots",
+      "source": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-5ba5eb29-3f30-4c25-9033-3d0d8c7d1b6c.png",
+      "output": "Outputs/06-drop-dots-cut-paper-concept.png"
+    },
+    {
+      "number": 7,
+      "name": "mix-up",
+      "source": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-1dbe816f-6f9a-4da7-9848-e24be159eac3.png",
+      "output": "Outputs/07-mix-up-cut-paper-concept.png"
+    },
+    {
+      "number": 8,
+      "name": "hum",
+      "source": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-e108a047-8e49-482e-850d-d9f169a3584d.png",
+      "output": "Outputs/08-hum-cut-paper-concept.png"
+    },
+    {
+      "number": 9,
+      "name": "meadow-beach",
+      "source": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-607ffed8-6c79-4d9b-98d9-8ae2c310eaf7.png",
+      "output": "Outputs/09-meadow-beach-cut-paper-concept.png"
+    }
+  ]
+}

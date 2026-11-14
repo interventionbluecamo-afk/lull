@@ -1,0 +1,181 @@
+{
+  "created_date": "2026-11-13",
+  "purpose": "Generated source art for review and future integration; not wired into the app.",
+  "native_master_dimensions_px": {
+    "width": 1254,
+    "height": 1254
+  },
+  "requested_dimensions_px": {
+    "width": 1024,
+    "height": 1024
+  },
+  "size_note": "The generator returned native 1254×1254 masters despite the prompt requesting 1024×1024. Files were preserved unchanged and are not described as 1024×1024.",
+  "copy_verification": "All output SHA-256 values match the original generated files. No resize, crop, alpha cleanup, or other raster edit was performed.",
+  "asset_notes": [
+    "Sitting and peeking are intentionally eyeless.",
+    "The eye-pieces sheet contains three pieces and requires extraction or reviewed SpriteKit texture rectangles before use. No texture rectangles were generated.",
+    "Standing, walking, and sitting-closed references were preserved as inputs and were not requested for regeneration."
+  ],
+  "outputs": [
+    {
+      "number": 1,
+      "generated_source_path": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-1b020215-0b82-4236-9d62-780c623b9531.png",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Nat-Cut-Paper-2026-11-13/Outputs/nat-sitting-eyeless.png",
+      "package_relative_path": "Outputs/nat-sitting-eyeless.png",
+      "generated_source_sha256": "b23f24b68a268a2ff66f1a0242372858a3dd84168e0fbd86f660915e5a67927e",
+      "copied_sha256": "b23f24b68a268a2ff66f1a0242372858a3dd84168e0fbd86f660915e5a67927e",
+      "byte_identical_copy": true,
+      "bytes": 992128,
+      "dimensions_px": {
+        "width": 1254,
+        "height": 1254
+      },
+      "png_format": "8-bit RGBA",
+      "requested_dimensions_px": {
+        "width": 1024,
+        "height": 1024
+      },
+      "resized": false,
+      "alpha_verification": {
+        "method": "Read-only standard-library PNG scanline decoding; no image modification.",
+        "alpha_min": 0,
+        "alpha_max": 255,
+        "corner_alpha": {
+          "top_left": 0,
+          "top_right": 0,
+          "bottom_left": 0,
+          "bottom_right": 0
+        },
+        "all_corners_fully_transparent": true,
+        "fully_transparent_pixels": 1084936,
+        "fully_transparent_fraction": 0.689936,
+        "partially_transparent_pixels": 486710,
+        "fully_opaque_pixels": 870,
+        "outer_border_total_pixels": 5012,
+        "outer_border_nonzero_alpha_count": 55,
+        "outer_border_max_alpha": 1,
+        "outer_border_fully_transparent": false
+      }
+    },
+    {
+      "number": 2,
+      "generated_source_path": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-60c22f16-204b-4fd8-b605-ef8bf513c75e.png",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Nat-Cut-Paper-2026-11-13/Outputs/nat-peeking-eyeless.png",
+      "package_relative_path": "Outputs/nat-peeking-eyeless.png",
+      "generated_source_sha256": "903eca2156563bf7fac30958cfd68a4efe5841e88f5e53b9393d6605ecc07c48",
+      "copied_sha256": "903eca2156563bf7fac30958cfd68a4efe5841e88f5e53b9393d6605ecc07c48",
+      "byte_identical_copy": true,
+      "bytes": 1264494,
+      "dimensions_px": {
+        "width": 1254,
+        "height": 1254
+      },
+      "png_format": "8-bit RGBA",
+      "requested_dimensions_px": {
+        "width": 1024,
+        "height": 1024
+      },
+      "resized": false,
+      "alpha_verification": {
+        "method": "Read-only standard-library PNG scanline decoding; no image modification.",
+        "alpha_min": 0,
+        "alpha_max": 255,
+        "corner_alpha": {
+          "top_left": 0,
+          "top_right": 0,
+          "bottom_left": 0,
+          "bottom_right": 0
+        },
+        "all_corners_fully_transparent": true,
+        "fully_transparent_pixels": 929531,
+        "fully_transparent_fraction": 0.591111,
+        "partially_transparent_pixels": 642475,
+        "fully_opaque_pixels": 510,
+        "outer_border_total_pixels": 5012,
+        "outer_border_nonzero_alpha_count": 0,
+        "outer_border_max_alpha": 0,
+        "outer_border_fully_transparent": true
+      }
+    },
+    {
+      "number": 3,
+      "generated_source_path": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-24384aec-9070-4e86-9648-e1f4d2b4497b.png",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Nat-Cut-Paper-2026-11-13/Outputs/nat-sleeping.png",
+      "package_relative_path": "Outputs/nat-sleeping.png",
+      "generated_source_sha256": "ddf0734a3ee18e403b449b23241a7ca7aa24381b03971cb897b0e1df899bbde6",
+      "copied_sha256": "ddf0734a3ee18e403b449b23241a7ca7aa24381b03971cb897b0e1df899bbde6",
+      "byte_identical_copy": true,
+      "bytes": 1257919,
+      "dimensions_px": {
+        "width": 1254,
+        "height": 1254
+      },
+      "png_format": "8-bit RGBA",
+      "requested_dimensions_px": {
+        "width": 1024,
+        "height": 1024
+      },
+      "resized": false,
+      "alpha_verification": {
+        "method": "Read-only standard-library PNG scanline decoding; no image modification.",
+        "alpha_min": 0,
+        "alpha_max": 255,
+        "corner_alpha": {
+          "top_left": 0,
+          "top_right": 0,
+          "bottom_left": 0,
+          "bottom_right": 0
+        },
+        "all_corners_fully_transparent": true,
+        "fully_transparent_pixels": 923189,
+        "fully_transparent_fraction": 0.587078,
+        "partially_transparent_pixels": 648619,
+        "fully_opaque_pixels": 708,
+        "outer_border_total_pixels": 5012,
+        "outer_border_nonzero_alpha_count": 23,
+        "outer_border_max_alpha": 1,
+        "outer_border_fully_transparent": false
+      }
+    },
+    {
+      "number": 4,
+      "generated_source_path": "/Users/User2/.codex/generated_images/01a10ec3-2909-7de1-a2bd-7ec252b544b3/exec-ff582d83-b374-466d-9fe7-57a903b95da0.png",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Nat-Cut-Paper-2026-11-13/Outputs/nat-eye-pieces.png",
+      "package_relative_path": "Outputs/nat-eye-pieces.png",
+      "generated_source_sha256": "0f402c9a9ee92d4bcefe665bde36db4fc7e55466afa48b49ceef4fd6fafae238",
+      "copied_sha256": "0f402c9a9ee92d4bcefe665bde36db4fc7e55466afa48b49ceef4fd6fafae238",
+      "byte_identical_copy": true,
+      "bytes": 352285,
+      "dimensions_px": {
+        "width": 1254,
+        "height": 1254
+      },
+      "png_format": "8-bit RGBA",
+      "requested_dimensions_px": {
+        "width": 1024,
+        "height": 1024
+      },
+      "resized": false,
+      "alpha_verification": {
+        "method": "Read-only standard-library PNG scanline decoding; no image modification.",
+        "alpha_min": 0,
+        "alpha_max": 255,
+        "corner_alpha": {
+          "top_left": 0,
+          "top_right": 0,
+          "bottom_left": 0,
+          "bottom_right": 0
+        },
+        "all_corners_fully_transparent": true,
+        "fully_transparent_pixels": 1432210,
+        "fully_transparent_fraction": 0.910776,
+        "partially_transparent_pixels": 139736,
+        "fully_opaque_pixels": 570,
+        "outer_border_total_pixels": 5012,
+        "outer_border_nonzero_alpha_count": 0,
+        "outer_border_max_alpha": 0,
+        "outer_border_fully_transparent": true
+      }
+    }
+  ]
+}

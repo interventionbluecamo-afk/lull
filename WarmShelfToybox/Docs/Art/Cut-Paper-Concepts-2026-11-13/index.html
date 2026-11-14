@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Lull · Cut-paper concept review</title>
+  <style>
+    :root { color-scheme: light; --cream: #fbf7ef; --ink: #493c32; --muted: #75675b; --line: #ded4c5; --paper: #fffdf8; --accent: #8b553c; }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 1.5rem; }
+    body { margin: 0; background: var(--cream); color: var(--ink); font: 16px/1.55 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    a { color: var(--accent); text-underline-offset: .2em; }
+    a:hover { color: var(--ink); }
+    a:focus-visible { outline: 3px solid var(--accent); outline-offset: 5px; border-radius: 2px; }
+    main, header, footer { width: min(1160px, calc(100% - 48px)); margin-inline: auto; }
+    header { padding: 52px 0 32px; }
+    .eyebrow { margin: 0 0 10px; font-size: .75rem; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+    h1 { font-size: clamp(2rem, 4vw, 3rem); line-height: 1.15; font-weight: 600; letter-spacing: -.035em; margin: 0 0 18px; }
+    .intro { max-width: 76ch; margin: 0 0 14px; }
+    .notice { max-width: 82ch; font-size: .91rem; color: var(--muted); margin: 0 0 22px; }
+    .documents, nav { display: flex; flex-wrap: wrap; gap: 10px 22px; }
+    .documents { font-size: .9rem; }
+    nav { margin-top: 26px; gap: 8px; }
+    nav a { border: 1px solid var(--line); padding: 6px 11px; border-radius: 5px; color: var(--ink); text-decoration: none; font-size: .85rem; }
+    nav a:hover { background: #f0e8da; }
+    .toy { border-top: 1px solid var(--line); padding: 30px 0 44px; }
+    .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+    h2 { font-size: 1.45rem; font-weight: 600; margin: 0 0 20px; letter-spacing: -.02em; }
+    h2 span { color: var(--muted); font-size: .85rem; font-weight: 450; margin-right: 8px; }
+    .back-top { font-size: .8rem; white-space: nowrap; }
+    .frame-note { margin: -8px 0 20px; font-size: .86rem; color: var(--muted); }
+    .comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start; }
+    figure { margin: 0; min-width: 0; }
+    figcaption { display: flex; flex-wrap: wrap; align-items: baseline; gap: 5px 12px; padding-bottom: 10px; }
+    figcaption strong { font-size: .95rem; font-weight: 650; }
+    figcaption span { font-size: .8rem; color: var(--muted); }
+    .concept figcaption strong { color: var(--accent); }
+    .image-link { display: flex; justify-content: center; align-items: center; padding: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 7px; }
+    img { display: block; width: auto; height: auto; max-width: 100%; max-height: 78vh; object-fit: contain; }
+    .full-size { display: inline-block; margin-top: 9px; font-size: .8rem; }
+    footer { border-top: 1px solid var(--line); padding: 24px 0 40px; color: var(--muted); font-size: .85rem; }
+    footer p { margin: 0; max-width: 80ch; }
+    @media (max-width: 640px) {
+      main, header, footer { width: calc(100% - 32px); }
+      header { padding-top: 30px; }
+      .comparison { grid-template-columns: 1fr; gap: 26px; }
+      .toy { padding-top: 24px; }
+      .image-link { padding: 10px; }
+      img { max-height: 82vh; }
+      .back-top { font-size: .75rem; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    @media print {
+      header { padding-top: 0; }
+      nav, .back-top, .full-size { display: none; }
+      body { background: white; }
+      main, header, footer { width: 100%; }
+      .toy { break-inside: avoid; }
+      img { max-height: 19cm; }
+    }
+  </style>
+</head>
+<body>
+  <header id="top">
+    <p class="eyebrow">Lull · Design review · 13 November 2026</p>
+    <h1>Cut-paper concepts</h1>
+    <p class="intro">Nine supplied source images, each paired with an AI-generated cut-paper concept. Compare the background and material changes while checking the layout, camera, framing, and toy details against the original.</p>
+    <p class="notice"><strong>Review mockups only.</strong> These concepts have not been implemented in the app and are not screenshots to publish. Generative edits may vary in dimensions or details. Each concept needs visual approval and reconstruction as layered code before production use.</p>
+    <div class="documents" aria-label="Source documents">
+      <a href="Generation-Prompts.json">Generation prompts (JSON)</a>
+      <a href="Inputs/Original-Brief.txt">Original brief</a>
+      <a href="Input-Manifest.json">Input manifest (JSON)</a>
+    </div>
+    <nav aria-label="Jump to a toy">
+        <a href="#bubbles">1. Bubbles</a>
+        <a href="#feed">2. Feed</a>
+        <a href="#little-wash">3. Little Wash</a>
+        <a href="#sleepy-box">4. Sleepy Box</a>
+        <a href="#window">5. Window</a>
+        <a href="#drop-dots">6. Drop Dots</a>
+        <a href="#mix-up">7. Mix-Up</a>
+        <a href="#hum">8. Hum</a>
+        <a href="#meadow-beach">9. Meadow beach</a>
+    </nav>
+  </header>
+  <main>
+    <section class="toy" id="bubbles" aria-labelledby="heading-bubbles">
+      <div class="section-heading"><h2 id="heading-bubbles"><span>01</span> Bubbles</h2><a href="#top" class="back-top">Back to top ↑</a></div>
+
+      <div class="comparison">
+        <figure>
+          <figcaption><strong>Original</strong><span>Supplied source image</span></figcaption>
+          <a class="image-link" href="Inputs/1-bubbles.jpg" aria-label="Open Bubbles original at full size"><img src="Inputs/1-bubbles.jpg" alt="Original Bubbles source image" loading="lazy" decoding="async"></a>
+          <a class="full-size" href="Inputs/1-bubbles.jpg">Open original ↗</a>
+        </figure>
+        <figure class="concept">
+          <figcaption><strong>AI concept</strong><span>Generated review mockup</span></figcaption>
+          <a class="image-link" href="Outputs/01-bubbles-cut-paper-concept.png" aria-label="Open Bubbles AI concept at full size"><img src="Outputs/01-bubbles-cut-paper-concept.png" alt="AI-generated cut-paper design concept for Bubbles" loading="lazy" decoding="async"></a>
+          <a class="full-size" href="Outputs/01-bubbles-cut-paper-concept.png">Open concept ↗</a>
+        </figure>
+      </div>
+    </section>
+    <section class="toy" id="feed" aria-labelledby="heading-feed">
+      <div class="section-heading"><h2 id="heading-feed"><span>02</span> Feed</h2><a href="#top" class="back-top">Back to top ↑</a></div>
+
+      <div class="comparison">
+        <figure>
+          <figcaption><strong>Original</strong><span>Supplied source image</span></figcaption>
+          <a class="image-link" href="Inputs/2-feed.jpg" aria-label="Open Feed original at full size"><img src="Inputs/2-feed.jpg" alt="Original Feed source image" loading="lazy" decoding="async"></a>
+          <a class="full-size" href="Inputs/2-feed.jpg">Open original ↗</a>
+        </figure>
+        <figure class="concept">
+          <figcaption><strong>AI concept</strong><span>Generated review mockup</span></figcaption>
+          <a class="image-link" href="Outputs/02-feed-cut-paper-concept.png" aria-label="Open Feed AI concept at full size"><img src="Outputs/02-feed-cut-paper-concept.png" alt="AI-generated cut-paper design concept for Feed" loading="lazy" decoding="async"></a>
+          <a class="full-size" href="Outputs/02-feed-cut-paper-concept.png">Open concept ↗</a>
+        </figure>
+      </div>
+    </section>
+    <section class="toy" id="little-wash" aria-labelledby="heading-little-wash">
+      <div class="section-heading"><h2 id="heading-little-wash"><span>03</span> Little Wash</h2><a href="#top" class="back-top">Back to top ↑</a></div>
+
+      <div class="comparison">
+        <figure>
+          <figcaption><strong>Original</strong><span>Supplied source image</span></figcaption>
+          <a class="image-link" href="Inputs/3-little-wash.jpg" aria-label="Open Little Wash original at full size"><img src="Inputs/3-little-wash.jpg" alt="Original Little Wash source image" loading="lazy" decoding="async"></a>
+          <a class="full-size" href="Inputs/3-little-wash.jpg">Open original ↗</a>
+        </figure>
+        <figure class="concept">
+          <figcaption><strong>AI concept</strong><span>Generated review mockup</span></figcaption>
+          <a class="image-link" href="Outputs/03-little-wash-cut-paper-concept.png" aria-label="Open Little Wash AI concept at full size"><img src="Outputs/03-little-wash-cut-paper-concept.png" alt="AI-generated cut-paper design concept for Little Wash" loading="lazy" decoding="async"></a>
+          <a class="full-size" href="Outputs/03-little-wash-cut-paper-concept.png">Open concept ↗</a>
+        </figure>
+      </div>
+    </section>
+    <section class="toy" id="sleepy-box" aria-labelledby="heading-sleepy-box">
+      <div class="section-heading"><h2 id="heading-sleepy-box"><span>04</span> Sleepy Box</h2><a href="#top" class="back-top">Back to top ↑</a></div>
+
+      <div class="comparison">
+        <figure>
+          <figcaption><strong>Original</strong><span>Supplied source image</span></figcaption>
+          <a class="image-link" href="Inputs/4-sleepy-box.jpg" aria-label="Open Sleepy Box original at full size"><img src="Inputs/4-sleepy-box.jpg" alt="Original Sleepy Box source image" loading="lazy" decoding="async"></a>
+          <a class="full-size" href="Inputs/4-sleepy-box.jpg">Open original ↗</a>
+        </figure>
+        <figure class="concept">
+          <figcaption><strong>AI concept</strong><span>Generated review mockup</span></figcaption>
+          <a class="image-link" href="Outputs/04-sleepy-box-cut-paper-concept.png" aria-label="Open Sleepy Box AI concept at full size"><img src="Outputs/04-sleepy-box-cut-paper-concept.png" alt="AI-generated cut-paper design concept for Sleepy Box" loading="lazy" decoding="async"></a>
+          <a class="full-size" href="Outputs/04-sleepy-box-cut-paper-concept.png">Open concept ↗</a>
+        </figure>
+      </div>
+    </section>
+    <section class="toy" id="window" aria-labelledby="heading-window">
+      <div class="section-heading"><h2 id="heading-window"><span>05</span> Window</h2><a href="#top" class="back-top">Back to top ↑</a></div>
+
+      <div class="comparison">
+        <figure>
+          <figcaption><strong>Original</strong><span>Supplied source image</span></figcaption>
+          <a class="image-link" href="Inputs/5-window.jpg" aria-label="Open Window original at full size"><img src="Inputs/5-window.jpg" alt="Original Window source image" loading="lazy" decoding="async"></a>
+          <a class="full-size" href="Inputs/5-window.jpg">Open original ↗</a>
+        </figure>
+        <figure class="concept">
+          <figcaption><strong>AI concept</strong><span>Generated review mockup</span></figcaption>
+          <a class="image-link" href="Outputs/05-window-cut-paper-concept.png" aria-label="Open Window AI concept at full size"><img src="Outputs/05-window-cut-paper-concept.png" alt="AI-generated cut-paper design concept for Window" loading="lazy" decoding="async"></a>
+          <a class="full-size" href="Outputs/05-window-cut-paper-concept.png">Open concept ↗</a>
+        </figure>
+      </div>
+    </section>
+    <section class="toy" id="drop-dots" aria-labelledby="heading-drop-dots">
+      <div class="section-heading"><h2 id="heading-drop-dots"><span>06</span> Drop Dots</h2><a href="#top" class="back-top">Back to top ↑</a></div>
+
+      <div class="comparison">
+        <figure>
+          <figcaption><strong>Original</strong><span>Supplied source image</span></figcaption>
+          <a class="image-link" href="Inputs/6-drop-dots.jpg" aria-label="Open Drop Dots original at full size"><img src="Inputs/6-drop-dots.jpg" alt="Original Drop Dots source image" loading="lazy" decoding="async"></a>
+          <a class="full-size" href="Inputs/6-drop-dots.jpg">Open original ↗</a>
+        </figure>
+        <figure class="concept">
+          <figcaption><strong>AI concept</strong><span>Generated review mockup</span></figcaption>
+          <a class="image-link" href="Outputs/06-drop-dots-cut-paper-concept.png" aria-label="Open Drop Dots AI concept at full size"><img src="Outputs/06-drop-dots-cut-paper-concept.png" alt="AI-generated cut-paper design concept for Drop Dots" loading="lazy" decoding="async"></a>
+          <a class="full-size" href="Outputs/06-drop-dots-cut-paper-concept.png">Open concept ↗</a>
+        </figure>
+      </div>
+    </section>
+    <section class="toy" id="mix-up" aria-labelledby="heading-mix-up">
+      <div class="section-heading"><h2 id="heading-mix-up"><span>07</span> Mix-Up</h2><a href="#top" class="back-top">Back to top ↑</a></div>
+
+      <div class="comparison">
+        <figure>
+          <figcaption><strong>Original</strong><span>Supplied source image</span></figcaption>
+          <a class="image-link" href="Inputs/7-mix-up.jpg" aria-label="Open Mix-Up original at full size"><img src="Inputs/7-mix-up.jpg" alt="Original Mix-Up source image" loading="lazy" decoding="async"></a>
+          <a class="full-size" href="Inputs/7-mix-up.jpg">Open original ↗</a>
+        </figure>
+        <figure class="concept">
+          <figcaption><strong>AI concept</strong><span>Generated review mockup</span></figcaption>
+          <a class="image-link" href="Outputs/07-mix-up-cut-paper-concept.png" aria-label="Open Mix-Up AI concept at full size"><img src="Outputs/07-mix-up-cut-paper-concept.png" alt="AI-generated cut-paper design concept for Mix-Up" loading="lazy" decoding="async"></a>
+          <a class="full-size" href="Outputs/07-mix-up-cut-paper-concept.png">Open concept ↗</a>
+        </figure>
+      </div>
+    </section>
+    <section class="toy" id="hum" aria-labelledby="heading-hum">
+      <div class="section-heading"><h2 id="heading-hum"><span>08</span> Hum</h2><a href="#top" class="back-top">Back to top ↑</a></div>
+
+      <div class="comparison">
+        <figure>
+          <figcaption><strong>Original</strong><span>Supplied source image</span></figcaption>
+          <a class="image-link" href="Inputs/8-hum.jpg" aria-label="Open Hum original at full size"><img src="Inputs/8-hum.jpg" alt="Original Hum source image" loading="lazy" decoding="async"></a>
+          <a class="full-size" href="Inputs/8-hum.jpg">Open original ↗</a>
+        </figure>
+        <figure class="concept">
+          <figcaption><strong>AI concept</strong><span>Generated review mockup</span></figcaption>
+          <a class="image-link" href="Outputs/08-hum-cut-paper-concept.png" aria-label="Open Hum AI concept at full size"><img src="Outputs/08-hum-cut-paper-concept.png" alt="AI-generated cut-paper design concept for Hum" loading="lazy" decoding="async"></a>
+          <a class="full-size" href="Outputs/08-hum-cut-paper-concept.png">Open concept ↗</a>
+        </figure>
+      </div>
+    </section>
+    <section class="toy" id="meadow-beach" aria-labelledby="heading-meadow-beach">
+      <div class="section-heading"><h2 id="heading-meadow-beach"><span>09</span> Meadow beach</h2><a href="#top" class="back-top">Back to top ↑</a></div>
+      <p class="frame-note">Landscape source · 1748 × 804 px. The actual source frame takes precedence over the brief’s portrait wording.</p>
+      <div class="comparison">
+        <figure>
+          <figcaption><strong>Original</strong><span>Supplied source image</span></figcaption>
+          <a class="image-link" href="Inputs/9-meadow-beach.png" aria-label="Open Meadow beach original at full size"><img src="Inputs/9-meadow-beach.png" alt="Original Meadow beach source image" loading="lazy" decoding="async"></a>
+          <a class="full-size" href="Inputs/9-meadow-beach.png">Open original ↗</a>
+        </figure>
+        <figure class="concept">
+          <figcaption><strong>AI concept</strong><span>Generated review mockup</span></figcaption>
+          <a class="image-link" href="Outputs/09-meadow-beach-cut-paper-concept.png" aria-label="Open Meadow beach AI concept at full size"><img src="Outputs/09-meadow-beach-cut-paper-concept.png" alt="AI-generated cut-paper design concept for Meadow beach" loading="lazy" decoding="async"></a>
+          <a class="full-size" href="Outputs/09-meadow-beach-cut-paper-concept.png">Open concept ↗</a>
+        </figure>
+      </div>
+    </section>
+  </main>
+  <footer><p>Local, offline review gallery. Originals appear first (left on wide screens), followed by AI concepts. Images keep their natural proportions; use the image links to inspect full-size files. No app or App Store changes are represented by this gallery.</p></footer>
+</body>
+</html>

@@ -1,0 +1,181 @@
+{
+  "package": "Lull cut-paper design concepts",
+  "created_date": "2026-11-13",
+  "purpose": "Nine image-generation design mockups; not application changes or production replacements.",
+  "copy_verification": "Original and copied SHA-256 digests match. Images were copied without resizing or alteration; dimensions read with sips.",
+  "meadow_frame_note": "The Meadow beach source is landscape, 1748 × 804 px. Preserve its actual frame despite the brief’s portrait wording.",
+  "inputs": [
+    {
+      "kind": "image",
+      "toy": "Bubbles",
+      "original_path": "/Users/User2/Downloads/1-bubbles.jpg",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Cut-Paper-Concepts-2026-11-13/Inputs/1-bubbles.jpg",
+      "original_sha256": "2270bcda3144b39605be5e20a36eb194958f9d061f5cf349fd092d74f5d93f8c",
+      "copied_sha256": "2270bcda3144b39605be5e20a36eb194958f9d061f5cf349fd092d74f5d93f8c",
+      "byte_identical": true,
+      "bytes": 408948,
+      "dimensions_px": {
+        "width": 1206,
+        "height": 2622
+      },
+      "copied_dimensions_px": {
+        "width": 1206,
+        "height": 2622
+      }
+    },
+    {
+      "kind": "image",
+      "toy": "Feed",
+      "original_path": "/Users/User2/Downloads/2-feed.jpg",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Cut-Paper-Concepts-2026-11-13/Inputs/2-feed.jpg",
+      "original_sha256": "c922d57be134fcf81c018c3f5bd651878738fa7688d992870c9e996cef3be2fd",
+      "copied_sha256": "c922d57be134fcf81c018c3f5bd651878738fa7688d992870c9e996cef3be2fd",
+      "byte_identical": true,
+      "bytes": 554210,
+      "dimensions_px": {
+        "width": 1206,
+        "height": 2622
+      },
+      "copied_dimensions_px": {
+        "width": 1206,
+        "height": 2622
+      }
+    },
+    {
+      "kind": "image",
+      "toy": "Little Wash",
+      "original_path": "/Users/User2/Downloads/3-little-wash.jpg",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Cut-Paper-Concepts-2026-11-13/Inputs/3-little-wash.jpg",
+      "original_sha256": "2ce3dfde1b5b89398fe2d4e841a0ad55d5f56f66f7f120c94ea6e86f9f9aaa5c",
+      "copied_sha256": "2ce3dfde1b5b89398fe2d4e841a0ad55d5f56f66f7f120c94ea6e86f9f9aaa5c",
+      "byte_identical": true,
+      "bytes": 814108,
+      "dimensions_px": {
+        "width": 1206,
+        "height": 2622
+      },
+      "copied_dimensions_px": {
+        "width": 1206,
+        "height": 2622
+      }
+    },
+    {
+      "kind": "image",
+      "toy": "Sleepy Box",
+      "original_path": "/Users/User2/Downloads/4-sleepy-box.jpg",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Cut-Paper-Concepts-2026-11-13/Inputs/4-sleepy-box.jpg",
+      "original_sha256": "498e3709663e673bb9352fbf6b246d5a90384fd6a6666d11a97f5c91504ca684",
+      "copied_sha256": "498e3709663e673bb9352fbf6b246d5a90384fd6a6666d11a97f5c91504ca684",
+      "byte_identical": true,
+      "bytes": 401191,
+      "dimensions_px": {
+        "width": 1206,
+        "height": 2622
+      },
+      "copied_dimensions_px": {
+        "width": 1206,
+        "height": 2622
+      }
+    },
+    {
+      "kind": "image",
+      "toy": "Window",
+      "original_path": "/Users/User2/Downloads/5-window.jpg",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Cut-Paper-Concepts-2026-11-13/Inputs/5-window.jpg",
+      "original_sha256": "716df8e9b23855fdf606e271df3d2273bb5ecaa4867d8dc73c8337fdaa1a8d0f",
+      "copied_sha256": "716df8e9b23855fdf606e271df3d2273bb5ecaa4867d8dc73c8337fdaa1a8d0f",
+      "byte_identical": true,
+      "bytes": 663314,
+      "dimensions_px": {
+        "width": 1206,
+        "height": 2622
+      },
+      "copied_dimensions_px": {
+        "width": 1206,
+        "height": 2622
+      }
+    },
+    {
+      "kind": "image",
+      "toy": "Drop Dots",
+      "original_path": "/Users/User2/Downloads/6-drop-dots.jpg",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Cut-Paper-Concepts-2026-11-13/Inputs/6-drop-dots.jpg",
+      "original_sha256": "f9831e27c172025b2864cf6a9978acc739a04b7fec170b19e463a820e6268a9f",
+      "copied_sha256": "f9831e27c172025b2864cf6a9978acc739a04b7fec170b19e463a820e6268a9f",
+      "byte_identical": true,
+      "bytes": 477931,
+      "dimensions_px": {
+        "width": 1206,
+        "height": 2622
+      },
+      "copied_dimensions_px": {
+        "width": 1206,
+        "height": 2622
+      }
+    },
+    {
+      "kind": "image",
+      "toy": "Mix-Up",
+      "original_path": "/Users/User2/Downloads/7-mix-up.jpg",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Cut-Paper-Concepts-2026-11-13/Inputs/7-mix-up.jpg",
+      "original_sha256": "d2500fd8d40dc1e280c34401a38fb93e82eae6586829c412404648a606601216",
+      "copied_sha256": "d2500fd8d40dc1e280c34401a38fb93e82eae6586829c412404648a606601216",
+      "byte_identical": true,
+      "bytes": 506755,
+      "dimensions_px": {
+        "width": 1206,
+        "height": 2622
+      },
+      "copied_dimensions_px": {
+        "width": 1206,
+        "height": 2622
+      }
+    },
+    {
+      "kind": "image",
+      "toy": "Hum",
+      "original_path": "/Users/User2/Downloads/8-hum.jpg",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Cut-Paper-Concepts-2026-11-13/Inputs/8-hum.jpg",
+      "original_sha256": "62f898b023e0d514c5594368a23ba2a1c7bb427d482cc1f7aaa1afddcd906359",
+      "copied_sha256": "62f898b023e0d514c5594368a23ba2a1c7bb427d482cc1f7aaa1afddcd906359",
+      "byte_identical": true,
+      "bytes": 194140,
+      "dimensions_px": {
+        "width": 1206,
+        "height": 2622
+      },
+      "copied_dimensions_px": {
+        "width": 1206,
+        "height": 2622
+      }
+    },
+    {
+      "kind": "image",
+      "toy": "Meadow beach",
+      "original_path": "/Users/User2/Downloads/9-meadow-beach.png",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Cut-Paper-Concepts-2026-11-13/Inputs/9-meadow-beach.png",
+      "original_sha256": "ec39d1a2fcc45f491266c2ebce6231e26f9ef0ca149855321c55e9ba9b013136",
+      "copied_sha256": "ec39d1a2fcc45f491266c2ebce6231e26f9ef0ca149855321c55e9ba9b013136",
+      "byte_identical": true,
+      "bytes": 1082782,
+      "dimensions_px": {
+        "width": 1748,
+        "height": 804
+      },
+      "copied_dimensions_px": {
+        "width": 1748,
+        "height": 804
+      }
+    },
+    {
+      "kind": "brief",
+      "original_path": "/Users/User2/.codex/attachments/eb4371e5-03d1-4e81-b897-805ec57562ce/Pasted text.txt",
+      "copied_path": "/Users/User2/Desktop/lull v.2/WarmShelfToybox/Docs/Art/Cut-Paper-Concepts-2026-11-13/Inputs/Original-Brief.txt",
+      "original_sha256": "ffd4c7f90c8ad9837bd223ac3e7b31768480d31281f1a1c3f28319c89dfae97e",
+      "copied_sha256": "ffd4c7f90c8ad9837bd223ac3e7b31768480d31281f1a1c3f28319c89dfae97e",
+      "byte_identical": true,
+      "bytes": 11284,
+      "dimensions_px": null
+    }
+  ]
+}

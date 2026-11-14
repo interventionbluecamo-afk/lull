@@ -1,0 +1,38 @@
+do, and I didn’t make it clear. They only produce a picture of the finished look so you can approve the direction. Nothing they return can go in the app. The app needs separate pieces: a background with no toys in it, and each changed prop on its own transparent background. The toys themselves don’t change, so that list is short. Send back the frames you like, or tell me which toys passed, and I’ll write the asset prompts for those.
+
+The Nat prompts below are the asset kind: one piece per image, transparent background.
+You wrote Pip once; I’ve used Nat, as the files are named. Two choices of mine are built into the prompts, so change them if you disagree:
+- Charcoal, not pure black. Warm charcoal sits with Lull’s brown ink instead of punching a hole in the pastel shelf.
+- No eyes on the two poses that react to touch. The eyes are separate paper pieces the app places, so they can follow the child’s finger and blink the way the red host’s do now.
+Run all four in one ChatGPT conversation so the paper and colour stay consistent.
+
+1. Sitting, home pose (attach nat-sitting.png)
+```
+Attached is Nat, my cut-paper cat mascot. Redraw him for my iOS toddler app, Lull. Keep his design exactly: the same round head, one tall pointed ear on the left, one folded-over ear on the right, tiny triangle nose, two round cheek dots, curled tail, the same proportions and the same simple shapes. Style: a real cut-paper collage photographed flat. Heavy matte construction paper with clearly visible fibres and tooth, clean scissor-cut edges, each layer casting a small soft shadow on the layer beneath, light from the upper left. Colours: body warm charcoal (#2B2523), not pure black; folded ear ochre (#D9A84E) with a slightly lighter underside; cheeks clay pink (#D99B7E); nose tan. No outlines, no gloss, no gradients, no text, no ground shadow, nothing else in the picture.
+
+Pose: sitting and facing the viewer, exactly as in the attached picture. Important: leave the eyes out completely. The face has only the nose and the two cheek dots, and the place where the eyes were is plain charcoal paper.
+
+Output: 1024x1024 PNG with a fully transparent background. The whole character is centred with clear space on every side and nothing cropped.
+```
+2. Peeking over an edge (attach nat-peeking.png)
+```
+Attached is Nat, my cut-paper cat mascot, peeking over an edge. Redraw him for my iOS toddler app, Lull. Keep his design exactly: the same wide rounded head, one tall pointed ear on the left, one folded-over ear on the right, two round front paws resting on the edge, the same proportions and the same simple shapes. Style: a real cut-paper collage photographed flat. Heavy matte construction paper with clearly visible fibres and tooth, clean scissor-cut edges, each layer casting a small soft shadow on the layer beneath, light from the upper left. Colours: body and paws warm charcoal (#2B2523), not pure black; folded ear ochre (#D9A84E) with a slightly lighter underside. No outlines, no gloss, no gradients, no text, no ground shadow, nothing else in the picture.
+
+Pose: exactly as in the attached picture, with the bottom of the character ending in one perfectly straight horizontal cut. Important: leave the eyes out completely; the place where the eyes were is plain charcoal paper. Keep the two paws as separate paper layers on top of the head.
+
+Output: 1024x1024 PNG with a fully transparent background. The character is centred with clear space on the top and sides and nothing cropped.
+```
+3. Sleeping (attach nat-sleeping.png)
+```
+Attached is Nat, my cut-paper cat mascot, asleep. Redraw him for my iOS toddler app, Lull. Keep his design exactly: curled up with his tail wrapped in a spiral, one tall pointed ear, one folded-over ear, two closed eyes drawn as thin downward-curving crescents, tiny triangle nose, two round cheek dots, two front paws tucked under his chin, the same proportions and the same simple shapes. Style: a real cut-paper collage photographed flat. Heavy matte construction paper with clearly visible fibres and tooth, clean scissor-cut edges, each layer casting a small soft shadow on the layer beneath, light from the upper left. Colours: body warm charcoal (#2B2523), not pure black; folded ear ochre (#D9A84E) with a slightly lighter underside; cheeks clay pink (#D99B7E); closed eyes cream (#FBF7EF); nose tan. No outlines, no gloss, no gradients, no text, no ground shadow, nothing else in the picture.
+
+Pose: exactly as in the attached picture, eyes closed.
+
+Output: 1024x1024 PNG with a fully transparent background. The whole character is centred with clear space on every side and nothing cropped.
+```
+4. Eye pieces (attach nat-sitting.png for scale)
+```
+Make three separate cut-paper pieces for the eyes of the cat in the attached picture, for my iOS toddler app, Lull. Place them side by side in one row with wide gaps between them, not touching or overlapping. Piece one: a cream paper disc (#FBF7EF), the white of one eye. Piece two: a warm charcoal paper disc (#2B2523), about 60 percent as wide as piece one, with one small cream paper dot stuck on its upper right; this is the pupil. Piece three: a thin cream paper crescent curving downward like a closed sleeping eyelid, about as wide as piece one. Style: a real cut-paper collage photographed flat. Heavy matte construction paper with clearly visible fibres and tooth, clean scissor-cut edges, light from the upper left; the small dot casts a tiny soft shadow on the pupil. No outlines, no gloss, no gradients, no text, no ground shadow, nothing else in the picture.
+
+Output: 1024x1024 PNG with a fully transparent background, the three pieces centred with clear space around each.
+```
